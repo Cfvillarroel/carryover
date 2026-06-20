@@ -14,8 +14,13 @@ fi
 [ -d "$HR_DIR/venv" ] || python3.13 -m venv "$HR_DIR/venv"
 "$HR_DIR/venv/bin/pip" install -q --upgrade pip
 "$HR_DIR/venv/bin/pip" install -q "headroom-ai[all]"   # 3.14 doesn't compile; that's why 3.13
-"$HR_DIR/venv/bin/headroom" install apply --memory \
-  ${HEADROOM_PROFILE:+--profile "$HEADROOM_PROFILE"} ${HEADROOM_PORT:+--port "$HEADROOM_PORT"}   # persistent proxy + routing + memory
+if "$HR_DIR/venv/bin/headroom" install status >/dev/null 2>&1; then
+  echo "    deployment already present and healthy — skipping apply (idempotent)"
+else
+  "$HR_DIR/venv/bin/headroom" install apply --memory \
+    ${HEADROOM_PROFILE:+--profile "$HEADROOM_PROFILE"} ${HEADROOM_PORT:+--port "$HEADROOM_PORT"} \
+    || echo "    ⚠️  'headroom install apply' failed (commonly launchctl from a non-interactive shell). Re-run it once in YOUR terminal to enable the persistent service — the rest of the install continues."
+fi
 
 echo "==> 2/4 Claude plugins (ponytail + headroom)"
 claude plugin marketplace add DietrichGebert/ponytail 2>/dev/null || true
