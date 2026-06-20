@@ -38,6 +38,7 @@ PY
 # hook "guardar en memoria al final": symlink del script + merge idempotente de hooks
 mkdir -p "$HOME/.claude/hooks"
 ln -sf "$SETUP_DIR/claude/hooks/headroom-mem-prompt.sh" "$HOME/.claude/hooks/headroom-mem-prompt.sh"
+ln -sf "$SETUP_DIR/claude/hooks/mem-save.sh" "$HOME/.claude/hooks/mem-save.sh"
 python3 - "$HOME/.claude/settings.json" "$HOME/.claude/hooks/headroom-mem-prompt.sh" <<'PY'
 import json, os, sys
 path, hook = sys.argv[1], sys.argv[2]

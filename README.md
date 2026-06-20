@@ -9,6 +9,17 @@
 
 ## Why this exists · Por qué existe
 
+**Motivation (EN).** Lately I've been working across several different tools, and the
+real pain is that you can't carry context from one to another — so you start over,
+again and again, re‑explaining the same project every time. This combination of tools
+exists to fix that: a shared, persistent memory and a leaner agent that travels with you.
+
+**Motivación (ES).** Últimamente he estado trabajando con varias herramientas
+distintas, y el problema es que no puedes traspasar el contexto entre una y otra — así
+que tienes que **volver a empezar una y otra vez**, re‑explicando el mismo proyecto
+cada vez. Esta combinación de herramientas busca solucionar justo eso: una memoria
+compartida y persistente, y un agente más ligero que te acompaña.
+
 **The problem (EN).** AI coding agents burn tokens fast — tool outputs, logs, file
 dumps and long histories pile up and you pay for all of it. They also forget
 everything between sessions and projects, and wiring up the tooling that fixes this
@@ -34,6 +45,53 @@ What you get / Qué incluye:
 - Status bar **🐴/🧠**, `/headroom` command, terminal aliases.
 - **Auto‑wiki** on push to master/main (LLM writes docs + mermaid diagrams).
 - **End‑of‑session prompt** to save what you learned to memory.
+
+---
+
+## Works with · Funciona con
+
+The shared memory + token compression work with **any agent that routes through the
+local headroom proxy** — so context follows you from tool to tool instead of starting
+over. La memoria compartida y la compresión funcionan con cualquier agente que pase por
+el proxy local de headroom.
+
+| Tool | Compression + shared memory | Claude extras (🐴/🧠, `/headroom`, save‑to‑memory) |
+|------|:---------------------------:|:---:|
+| Claude Code | ✅ auto (installer) | ✅ |
+| Conductor | ✅ auto (corre Claude Code) | ✅ |
+| Cursor | ✅ `headroom wrap cursor` (pega la config) | — |
+| Windsurf / Devin | ✅ OpenAI‑compatible → base URL `http://127.0.0.1:8787/v1` | — |
+| Codex / Copilot / Aider / Cline / Continue / Goose | ✅ `headroom wrap <tool>` | — |
+
+The 🐴/🧠 status bar, `/headroom` and the save‑to‑memory prompt are Claude Code
+features; other tools still share the **same memory store**. · La barra 🐴/🧠,
+`/headroom` y el guardado en memoria son de Claude Code; las demás herramientas igual
+comparten el **mismo store de memoria**.
+
+## Install scope · Alcance de instalación
+
+- **Global (once per Mac · una vez por Mac):** headroom proxy + memory + Claude config.
+  By design / a propósito — es lo que hace que el contexto sea compartido entre todos
+  los repos y herramientas.
+- **Per repo / a set of repos · un repo o varios:** the **wiki** capability — run
+  `wiki-enable` in each repo you want (one, several or all); installs a `pre-push` hook
+  only there.
+- Memory is global but internally scoped · La memoria es global pero con scope interno:
+  `USER` = compartida entre repos, `project` = por workspace.
+
+## Direct install · Instalación directa
+
+You don't need this repo — install the tools directly. No necesitas este repo, puedes
+instalar las herramientas directamente:
+
+```bash
+pip install "headroom-ai[all]" && headroom install apply --memory   # proxy + memoria global
+claude plugin marketplace add DietrichGebert/ponytail && claude plugin install ponytail@ponytail
+```
+
+This repo just bundles that into one idempotent command + the wiki, status bar and
+memory prompt. Este repo solo lo empaqueta en un comando idempotente + la wiki, la
+barra de estado y el prompt de memoria.
 
 ---
 
@@ -227,6 +285,9 @@ git -C ~/claude-agent-setup pull && bash ~/claude-agent-setup/install.sh
 
 ## Credits · Créditos
 
-Installation layer over [headroom](https://github.com/chopratejas/headroom) and
-[ponytail](https://github.com/DietrichGebert/ponytail). Thanks to their authors.
-Licensed [MIT](LICENSE).
+This is only an installation/glue layer. The real work is by:
+
+- **headroom** — [@chopratejas](https://github.com/chopratejas) · https://github.com/chopratejas/headroom
+- **ponytail** — [@DietrichGebert](https://github.com/DietrichGebert) · https://github.com/DietrichGebert/ponytail
+
+Huge thanks to their creators / Mil gracias a sus creadores. Licensed [MIT](LICENSE).

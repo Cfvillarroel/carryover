@@ -59,9 +59,14 @@ memoria y ahorro. También `/headroom list --scope USER`, `/headroom show <id>`,
 hr install status                 # Status: running · Healthy: yes
 curl -fsS http://127.0.0.1:8787/readyz   # {"status":"healthy",...}
 echo $ANTHROPIC_BASE_URL          # dentro de una sesión Claude → http://127.0.0.1:8787
-hr memory stats                   # memoria acumulada
+hr memory stats                   # memoria acumulada (alias ya apunta al store del proxy)
 hr memory list --scope USER       # memorias compartidas entre repos
 ```
+
+> ⚠️ Importante: el CLI `headroom memory` por defecto usa `./headroom_memory.db` del
+> directorio actual, NO el store del proxy. Por eso los aliases `hr-mem`/`hr-stats`
+> añaden `--db-path "$HOME/.headroom/memory.db"`. Para guardar a mano una memoria en
+> ese store: `mem-save "lo que quieras recordar"`.
 
 ---
 
