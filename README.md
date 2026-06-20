@@ -1,4 +1,4 @@
-# claude-agent-setup
+# carryover
 
 > One command to set up a **leaner, cheaper, memory-equipped** Claude Code + Conductor environment on macOS.
 > Un comando para montar un entorno Claude Code + Conductor **más barato, ligero y con memoria**, en macOS.
@@ -104,8 +104,8 @@ macOS · `brew install python@3.13` · Claude Code (`claude`) in your PATH.
 ## Install
 
 ```bash
-git clone https://github.com/Cfvillarroel/claude-agent-setup.git ~/claude-agent-setup
-bash ~/claude-agent-setup/install.sh
+git clone https://github.com/Cfvillarroel/carryover.git ~/carryover
+bash ~/carryover/install.sh
 ```
 
 Then open a new terminal (or `source ~/.zshrc`) and restart Claude.
@@ -159,7 +159,7 @@ publishing to the GitHub wiki is optional.
 
 ```bash
 cd /path/to/your/project
-wiki-enable                 # or: bash ~/claude-agent-setup/wiki/install-wiki.sh
+wiki-enable                 # or: bash ~/carryover/wiki/install-wiki.sh
 ```
 
 Installs a `pre-push` hook + `wiki/gen-wiki.sh`. On push it regenerates `wiki/`
@@ -184,7 +184,7 @@ hr install remove        # removes service + routing
 ## Update
 
 ```bash
-git -C ~/claude-agent-setup pull && bash ~/claude-agent-setup/install.sh
+git -C ~/carryover pull && bash ~/carryover/install.sh
 ```
 
 ---
@@ -198,8 +198,8 @@ macOS · `brew install python@3.13` · Claude Code (`claude`) en el PATH.
 ## Instalar
 
 ```bash
-git clone https://github.com/Cfvillarroel/claude-agent-setup.git ~/claude-agent-setup
-bash ~/claude-agent-setup/install.sh
+git clone https://github.com/Cfvillarroel/carryover.git ~/carryover
+bash ~/carryover/install.sh
 ```
 
 Luego abre una terminal nueva (o `source ~/.zshrc`) y reinicia Claude.
@@ -253,7 +253,7 @@ defecto; publicar al wiki de GitHub es opcional.
 
 ```bash
 cd /ruta/a/tu/proyecto
-wiki-enable                 # o: bash ~/claude-agent-setup/wiki/install-wiki.sh
+wiki-enable                 # o: bash ~/carryover/wiki/install-wiki.sh
 ```
 
 Instala un hook `pre-push` + `wiki/gen-wiki.sh`. Al pushear regenera `wiki/`
@@ -278,7 +278,7 @@ hr install remove        # quita servicio + routing
 ## Actualizar
 
 ```bash
-git -C ~/claude-agent-setup pull && bash ~/claude-agent-setup/install.sh
+git -C ~/carryover pull && bash ~/carryover/install.sh
 ```
 
 ---
