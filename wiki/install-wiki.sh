@@ -16,8 +16,9 @@ TARGET="${1:-$(git rev-parse --show-toplevel 2>/dev/null || true)}"
 
 mkdir -p "$TARGET/wiki"
 cp "$SRC/gen-wiki.sh" "$TARGET/wiki/gen-wiki.sh"; chmod +x "$TARGET/wiki/gen-wiki.sh"
-HOOK="$(git -C "$TARGET" rev-parse --git-path hooks)/pre-push"
-cp "$SRC/pre-push" "$HOOK"; chmod +x "$HOOK"
+HOOK_DIR="$(git -C "$TARGET" rev-parse --absolute-git-dir)/hooks"
+mkdir -p "$HOOK_DIR"
+cp "$SRC/pre-push" "$HOOK_DIR/pre-push"; chmod +x "$HOOK_DIR/pre-push"
 grep -qxF "wiki/.gen.log" "$TARGET/.gitignore" 2>/dev/null || echo "wiki/.gen.log" >> "$TARGET/.gitignore"
 
 # register this repo so the carryover dashboard (co-dash) can find its wiki
