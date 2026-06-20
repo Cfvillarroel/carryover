@@ -9,4 +9,23 @@ alias hr-save="hr output-savings"               # tokens ahorrados
 alias mem-save="bash $HOME/.claude/hooks/mem-save.sh"  # guardar una memoria a mano
 alias hr-on="hr install start"                  # arrancar proxy
 alias hr-off="hr install stop"                  # parar proxy
+
+# carryover: habilitar/deshabilitar el routing por headroom (global + sesión actual)
+carryover() {
+  local p="http://127.0.0.1:${HEADROOM_PORT:-8787}"
+  case "$1" in
+    on)
+      [ "$2" = "--session" ] || bash "$HOME/.claude/hooks/carryover-toggle.sh" on
+      export ANTHROPIC_BASE_URL="$p" OPENAI_BASE_URL="$p/v1"
+      echo "carryover: ON en esta shell${2:+ (solo sesión)}";;
+    off)
+      [ "$2" = "--session" ] || bash "$HOME/.claude/hooks/carryover-toggle.sh" off
+      unset ANTHROPIC_BASE_URL OPENAI_BASE_URL
+      echo "carryover: OFF en esta shell${2:+ (solo sesión)}";;
+    status|"") bash "$HOME/.claude/hooks/carryover-toggle.sh" status;;
+    *) echo "uso: carryover on|off [--session]|status";;
+  esac
+}
+# aplicar bypass global en shells nuevas (lo pone 'carryover off')
+[ -f "$HOME/.headroom/.bypass" ] && unset ANTHROPIC_BASE_URL OPENAI_BASE_URL
 # <<< headroom aliases <<<

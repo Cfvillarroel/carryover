@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Instala mi setup (headroom + ponytail + config de Claude) en esta máquina.
-# Idempotente: se puede re-ejecutar. Uso: bash ~/.conductor/setup/install.sh
+# Idempotente: se puede re-ejecutar. Uso: bash <repo>/install.sh
+# Env opcional: HEADROOM_PORT / HEADROOM_PROFILE para correrlo aislado (testing).
 set -euo pipefail
 
 SETUP_DIR="$(cd "$(dirname "$0")" && pwd)"   # .../.conductor/setup
@@ -13,7 +14,8 @@ fi
 [ -d "$HR_DIR/venv" ] || python3.13 -m venv "$HR_DIR/venv"
 "$HR_DIR/venv/bin/pip" install -q --upgrade pip
 "$HR_DIR/venv/bin/pip" install -q "headroom-ai[all]"   # 3.14 no compila; por eso 3.13
-"$HR_DIR/venv/bin/headroom" install apply --memory      # proxy persistente + routing + memoria
+"$HR_DIR/venv/bin/headroom" install apply --memory \
+  ${HEADROOM_PROFILE:+--profile "$HEADROOM_PROFILE"} ${HEADROOM_PORT:+--port "$HEADROOM_PORT"}   # proxy persistente + routing + memoria
 
 echo "==> 2/4 plugins de Claude (ponytail + headroom)"
 claude plugin marketplace add DietrichGebert/ponytail 2>/dev/null || true
@@ -39,6 +41,7 @@ PY
 mkdir -p "$HOME/.claude/hooks"
 ln -sf "$SETUP_DIR/claude/hooks/headroom-mem-prompt.sh" "$HOME/.claude/hooks/headroom-mem-prompt.sh"
 ln -sf "$SETUP_DIR/claude/hooks/mem-save.sh" "$HOME/.claude/hooks/mem-save.sh"
+ln -sf "$SETUP_DIR/claude/hooks/carryover-toggle.sh" "$HOME/.claude/hooks/carryover-toggle.sh"
 python3 - "$HOME/.claude/settings.json" "$HOME/.claude/hooks/headroom-mem-prompt.sh" <<'PY'
 import json, os, sys
 path, hook = sys.argv[1], sys.argv[2]
