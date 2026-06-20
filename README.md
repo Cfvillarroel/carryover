@@ -1,10 +1,30 @@
-# 💼 carryover
+<div align="center">
+<pre>
+ ██████╗ █████╗ ██████╗ ██████╗ ██╗   ██╗ ██████╗ ██╗   ██╗███████╗██████╗
+██╔════╝██╔══██╗██╔══██╗██╔══██╗╚██╗ ██╔╝██╔═══██╗██║   ██║██╔════╝██╔══██╗
+██║     ███████║██████╔╝██████╔╝ ╚████╔╝ ██║   ██║██║   ██║█████╗  ██████╔╝
+██║     ██╔══██║██╔══██╗██╔══██╗  ╚██╔╝  ██║   ██║╚██╗ ██╔╝██╔══╝  ██╔══██╗
+╚██████╗██║  ██║██║  ██║██║  ██║   ██║   ╚██████╔╝ ╚████╔╝ ███████╗██║  ██║
+ ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝    ╚═════╝   ╚═══╝  ╚══════╝╚═╝  ╚═╝
+</pre>
 
-> Your context, carried across AI coding tools — Claude Code, Cursor, Windsurf, Conductor
-> and any OpenAI/Anthropic‑compatible agent. One install: shared persistent memory +
-> token compression + a leaner agent. Tool‑agnostic, not tied to any single one.
+💼 <strong>Your context, carried across AI coding tools.</strong>
 
-**[English](#english) · [Español](#español)**
+<sub>shared persistent memory · 60–95% fewer tokens · leaner agent · auto-wiki · save-to-memory<br/>
+Claude Code · Cursor · Windsurf · Conductor — one install · 100% local</sub>
+
+<p>
+<a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
+<img src="https://img.shields.io/badge/platform-macOS-black.svg" alt="Platform: macOS">
+<img src="https://img.shields.io/badge/local--first-yes-success.svg" alt="local-first">
+<a href="https://github.com/chopratejas/headroom"><img src="https://img.shields.io/badge/built%20on-headroom-orange.svg" alt="built on headroom"></a>
+<a href="https://github.com/DietrichGebert/ponytail"><img src="https://img.shields.io/badge/built%20on-ponytail-ff69b4.svg" alt="built on ponytail"></a>
+<a href="https://github.com/Cfvillarroel/carryover/stargazers"><img src="https://img.shields.io/github/stars/Cfvillarroel/carryover?style=social" alt="GitHub stars"></a>
+</p>
+
+<strong><a href="#english">English</a> · <a href="#español">Español</a> · <a href="#install">Install</a></strong>
+
+</div>
 
 ---
 
