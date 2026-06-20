@@ -26,9 +26,10 @@ claude plugin install headroom@headroom-marketplace    2>/dev/null || true
 echo "==> 3/4 ~/.claude config (symlinks to the repo)"
 mkdir -p "$HOME/.claude/commands"
 ln -sf "$SETUP_DIR/claude/statusline.sh"        "$HOME/.claude/statusline.sh"
-ln -sf "$SETUP_DIR/claude/commands/headroom.md" "$HOME/.claude/commands/headroom.md"
+for c in "$SETUP_DIR"/claude/commands/*.md; do ln -sf "$c" "$HOME/.claude/commands/$(basename "$c")"; done
 ln -sf "$SETUP_DIR/GUIA.md"                      "$HR_DIR/GUIA.md"
 ln -sf "$SETUP_DIR/dash/carryover-dash.py"       "$HR_DIR/carryover-dash.py"   # 'co-dash' alias target
+ln -sf "$SETUP_DIR/wiki/install-wiki.sh"         "$HR_DIR/install-wiki.sh"     # 'wiki-enable' alias target
 # statusLine in settings.json: set the key without clobbering the rest (hooks/env/plugins)
 python3 - "$HOME/.claude/settings.json" "$HOME/.claude/statusline.sh" <<'PY'
 import json, os, sys
@@ -63,13 +64,6 @@ PY
 echo "==> 4/4 aliases in ~/.zshrc (headroom + wiki-enable)"
 if ! grep -qF ">>> headroom aliases >>>" "$HOME/.zshrc" 2>/dev/null; then
   cat "$SETUP_DIR/zshrc.snippet" >> "$HOME/.zshrc"
-fi
-if ! grep -qF ">>> wiki-enable alias >>>" "$HOME/.zshrc" 2>/dev/null; then
-  {
-    echo "# >>> wiki-enable alias >>>"
-    echo "alias wiki-enable=\"bash '$SETUP_DIR/wiki/install-wiki.sh'\""  # enables the wiki in the current repo
-    echo "# <<< wiki-enable alias <<<"
-  } >> "$HOME/.zshrc"
 fi
 
 echo

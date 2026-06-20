@@ -1,0 +1,10 @@
+description = "Enable carryover's auto-wiki in the current repo (pre-push hook)"
+prompt = """Enable the carryover auto-wiki in the current repository. Run via Bash:
+
+```bash
+bash ~/.headroom/install-wiki.sh "$(git rev-parse --show-toplevel)"
+```
+
+Then briefly tell the user what it set up: a `pre-push` hook that regenerates the `wiki/`
+folder (Home, Architecture, Flows with mermaid, Changelog) on push to master/main using
+`claude -p`, and that the repo is registered so it shows up in the `co-dash` dashboard."""
