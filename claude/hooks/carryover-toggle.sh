@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Toggle GLOBAL del routing de headroom para Claude Code, quirúrgico y reversible.
-# El proxy sigue corriendo; solo cambia si Claude pasa por él (ON) o va directo (OFF).
-# off: quita env.ANTHROPIC_BASE_URL de settings.json + pone un guard al hook SessionStart
-#      de headroom (para que no la re-inyecte) + crea el flag de bypass para las shells.
-# on:  revierte (quita guard, restaura env, borra flag).
+# GLOBAL toggle for headroom routing in Claude Code, surgical and reversible.
+# The proxy keeps running; this only changes whether Claude goes through it (ON) or direct (OFF).
+# off: removes env.ANTHROPIC_BASE_URL from settings.json + adds a guard to headroom's
+#      SessionStart hook (so it doesn't re-inject it) + creates the bypass flag for shells.
+# on:  reverts (removes guard, restores env, deletes flag).
 set -euo pipefail
 SETTINGS="$HOME/.claude/settings.json"
 FLAG="$HOME/.headroom/.bypass"
@@ -26,7 +26,7 @@ for e in d.get("hooks", {}).get("SessionStart", []):
             h["command"] = guard + c
 json.dump(d, open(path, "w"), indent=2, ensure_ascii=False)
 PY
-    echo "carryover: OFF — Claude irá directo a Anthropic en sesiones nuevas (el proxy sigue vivo)";;
+    echo "carryover: OFF — Claude will go direct to Anthropic in new sessions (the proxy stays alive)";;
   on)
     rm -f "$FLAG"
     python3 - "$SETTINGS" "$GUARD" "$PORT" <<'PY'
@@ -41,10 +41,10 @@ for e in d.get("hooks", {}).get("SessionStart", []):
             h["command"] = h["command"][len(guard):]
 json.dump(d, open(path, "w"), indent=2, ensure_ascii=False)
 PY
-    echo "carryover: ON — Claude enruta por headroom en sesiones nuevas";;
+    echo "carryover: ON — Claude routes through headroom in new sessions";;
   status)
     [ -f "$FLAG" ] && echo "global: OFF (bypass)" || echo "global: ON"
-    grep -q '"ANTHROPIC_BASE_URL"' "$SETTINGS" 2>/dev/null && echo "settings.json: routing presente" || echo "settings.json: sin routing"
+    grep -q '"ANTHROPIC_BASE_URL"' "$SETTINGS" 2>/dev/null && echo "settings.json: routing present" || echo "settings.json: no routing"
     "$HOME/.headroom/venv/bin/headroom" install status 2>/dev/null | grep -iE "Status|Healthy" | sed 's/^/proxy: /' || true;;
-  *) echo "uso: carryover-toggle.sh on|off|status"; exit 1;;
+  *) echo "usage: carryover-toggle.sh on|off|status"; exit 1;;
 esac

@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
-# ponytail: statusline propio (no editar el del plugin, se sobrescribe al actualizar).
-# Muestra 🐴 si ponytail está activo y 🗜️ si el proxy de headroom responde.
-# Para cambiar los emojis, edita estas dos líneas:
+# ponytail: custom statusline (don't edit the plugin's, it gets overwritten on update).
+# Shows 🐴 if ponytail is active and 🗜️ if the headroom proxy responds.
+# To change the emojis, edit these two lines:
 PONY_EMOJI="🐴"
 HR_EMOJI="🧠"
 
-cat >/dev/null 2>&1   # drena el JSON de sesión que Claude pasa por stdin
+cat >/dev/null 2>&1   # drains the session JSON that Claude passes via stdin
 
 out=""
 
-# --- ponytail: lee su flag de estado ---
+# --- ponytail: read its status flag ---
 flag="$HOME/.claude/.ponytail-active"
 if [ -f "$flag" ]; then
     mode=$(head -n1 "$flag" | tr -d '[:space:]')
@@ -20,7 +20,7 @@ if [ -f "$flag" ]; then
     fi
 fi
 
-# --- headroom: ¿proxy escuchando en 8787? (TCP puro, sin spawnear procesos) ---
+# --- headroom: is the proxy listening on 8787? (pure TCP, no spawning processes) ---
 if (exec 3<>/dev/tcp/127.0.0.1/8787) 2>/dev/null; then
     exec 3>&- 3<&-
     out="${out:+$out }$HR_EMOJI"

@@ -1,92 +1,92 @@
-# Headroom — Guía rápida
+# Headroom — Quick guide
 
-Capa de compresión de contexto para LLMs. Comprime lo que Claude lee/escribe
-antes de llegar a la API → menos tokens, mismas respuestas. Memoria compartida
-entre repos. Instalado durablemente el 2026-06-19.
+Context compression layer for LLMs. Compresses what Claude reads/writes
+before it reaches the API → fewer tokens, same responses. Memory shared
+across repos. Installed durably on 2026-06-19.
 
 Repo: https://github.com/chopratejas/headroom
 
 ---
 
-## Qué quedó instalado
+## What got installed
 
-- **Servicio** `com.headroom.default` (launchd, arranca solo al reiniciar el Mac).
-  Proxy en `http://127.0.0.1:8787`.
-- **Claude enrutado a scope usuario** en `~/.claude/settings.json`
-  (`env.ANTHROPIC_BASE_URL` + hooks). Aplica a **todos** los workspaces de Conductor.
-- **Memoria:** global `~/.headroom/memory.db` (scope USER = compartida entre repos)
-  + per-proyecto en `~/.headroom/memories/projects/<workspace>/`.
-- **CLI:** `~/.headroom/venv/bin/headroom` (servicio) y `~/.pipx/venvs/headroom-ai/bin/headroom` (hooks). Ambos 0.26.0, Python 3.13.
-- Plugin Claude Code `headroom@headroom-marketplace` habilitado.
+- **Service** `com.headroom.default` (launchd, starts on its own when the Mac reboots).
+  Proxy at `http://127.0.0.1:8787`.
+- **Claude routed at the user scope** in `~/.claude/settings.json`
+  (`env.ANTHROPIC_BASE_URL` + hooks). Applies to **all** Conductor workspaces.
+- **Memory:** global `~/.headroom/memory.db` (USER scope = shared across repos)
+  + per-project in `~/.headroom/memories/projects/<workspace>/`.
+- **CLI:** `~/.headroom/venv/bin/headroom` (service) and `~/.pipx/venvs/headroom-ai/bin/headroom` (hooks). Both 0.26.0, Python 3.13.
+- Claude Code plugin `headroom@headroom-marketplace` enabled.
 
-Tip: alias para no escribir la ruta:
+Tip: alias so you don't have to type the path:
 ```bash
 echo 'alias hr=~/.headroom/venv/bin/headroom' >> ~/.zshrc && source ~/.zshrc
 ```
 
 ---
 
-## Usarlo en cualquier workspace
+## Using it in any workspace
 
-**No hay que instalar nada por-repo.** El routing es global. Solo:
+**There's nothing to install per-repo.** Routing is global. Just:
 
-- Abre una sesión **nueva** de Claude en el workspace → ya pasa por headroom.
-- Sesiones ya abiertas: ciérralas y reábrelas (el `ANTHROPIC_BASE_URL` se lee al arrancar).
+- Open a **new** Claude session in the workspace → it already goes through headroom.
+- Already-open sessions: close and reopen them (`ANTHROPIC_BASE_URL` is read at startup).
 
 ---
 
-## Comandos fáciles
+## Easy commands
 
-**Aliases** (en `~/.zshrc`, abre una terminal nueva o `source ~/.zshrc`):
+**Aliases** (in `~/.zshrc`, open a new terminal or `source ~/.zshrc`):
 
-| Alias | Hace |
+| Alias | Does |
 |-------|------|
-| `hr` | CLI base de headroom |
-| `hr-status` | ¿proxy arriba/sano? |
-| `hr-mem` | memorias guardadas |
-| `hr-stats` | resumen de memoria |
-| `hr-save` | tokens ahorrados |
-| `hr-on` / `hr-off` | arrancar / parar el proxy |
+| `hr` | base headroom CLI |
+| `hr-status` | is the proxy up/healthy? |
+| `hr-mem` | saved memories |
+| `hr-stats` | memory summary |
+| `hr-save` | tokens saved |
+| `hr-on` / `hr-off` | start / stop the proxy |
 
-**Dentro de Claude** (cualquier workspace): escribe `/headroom` → resumen de proxy,
-memoria y ahorro. También `/headroom list --scope USER`, `/headroom show <id>`, etc.
+**Inside Claude** (any workspace): type `/headroom` → summary of proxy,
+memory and savings. Also `/headroom list --scope USER`, `/headroom show <id>`, etc.
 
 ---
 
-## Verificar
+## Verify
 
 ```bash
 hr install status                 # Status: running · Healthy: yes
 curl -fsS http://127.0.0.1:8787/readyz   # {"status":"healthy",...}
-echo $ANTHROPIC_BASE_URL          # dentro de una sesión Claude → http://127.0.0.1:8787
-hr memory stats                   # memoria acumulada (alias ya apunta al store del proxy)
-hr memory list --scope USER       # memorias compartidas entre repos
+echo $ANTHROPIC_BASE_URL          # inside a Claude session → http://127.0.0.1:8787
+hr memory stats                   # accumulated memory (alias already points to the proxy store)
+hr memory list --scope USER       # memories shared across repos
 ```
 
-> ⚠️ Importante: el CLI `headroom memory` por defecto usa `./headroom_memory.db` del
-> directorio actual, NO el store del proxy. Por eso los aliases `hr-mem`/`hr-stats`
-> añaden `--db-path "$HOME/.headroom/memory.db"`. Para guardar a mano una memoria en
-> ese store: `mem-save "lo que quieras recordar"`.
+> ⚠️ Important: by default the `headroom memory` CLI uses `./headroom_memory.db` from the
+> current directory, NOT the proxy store. That's why the `hr-mem`/`hr-stats` aliases
+> add `--db-path "$HOME/.headroom/memory.db"`. To save a memory to that store by hand:
+> `mem-save "whatever you want to remember"`.
 
 ---
 
-## Gestionar
+## Manage
 
 ```bash
-hr install start | stop | restart   # control del servicio
-hr install status                   # estado
-hr install remove                   # DESINSTALAR todo (quita routing + servicio)
+hr install start | stop | restart   # control the service
+hr install status                   # status
+hr install remove                   # UNINSTALL everything (removes routing + service)
 ```
 
-⚠️ Si el proxy se cae, las sesiones de Claude **fallan** hasta `hr install start`
-(o `hr install remove` para volver a tráfico directo).
+⚠️ If the proxy goes down, Claude sessions **fail** until `hr install start`
+(or `hr install remove` to go back to direct traffic).
 
 ---
 
-## Problemas comunes
+## Common problems
 
-- **Claude falla / cuelga** → ¿proxy caído? `hr install status`; si no, `hr install start`.
-- **No comprime en una sesión** → `echo $ANTHROPIC_BASE_URL` vacío = sesión vieja, reiníciala.
-- **Volver a la normalidad rápido** → `hr install remove` (Claude vuelve a ir directo a Anthropic).
-- **No reinstalar con 3.14** → la extensión Rust no compila; el venv usa Python 3.13.
-- **No borrar `~/.headroom/venv`** sin antes `hr install remove`: respalda el servicio.
+- **Claude fails / hangs** → proxy down? `hr install status`; if not, `hr install start`.
+- **Not compressing in a session** → empty `echo $ANTHROPIC_BASE_URL` = old session, restart it.
+- **Get back to normal fast** → `hr install remove` (Claude goes back to talking directly to Anthropic).
+- **Don't reinstall with 3.14** → the Rust extension won't compile; the venv uses Python 3.13.
+- **Don't delete `~/.headroom/venv`** without `hr install remove` first: it backs the service.

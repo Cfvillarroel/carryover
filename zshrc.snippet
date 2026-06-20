@@ -1,31 +1,31 @@
 
 # >>> headroom aliases >>>
-export HEADROOM_DB="$HOME/.headroom/memory.db"   # store real del proxy (no el ./headroom_memory.db del cwd)
-alias hr="$HOME/.headroom/venv/bin/headroom"     # CLI base
-alias hr-status="hr install status"              # ¿proxy arriba/sano?
-alias hr-mem="hr memory list --db-path \"$HEADROOM_DB\""    # memorias guardadas
-alias hr-stats="hr memory stats --db-path \"$HEADROOM_DB\"" # resumen de memoria
-alias hr-save="hr output-savings"               # tokens ahorrados
-alias mem-save="bash $HOME/.claude/hooks/mem-save.sh"  # guardar una memoria a mano
-alias hr-on="hr install start"                  # arrancar proxy
-alias hr-off="hr install stop"                  # parar proxy
+export HEADROOM_DB="$HOME/.headroom/memory.db"   # the proxy's real store (not the cwd's ./headroom_memory.db)
+alias hr="$HOME/.headroom/venv/bin/headroom"     # base CLI
+alias hr-status="hr install status"              # is the proxy up/healthy?
+alias hr-mem="hr memory list --db-path \"$HEADROOM_DB\""    # saved memories
+alias hr-stats="hr memory stats --db-path \"$HEADROOM_DB\"" # memory summary
+alias hr-save="hr output-savings"               # tokens saved
+alias mem-save="bash $HOME/.claude/hooks/mem-save.sh"  # save a memory by hand
+alias hr-on="hr install start"                  # start proxy
+alias hr-off="hr install stop"                  # stop proxy
 
-# carryover: habilitar/deshabilitar el routing por headroom (global + sesión actual)
+# carryover: enable/disable routing through headroom (global + current session)
 carryover() {
   local p="http://127.0.0.1:${HEADROOM_PORT:-8787}"
   case "$1" in
     on)
       [ "$2" = "--session" ] || bash "$HOME/.claude/hooks/carryover-toggle.sh" on
       export ANTHROPIC_BASE_URL="$p" OPENAI_BASE_URL="$p/v1"
-      echo "carryover: ON en esta shell${2:+ (solo sesión)}";;
+      echo "carryover: ON in this shell${2:+ (session only)}";;
     off)
       [ "$2" = "--session" ] || bash "$HOME/.claude/hooks/carryover-toggle.sh" off
       unset ANTHROPIC_BASE_URL OPENAI_BASE_URL
-      echo "carryover: OFF en esta shell${2:+ (solo sesión)}";;
+      echo "carryover: OFF in this shell${2:+ (session only)}";;
     status|"") bash "$HOME/.claude/hooks/carryover-toggle.sh" status;;
-    *) echo "uso: carryover on|off [--session]|status";;
+    *) echo "usage: carryover on|off [--session]|status";;
   esac
 }
-# aplicar bypass global en shells nuevas (lo pone 'carryover off')
+# apply global bypass in new shells (set by 'carryover off')
 [ -f "$HOME/.headroom/.bypass" ] && unset ANTHROPIC_BASE_URL OPENAI_BASE_URL
 # <<< headroom aliases <<<

@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
-# Guarda una memoria en el store REAL del proxy de headroom (~/.headroom/memory.db).
-# Fallback fiable cuando la tool memory_save no está disponible.
-# Uso:  mem-save.sh "texto a recordar" [importancia 0-1]
-#       echo "texto" | mem-save.sh
+# Saves a memory to the REAL store of the headroom proxy (~/.headroom/memory.db).
+# Reliable fallback when the memory_save tool is not available.
+# Usage:  mem-save.sh "text to remember" [importance 0-1]
+#         echo "text" | mem-save.sh
 set -euo pipefail
 DB="${HEADROOM_DB:-$HOME/.headroom/memory.db}"
 PY="$HOME/.headroom/venv/bin/python"
 HR="$HOME/.headroom/venv/bin/headroom"
-[ -x "$HR" ] || { echo "mem-save: headroom no instalado"; exit 1; }
+[ -x "$HR" ] || { echo "mem-save: headroom not installed"; exit 1; }
 content="${1:-$(cat)}"
 imp="${2:-0.7}"
-[ -n "$content" ] || { echo "mem-save: contenido vacío"; exit 1; }
+[ -n "$content" ] || { echo "mem-save: empty content"; exit 1; }
 
 tmp="$(mktemp).json"
 HEADROOM_USER_ID="${HEADROOM_USER_ID:-$(whoami)}" "$PY" - "$tmp" "$content" "$imp" <<'PY'
@@ -26,5 +26,5 @@ json.dump([{
     "metadata": {"source": "mem-save"},
 }], open(sys.argv[1], "w"))
 PY
-"$HR" memory import "$tmp" --db-path "$DB" --force >/dev/null && echo "mem-save: guardado en $DB"
+"$HR" memory import "$tmp" --db-path "$DB" --force >/dev/null && echo "mem-save: saved to $DB"
 rm -f "$tmp"
