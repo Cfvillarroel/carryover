@@ -35,9 +35,16 @@ d["statusLine"] = {"type": "command", "command": f'bash "{sl}"'}
 json.dump(d, open(path, "w"), indent=2, ensure_ascii=False)
 PY
 
-echo "==> 4/4 aliases en ~/.zshrc"
+echo "==> 4/4 aliases en ~/.zshrc (headroom + wiki-enable)"
 if ! grep -qF ">>> headroom aliases >>>" "$HOME/.zshrc" 2>/dev/null; then
   cat "$SETUP_DIR/zshrc.snippet" >> "$HOME/.zshrc"
+fi
+if ! grep -qF ">>> wiki-enable alias >>>" "$HOME/.zshrc" 2>/dev/null; then
+  {
+    echo "# >>> wiki-enable alias >>>"
+    echo "alias wiki-enable=\"bash '$SETUP_DIR/wiki/install-wiki.sh'\""  # activa la wiki en el repo actual
+    echo "# <<< wiki-enable alias <<<"
+  } >> "$HOME/.zshrc"
 fi
 
 echo

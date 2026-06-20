@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Hook pre-push: al pushear a master/main, regenera la wiki LOCAL en segundo plano
+# (no bloquea el push). Instálalo con install-wiki.sh.
+DIR="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
+GEN="$DIR/wiki/gen-wiki.sh"
+[ -x "$GEN" ] || exit 0
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  case "$remote_ref" in
+    refs/heads/master|refs/heads/main)
+      range="$remote_sha..$local_sha"
+      [ "$remote_sha" = "0000000000000000000000000000000000000000" ] && range="$local_sha"
+      nohup bash "$GEN" "$range" >>"$DIR/wiki/.gen.log" 2>&1 &
+      echo "wiki: regenerando en segundo plano → $DIR/wiki/ (log: wiki/.gen.log)"
+      ;;
+  esac
+done
+exit 0

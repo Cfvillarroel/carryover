@@ -127,6 +127,29 @@ bash ~/claude-agent-setup/install.sh   # re-aplica (idempotente)
 
 ---
 
+## Wiki automática (formato GitHub Wiki, local)
+
+Genera/actualiza una wiki del proyecto **al hacer push a master/main**, usando
+Claude headless (`claude -p`) para entender el diff y dibujar diagramas mermaid.
+Local por defecto; publicar al wiki de GitHub es opcional.
+
+Activar en un repo de proyecto:
+
+```bash
+cd /ruta/a/tu/proyecto
+wiki-enable          # alias; o: bash ~/claude-agent-setup/wiki/install-wiki.sh
+```
+
+Instala un hook `pre-push` + `wiki/gen-wiki.sh` en ese repo. Al pushear a
+master/main regenera `wiki/` (Home, Architecture, Flows con mermaid, Changelog)
+en segundo plano, sin bloquear el push.
+
+- Regenerar a mano: `bash wiki/gen-wiki.sh`
+- Publicar al wiki de GitHub: `WIKI_PUBLISH=1 bash wiki/gen-wiki.sh`
+  (requiere la wiki habilitada en GitHub y su primera página creada una vez).
+
+---
+
 ## Créditos
 
 Capa de instalación sobre [headroom](https://github.com/chopratejas/headroom) y
