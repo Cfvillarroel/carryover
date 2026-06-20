@@ -9,34 +9,36 @@
 
 ## Why this exists · Por qué existe
 
-**Motivation (EN).** Lately I've been working across several different tools, and the
-real pain is that you can't carry context from one to another — so you start over,
-again and again, re‑explaining the same project every time. This combination of tools
-exists to fix that: a shared, persistent memory and a leaner agent that travels with you.
+**The problem (EN).** You don't work in a single AI tool anymore — Claude Code one day,
+Cursor or Windsurf the next, Conductor for parallel work. But **context doesn't travel
+with you**: every tool, project and session starts from zero, so you re‑explain the same
+codebase over and over. On top of that each agent **burns tokens** on bloated context,
+**forgets** everything between sessions, and tends to **over‑engineer** — and the few
+things worth remembering never get captured. Wiring up the fix by hand is fiddly and
+has to be redone on every machine.
 
-**Motivación (ES).** Últimamente he estado trabajando con varias herramientas
-distintas, y el problema es que no puedes traspasar el contexto entre una y otra — así
-que tienes que **volver a empezar una y otra vez**, re‑explicando el mismo proyecto
-cada vez. Esta combinación de herramientas busca solucionar justo eso: una memoria
-compartida y persistente, y un agente más ligero que te acompaña.
+**The fix — carryover (EN).** A local layer that makes your context **carry over** across
+tools, projects and sessions: one **shared, persistent memory** every agent routes
+through; **60–95% less context** (fit more, pay less); a **leaner** agent; **auto‑docs**
+(a wiki) on every push; and a **save‑what‑mattered prompt** at the end of each session.
+One idempotent install, the **real upstream tools** (no forks), **global by design** — so
+your context follows you instead of resetting.
 
-**The problem (EN).** AI coding agents burn tokens fast — tool outputs, logs, file
-dumps and long histories pile up and you pay for all of it. They also forget
-everything between sessions and projects, and wiring up the tooling that fixes this
-(a compression proxy, a "keep it simple" plugin, memory capture, docs) is fiddly and
-has to be redone on every machine. This repo solves that with **one idempotent
-installer**: it cuts context **60–95%**, gives you **memory shared across all repos**,
-keeps the agent from over‑engineering, auto‑documents your code on every push, and
-asks you what's worth remembering — using the **real upstream tools** (no forks).
+**El problema (ES).** Ya no trabajas en una sola herramienta de IA — hoy Claude Code,
+mañana Cursor o Windsurf, Conductor para trabajo en paralelo. Pero **el contexto no
+viaja contigo**: cada herramienta, proyecto y sesión empieza de cero, así que
+re‑explicas el mismo código una y otra vez. Encima cada agente **quema tokens** con
+contexto inflado, **olvida** todo entre sesiones y tiende a **sobre‑diseñar** — y lo poco
+que vale la pena recordar nunca se captura. Y dejar el arreglo listo a mano es engorroso
+y hay que repetirlo en cada Mac.
 
-**El problema (ES).** Los agentes de IA queman tokens rapidísimo — salidas de
-herramientas, logs, volcados de archivos e historiales largos se acumulan y los pagas
-todos. Además olvidan todo entre sesiones y proyectos, y dejar lista la herramienta
-que arregla esto (proxy de compresión, plugin de "hazlo simple", captura de memoria,
-docs) es engorroso y hay que repetirlo en cada Mac. Este repo lo resuelve con **un
-instalador idempotente**: recorta el contexto **60–95%**, te da **memoria compartida
-entre todos los repos**, evita que el agente sobre‑diseñe, documenta tu código en cada
-push y te pregunta qué vale la pena recordar — usando las **herramientas reales** (sin forks).
+**La solución — carryover (ES).** Una capa local que hace que tu contexto **se traspase**
+(*carry over*) entre herramientas, proyectos y sesiones: una **memoria compartida y
+persistente** por la que pasan todos los agentes; **60–95% menos contexto** (cabe más,
+pagas menos); un agente más **ligero**; **docs automáticas** (una wiki) en cada push; y
+una **pregunta de "guardar lo importante"** al final de cada sesión. Un instalador
+idempotente, las **herramientas reales** (sin forks), **global por diseño** — para que tu
+contexto te siga en vez de reiniciarse.
 
 What you get / Qué incluye:
 
