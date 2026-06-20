@@ -1,0 +1,11 @@
+# Ejemplo de settings de usuario de Conductor.
+# Copia a ~/.conductor/settings.toml y ajusta a tu gusto.
+# Docs: https://conductor.build/docs/reference/settings
+"$schema" = "https://conductor.build/schemas/settings.schema.json"
+
+[models]
+default = "opus-4-8-1m"     # modelo por defecto
+default_plan_mode = true     # empezar las sesiones en plan mode
+
+[git]
+branch_prefix_type = "github_username"
