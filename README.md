@@ -1,4 +1,4 @@
-# carryover
+# 💼 carryover
 
 > One command to set up a **leaner, cheaper, memory-equipped** Claude Code + Conductor environment on macOS.
 > Un comando para montar un entorno Claude Code + Conductor **más barato, ligero y con memoria**, en macOS.
