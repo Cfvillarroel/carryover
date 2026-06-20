@@ -28,6 +28,7 @@ mkdir -p "$HOME/.claude/commands"
 ln -sf "$SETUP_DIR/claude/statusline.sh"        "$HOME/.claude/statusline.sh"
 ln -sf "$SETUP_DIR/claude/commands/headroom.md" "$HOME/.claude/commands/headroom.md"
 ln -sf "$SETUP_DIR/GUIA.md"                      "$HR_DIR/GUIA.md"
+ln -sf "$SETUP_DIR/dash/carryover-dash.py"       "$HR_DIR/carryover-dash.py"   # 'co-dash' alias target
 # statusLine in settings.json: set the key without clobbering the rest (hooks/env/plugins)
 python3 - "$HOME/.claude/settings.json" "$HOME/.claude/statusline.sh" <<'PY'
 import json, os, sys

@@ -127,10 +127,24 @@ You still need the headroom proxy for memory/compression:
 | `hr-stats` | memory summary |
 | `hr-save` | tokens saved |
 | `mem-save "text"` | save a memory by hand |
+| `co-dash` | open the local dashboard (memories + wikis) |
+| `hr-dash` | open headroom's savings dashboard |
 | `hr-on` / `hr-off` | start / stop the proxy |
 
-Inside Claude (any workspace): `/headroom` → proxy + memory + savings summary.
+Inside Claude (any workspace): `/headroom` → proxy + memory + savings summary; `/carryover` → routing on/off/status.
 Status bar: **🐴** ponytail active, **🧠** headroom active.
+
+## Dashboards (local)
+
+Two local web dashboards — nothing leaves your machine:
+
+- **`co-dash`** → carryover's own dashboard at `http://127.0.0.1:8788` — browse your stored
+  **memories** (search, scope, importance) and your project **wikis** (rendered Markdown +
+  mermaid diagrams). Runs from your DB live; Ctrl-C to stop.
+- **`hr-dash`** → headroom's **savings** dashboard at `http://127.0.0.1:8787/dashboard` —
+  tokens saved, compression, cache hit rate.
+
+(Wikis show up in `co-dash` after you run `wiki-enable` in a repo and push to master/main.)
 
 ## Enable / disable routing
 
@@ -297,10 +311,24 @@ Igual necesitas el proxy de headroom para memoria/compresión:
 | `hr-stats` | resumen de memoria |
 | `hr-save` | tokens ahorrados |
 | `mem-save "texto"` | guardar una memoria a mano |
+| `co-dash` | abrir el dashboard local (memorias + wikis) |
+| `hr-dash` | abrir el dashboard de ahorro de headroom |
 | `hr-on` / `hr-off` | arrancar / parar el proxy |
 
-Dentro de Claude (cualquier workspace): `/headroom` → resumen de proxy + memoria + ahorro.
+Dentro de Claude (cualquier workspace): `/headroom` → resumen de proxy + memoria + ahorro; `/carryover` → routing on/off/status.
 Barra de estado: **🐴** ponytail activo, **🧠** headroom activo.
+
+## Paneles / dashboards (local)
+
+Dos dashboards web locales — nada sale de tu máquina:
+
+- **`co-dash`** → el dashboard propio de carryover en `http://127.0.0.1:8788` — explora tus
+  **memorias** (búsqueda, scope, importancia) y tus **wikis** de proyecto (Markdown
+  renderizado + diagramas mermaid). Lee tu DB en vivo; Ctrl-C para parar.
+- **`hr-dash`** → el dashboard de **ahorro** de headroom en `http://127.0.0.1:8787/dashboard`
+  — tokens ahorrados, compresión, cache.
+
+(Las wikis aparecen en `co-dash` después de correr `wiki-enable` en un repo y pushear a master/main.)
 
 ## Habilitar / deshabilitar el routing
 

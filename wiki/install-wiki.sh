@@ -13,6 +13,11 @@ HOOK="$(git -C "$TARGET" rev-parse --git-path hooks)/pre-push"
 cp "$SRC/pre-push" "$HOOK"; chmod +x "$HOOK"
 grep -qxF "wiki/.gen.log" "$TARGET/.gitignore" 2>/dev/null || echo "wiki/.gen.log" >> "$TARGET/.gitignore"
 
+# register this repo so the carryover dashboard (co-dash) can find its wiki
+reg="$HOME/.headroom/wikis.list"; mkdir -p "$HOME/.headroom"
+abs="$(cd "$TARGET" && pwd)"
+grep -qxF "$abs" "$reg" 2>/dev/null || echo "$abs" >> "$reg"
+
 echo "Wiki enabled in $TARGET"
 echo "  → regenerates when pushing to master/main, in $TARGET/wiki/ (GitHub Wiki format)"
 echo "  → publish to the GitHub wiki: set WIKI_PUBLISH=1 before the push, or run wiki/gen-wiki.sh manually"
