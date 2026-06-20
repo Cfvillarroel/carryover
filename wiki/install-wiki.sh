@@ -2,7 +2,14 @@
 # Enables the "wiki" capability in a project repo: copies the generator and the pre-push hook.
 # Usage:  bash install-wiki.sh [/path/to/repo]   (default: current repo)
 set -euo pipefail
-SRC="$(cd "$(dirname "$0")" && pwd)"
+# resolve this script's REAL directory, following symlinks, so gen-wiki.sh / pre-push are
+# found even when invoked via ~/.headroom/install-wiki.sh (the wiki-enable alias target).
+src="${BASH_SOURCE[0]:-$0}"
+while [ -L "$src" ]; do
+  dir="$(cd -P "$(dirname "$src")" && pwd)"; src="$(readlink "$src")"
+  [ "${src#/}" = "$src" ] && src="$dir/$src"
+done
+SRC="$(cd -P "$(dirname "$src")" && pwd)"
 TARGET="${1:-$(git rev-parse --show-toplevel 2>/dev/null || true)}"
 [ -n "$TARGET" ] && git -C "$TARGET" rev-parse --git-dir >/dev/null 2>&1 \
   || { echo "Not a git repo: '${TARGET:-<empty>}'"; exit 1; }
