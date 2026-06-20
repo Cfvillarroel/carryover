@@ -1,0 +1,17 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "carryover",
+  "description": "Carry your context across AI coding tools — shared memory, token compression, a leaner agent.",
+  "owner": {
+    "name": "Carlos Villarroel",
+    "url": "https://github.com/Cfvillarroel"
+  },
+  "plugins": [
+    {
+      "name": "carryover",
+      "description": "Claude-side of carryover: /carryover and /headroom commands + a save-to-memory prompt at the end of each session. Pairs with the headroom proxy (run install.sh for the system layer).",
+      "source": "./",
+      "category": "productivity"
+    }
+  ]
+}

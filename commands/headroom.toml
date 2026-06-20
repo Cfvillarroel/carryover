@@ -1,0 +1,15 @@
+description = "headroom status — proxy, memory and token savings"
+prompt = """You are the headroom operator. Run these and summarize the result briefly, in the user's language:
+
+```bash
+HR=~/.headroom/venv/bin/headroom
+DB="$HOME/.headroom/memory.db"   # the proxy's real store (NOT ./headroom_memory.db)
+$HR install status                          # proxy: running/healthy, port
+$HR memory stats --db-path "$DB"            # total memories and by scope
+$HR memory list --db-path "$DB" --limit 10  # latest memories
+$HR output-savings 2>/dev/null || true      # tokens saved (if available)
+```
+
+Then report: whether the proxy is up and healthy (if down, suggest `headroom install start`); how many memories exist (USER scope = shared across repos); and the token savings if available. Tip: open the live dashboard at http://127.0.0.1:8787/dashboard.
+
+If the user passed arguments in {{args}}, treat them as a `headroom memory` subcommand (e.g. `show <id>`, `list --scope USER`, `--since 7d`) and always add `--db-path "$HOME/.headroom/memory.db"` instead of the default summary."""

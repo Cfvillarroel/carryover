@@ -1,4 +1,7 @@
 <div align="center">
+
+<h2>💼</h2>
+
 <pre>
  ██████╗ █████╗ ██████╗ ██████╗ ██╗   ██╗ ██████╗ ██╗   ██╗███████╗██████╗
 ██╔════╝██╔══██╗██╔══██╗██╔══██╗╚██╗ ██╔╝██╔═══██╗██║   ██║██╔════╝██╔══██╗
@@ -8,7 +11,8 @@
  ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝    ╚═════╝   ╚═══╝  ╚══════╝╚═╝  ╚═╝
 </pre>
 
-💼 <strong>Your context, carried across AI coding tools.</strong>
+<strong>Pack your context once — carry it across every AI tool.</strong><br/>
+<sub><em>like a carry-on for your AI's brain 💼</em></sub>
 
 <sub>shared persistent memory · 60–95% fewer tokens · leaner agent · auto-wiki · save-to-memory<br/>
 Claude Code · Cursor · Windsurf · Conductor — one install · 100% local</sub>
@@ -85,6 +89,24 @@ The installer is **idempotent** and:
 4. adds aliases to `~/.zshrc`.
 
 > ⚠️ headroom doesn't build on Python 3.14 (Rust/PyO3 extension) — the venv uses 3.13.
+
+**Not on Claude Code?** carryover isn't Claude-only. The headroom proxy is shared, so the
+memory + compression apply to **any** tool once it's running — Cursor, Windsurf, Codex,
+Aider… you just point each one at the proxy (see [Works with](#works-with) for the
+one-liner per tool). `install.sh`'s Claude-specific extras (status bar, `/headroom`, the
+plugins) are for Claude Code / Conductor; everything else shares the same proxy + memory.
+
+### Install just the Claude plugin (optional)
+
+Only want the Claude-side commands + the save-to-memory prompt, without the full installer?
+
+```bash
+claude plugin marketplace add Cfvillarroel/carryover
+claude plugin install carryover@carryover
+```
+
+You still need the headroom proxy for memory/compression:
+`pip install "headroom-ai[all]" && headroom install apply --memory`.
 
 ## Scope: global vs per‑repo
 
@@ -236,6 +258,25 @@ El instalador es **idempotente** y:
 4. añade los aliases a `~/.zshrc`.
 
 > ⚠️ headroom no compila en Python 3.14 (extensión Rust/PyO3) — el venv usa 3.13.
+
+**¿No usas Claude Code?** carryover no es solo para Claude. El proxy de headroom es
+compartido, así que la memoria + compresión aplican a **cualquier** herramienta una vez
+corriendo — Cursor, Windsurf, Codex, Aider… solo apuntas cada una al proxy (mira
+[Funciona con](#funciona-con) para el one-liner por herramienta). Los extras específicos
+de Claude del `install.sh` (barra de estado, `/headroom`, los plugins) son para Claude
+Code / Conductor; lo demás comparte el mismo proxy + memoria.
+
+### Instalar solo el plugin de Claude (opcional)
+
+¿Solo quieres los comandos de Claude + el prompt de guardar-en-memoria, sin el instalador completo?
+
+```bash
+claude plugin marketplace add Cfvillarroel/carryover
+claude plugin install carryover@carryover
+```
+
+Igual necesitas el proxy de headroom para memoria/compresión:
+`pip install "headroom-ai[all]" && headroom install apply --memory`.
 
 ## Alcance: global vs por‑repo
 

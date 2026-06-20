@@ -1,0 +1,16 @@
+description = "carryover routing — show status, or turn headroom routing on/off"
+prompt = """Manage carryover routing (whether Claude goes through the local headroom proxy).
+
+Run the toggle helper and report the result, in the user's language:
+
+```bash
+bash "$HOME/.claude/hooks/carryover-toggle.sh" status
+```
+
+If the user asked to change it in {{args}} (e.g. "off", "on"), run instead:
+
+```bash
+bash "$HOME/.claude/hooks/carryover-toggle.sh" on    # or: off
+```
+
+Explain plainly: turning it OFF makes NEW sessions go straight to Anthropic (no compression / no shared memory), but the proxy keeps running so turning it back ON is instant. Per-terminal toggle: `carryover off --session` / `carryover on --session`."""
