@@ -35,6 +35,26 @@ d["statusLine"] = {"type": "command", "command": f'bash "{sl}"'}
 json.dump(d, open(path, "w"), indent=2, ensure_ascii=False)
 PY
 
+# hook "guardar en memoria al final": symlink del script + merge idempotente de hooks
+mkdir -p "$HOME/.claude/hooks"
+ln -sf "$SETUP_DIR/claude/hooks/headroom-mem-prompt.sh" "$HOME/.claude/hooks/headroom-mem-prompt.sh"
+python3 - "$HOME/.claude/settings.json" "$HOME/.claude/hooks/headroom-mem-prompt.sh" <<'PY'
+import json, os, sys
+path, hook = sys.argv[1], sys.argv[2]
+d = json.load(open(path)) if os.path.exists(path) else {}
+h = d.setdefault("hooks", {})
+def has(arr, needle):
+    return any(needle in hh.get("command", "") for e in arr for hh in e.get("hooks", []))
+post = h.setdefault("PostToolUse", [])
+if not has(post, "hr-changes-"):
+    post.append({"matcher": "Write|Edit|NotebookEdit", "hooks": [{"type": "command",
+        "command": "sid=$(jq -r '.session_id // empty'); [ -n \"$sid\" ] && touch \"/tmp/hr-changes-$sid.flag\""}]})
+stop = h.setdefault("Stop", [])
+if not has(stop, "headroom-mem-prompt.sh"):
+    stop.append({"hooks": [{"type": "command", "command": f"bash {hook}"}]})
+json.dump(d, open(path, "w"), indent=2, ensure_ascii=False)
+PY
+
 echo "==> 4/4 aliases en ~/.zshrc (headroom + wiki-enable)"
 if ! grep -qF ">>> headroom aliases >>>" "$HOME/.zshrc" 2>/dev/null; then
   cat "$SETUP_DIR/zshrc.snippet" >> "$HOME/.zshrc"
