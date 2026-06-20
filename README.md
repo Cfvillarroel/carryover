@@ -211,6 +211,9 @@ routing toggle.
 - **Claude hangs / fails** → proxy down? `hr-status`; if so, `hr-on`.
 - **No compression in a session** → `echo $ANTHROPIC_BASE_URL` empty = old session, restart it.
 - **`pip install` fails** → use Python 3.13 (not 3.14): `brew install python@3.13`.
+- **`headroom install apply` fails with a `launchctl` error** → run `install.sh` from your
+  **real Terminal app**, not an SSH/automation/agent shell — macOS launchd (GUI domain) needs
+  an interactive session. The installer keeps going regardless; just re-run apply in Terminal.
 - **Don't delete `~/.headroom/venv`** before `hr install remove` — it backs the service.
 
 ---
@@ -395,6 +398,9 @@ routing `carryover`.
 - **Claude cuelga / falla** → ¿proxy caído? `hr-status`; si sí, `hr-on`.
 - **No comprime en una sesión** → `echo $ANTHROPIC_BASE_URL` vacío = sesión vieja, reiníciala.
 - **`pip install` falla** → usa Python 3.13 (no 3.14): `brew install python@3.13`.
+- **`headroom install apply` falla con error de `launchctl`** → corre `install.sh` desde tu
+  **Terminal real**, no desde SSH/automatización/un agente — launchd de macOS (dominio GUI)
+  necesita sesión interactiva. El instalador continúa igual; re-corre apply en tu Terminal.
 - **No borres `~/.headroom/venv`** antes de `hr install remove` — respalda el servicio.
 
 ---
