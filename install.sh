@@ -36,6 +36,7 @@ ln -sf "$SETUP_DIR/GUIA.md"                      "$HR_DIR/GUIA.md"
 ln -sf "$SETUP_DIR/dash/carryover-dash.py"       "$HR_DIR/carryover-dash.py"   # 'co-dash' alias target
 ln -sf "$SETUP_DIR/wiki/install-wiki.sh"         "$HR_DIR/install-wiki.sh"     # 'wiki-enable' alias target
 ln -sf "$SETUP_DIR/claude/hooks/recall.sh"       "$HR_DIR/recall.sh"           # 'hr-recall' alias target
+ln -sf "$SETUP_DIR/claude/hooks/wiki-gen.sh"     "$HR_DIR/wiki-gen.sh"         # 'wiki-gen' alias target
 # statusLine in settings.json: set the key without clobbering the rest (hooks/env/plugins)
 python3 - "$HOME/.claude/settings.json" "$HOME/.claude/statusline.sh" <<'PY'
 import json, os, sys
