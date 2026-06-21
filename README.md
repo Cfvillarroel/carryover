@@ -79,6 +79,29 @@ The shared memory + compression work with any agent that routes through the loca
 | Windsurf / Devin | ✅ OpenAI‑compatible → base URL `http://127.0.0.1:8787/v1` | — |
 | Codex / Copilot / Aider / Cline / Continue / Goose | ✅ `headroom wrap <tool>` | — |
 
+### Set it up in each tool (the cross-tool part)
+
+The memory and compression are shared through the local proxy — each tool just needs to be
+pointed at it **once**. (The proxy must be running: check with `carryover doctor` or `hr-status`.)
+
+- **Claude Code / Conductor** — automatic. `install.sh` already wired the routing; nothing to do.
+- **Cursor** — run `carryover wrap cursor` (delegates to `headroom wrap cursor`). It prints the
+  exact config to paste into Cursor's model settings (points its API base at the proxy). From
+  then on, Cursor's AI shares the same memory + compression as Claude.
+- **Windsurf / Devin** — in its AI/model settings, set a custom **OpenAI base URL** to
+  `http://127.0.0.1:8787/v1`. (`carryover wrap windsurf` prints this reminder.)
+- **Codex / Aider / Cline / Continue / Goose / Copilot** — `carryover wrap <tool>`.
+- **Any other OpenAI/Anthropic-compatible tool** — point its base URL at the proxy:
+  `http://127.0.0.1:8787` (Anthropic-style) or `http://127.0.0.1:8787/v1` (OpenAI-style).
+
+Two things to keep in mind:
+
+- **Terminal commands** (`co-dash`, `mem-save`, `hr-recall`, `carryover …`) work in **any**
+  tool's integrated terminal — they live in your shell (`~/.zshrc`), not in a specific app.
+- **Slash commands** (`/headroom`, `/recall`, `/carryover`, `/wiki-enable`) and the 🐴/🧠 status
+  bar are **Claude Code only**. Other tools get the shared memory + compression, not the slash UI.
+- A tool is **not** auto-detected — it shares everything only after you point it at the proxy once.
+
 ## Install
 
 ```bash
@@ -285,6 +308,30 @@ La memoria compartida + compresión funcionan con cualquier agente que pase por 
 | Cursor | ✅ `headroom wrap cursor` (pega la config) | — |
 | Windsurf / Devin | ✅ OpenAI‑compatible → base URL `http://127.0.0.1:8787/v1` | — |
 | Codex / Copilot / Aider / Cline / Continue / Goose | ✅ `headroom wrap <tool>` | — |
+
+### Configurarlo en cada herramienta (la parte cross-tool)
+
+La memoria y la compresión se comparten a través del proxy local — cada herramienta solo
+necesita que la apuntes a él **una vez**. (El proxy debe estar corriendo: revísalo con
+`carryover doctor` o `hr-status`.)
+
+- **Claude Code / Conductor** — automático. El `install.sh` ya dejó el routing; nada que hacer.
+- **Cursor** — corre `carryover wrap cursor` (delega en `headroom wrap cursor`). Imprime la
+  config exacta para pegar en los ajustes de modelo de Cursor (apunta su API base al proxy).
+  Desde ahí, la IA de Cursor comparte la misma memoria + compresión que Claude.
+- **Windsurf / Devin** — en sus ajustes de IA/modelo, pon una **OpenAI base URL** personalizada:
+  `http://127.0.0.1:8787/v1`. (`carryover wrap windsurf` imprime este recordatorio.)
+- **Codex / Aider / Cline / Continue / Goose / Copilot** — `carryover wrap <tool>`.
+- **Cualquier otra herramienta compatible con OpenAI/Anthropic** — apunta su base URL al proxy:
+  `http://127.0.0.1:8787` (estilo Anthropic) o `http://127.0.0.1:8787/v1` (estilo OpenAI).
+
+Dos cosas a tener en cuenta:
+
+- Los **comandos de terminal** (`co-dash`, `mem-save`, `hr-recall`, `carryover …`) funcionan en
+  la terminal integrada de **cualquier** herramienta — viven en tu shell (`~/.zshrc`), no en una app.
+- Los **slash commands** (`/headroom`, `/recall`, `/carryover`, `/wiki-enable`) y la barra 🐴/🧠
+  son **solo de Claude Code**. Las demás herramientas reciben la memoria + compresión, no el slash UI.
+- Una herramienta **no** se auto-detecta — comparte todo solo después de apuntarla al proxy una vez.
 
 ## Instalar
 
