@@ -94,17 +94,24 @@ def wiki_dirs():
 
 
 def load_wikis():
-    wikis = []
+    # One wiki per repo: many Conductor worktrees of the same repo each register
+    # their own wiki/ dir, so group by repo and keep the most recently generated.
+    by_repo = {}  # repo -> (mtime, entry)
     for root in wiki_dirs():
+        mds = sorted((root / "wiki").glob("*.md"))
         pages = {}
-        for md in sorted((root / "wiki").glob("*.md")):
+        for md in mds:
             try:
                 pages[md.name] = md.read_text()
             except Exception:
                 pass
-        if pages:
-            wikis.append({"repo": repo_name(root), "path": str(root / "wiki"), "pages": pages})
-    return wikis
+        if not pages:
+            continue
+        repo = repo_name(root)
+        mtime = max((md.stat().st_mtime for md in mds), default=0.0)
+        if repo not in by_repo or mtime > by_repo[repo][0]:
+            by_repo[repo] = (mtime, {"repo": repo, "path": str(root / "wiki"), "pages": pages})
+    return [entry for _, entry in sorted(by_repo.values(), key=lambda kv: -kv[0])]
 
 
 def build_html():
