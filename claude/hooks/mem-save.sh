@@ -1,30 +1,40 @@
 #!/usr/bin/env bash
-# Saves a memory to the REAL store of the headroom proxy (~/.headroom/memory.db).
-# Reliable fallback when the memory_save tool is not available.
-# Usage:  mem-save.sh "text to remember" [importance 0-1]
-#         echo "text" | mem-save.sh
+# Save KNOWLEDGE to headroom's local store (SQLite + vectors + graph), structured for fast query.
+#
+#   Plain:       mem-save "text to remember" [importance 0-1]
+#                echo "text" | mem-save
+#   Structured:  mem-save --json '<json>'      (or:  echo '<json>' | mem-save --json )
+#     json: {"content":"…","facts":["…"],"entities":[{"entity":"X","type":"project"}],
+#            "relationships":[{"source":"X","relationship":"uses","destination":"Y"}],
+#            "category":"…","tags":["…"],"importance":0.7}
+#
+# The actual save runs in the BACKGROUND (loading the embedding model takes a few seconds),
+# so this returns immediately. Logs to ~/.headroom/mem-save.log.
 set -euo pipefail
-DB="${HEADROOM_DB:-$HOME/.headroom/memory.db}"
 PY="$HOME/.headroom/venv/bin/python"
-HR="$HOME/.headroom/venv/bin/headroom"
-[ -x "$HR" ] || { echo "mem-save: headroom not installed"; exit 1; }
-content="${1:-$(cat)}"
-imp="${2:-0.7}"
-[ -n "$content" ] || { echo "mem-save: empty content"; exit 1; }
+DB="${HEADROOM_DB:-$HOME/.headroom/memory.db}"
+UID_="${HEADROOM_USER_ID:-$(whoami)}"
+[ -x "$PY" ] || { echo "mem-save: headroom not installed"; exit 1; }
 
 tmp="$(mktemp).json"
-HEADROOM_USER_ID="${HEADROOM_USER_ID:-$(whoami)}" "$PY" - "$tmp" "$content" "$imp" <<'PY'
-import json, sys, uuid, os
-from datetime import datetime, timezone
-now = datetime.now(timezone.utc).isoformat()
-json.dump([{
-    "id": str(uuid.uuid4()),
-    "content": sys.argv[2],
-    "user_id": os.environ.get("HEADROOM_USER_ID", "user"),
-    "created_at": now, "valid_from": now,
-    "importance": float(sys.argv[3]),
-    "metadata": {"source": "mem-save"},
-}], open(sys.argv[1], "w"))
-PY
-"$HR" memory import "$tmp" --db-path "$DB" --force >/dev/null && echo "mem-save: saved to $DB"
-rm -f "$tmp"
+if [ "${1:-}" = "--json" ]; then
+  if [ -n "${2:-}" ]; then printf '%s' "$2" > "$tmp"; else cat > "$tmp"; fi
+else
+  content="${1:-$(cat)}"; imp="${2:-0.7}"
+  [ -n "$content" ] || { echo "mem-save: empty content"; exit 1; }
+  CONTENT="$content" IMP="$imp" "$PY" -c \
+    'import json,os; print(json.dumps({"content":os.environ["CONTENT"],"facts":[os.environ["CONTENT"]],"importance":float(os.environ["IMP"])}))' \
+    > "$tmp"
+fi
+
+# locate mem-save.py next to this script (follow symlink so it works via ~/.claude/hooks/)
+src="${BASH_SOURCE[0]:-$0}"
+while [ -L "$src" ]; do d="$(cd -P "$(dirname "$src")" && pwd)"; src="$(readlink "$src")"; [ "${src#/}" = "$src" ] && src="$d/$src"; done
+WORKER="$(cd -P "$(dirname "$src")" && pwd)/mem-save.py"
+
+# detect the repo this knowledge came from (for indexing in the dashboard); "general" if none
+REPO="$(git remote get-url origin 2>/dev/null | sed -E 's#/+$##; s#.*/##; s#\.git$##')"
+[ -n "$REPO" ] || REPO="general"
+
+nohup "$PY" "$WORKER" "$DB" "$UID_" "$tmp" "$REPO" >>"$HOME/.headroom/mem-save.log" 2>&1 &
+echo "💾 mem-save: queued to knowledge store (repo: $REPO, background)"
