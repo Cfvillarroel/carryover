@@ -35,6 +35,7 @@ for c in "$SETUP_DIR"/claude/commands/*.md; do ln -sf "$c" "$HOME/.claude/comman
 ln -sf "$SETUP_DIR/GUIA.md"                      "$HR_DIR/GUIA.md"
 ln -sf "$SETUP_DIR/dash/carryover-dash.py"       "$HR_DIR/carryover-dash.py"   # 'co-dash' alias target
 ln -sf "$SETUP_DIR/wiki/install-wiki.sh"         "$HR_DIR/install-wiki.sh"     # 'wiki-enable' alias target
+ln -sf "$SETUP_DIR/claude/hooks/recall.sh"       "$HR_DIR/recall.sh"           # 'hr-recall' alias target
 # statusLine in settings.json: set the key without clobbering the rest (hooks/env/plugins)
 python3 - "$HOME/.claude/settings.json" "$HOME/.claude/statusline.sh" <<'PY'
 import json, os, sys
@@ -49,6 +50,8 @@ mkdir -p "$HOME/.claude/hooks"
 ln -sf "$SETUP_DIR/claude/hooks/headroom-mem-prompt.sh" "$HOME/.claude/hooks/headroom-mem-prompt.sh"
 ln -sf "$SETUP_DIR/claude/hooks/mem-save.sh" "$HOME/.claude/hooks/mem-save.sh"
 ln -sf "$SETUP_DIR/claude/hooks/carryover-toggle.sh" "$HOME/.claude/hooks/carryover-toggle.sh"
+ln -sf "$SETUP_DIR/claude/hooks/carryover-recall.sh" "$HOME/.claude/hooks/carryover-recall.sh"
+ln -sf "$SETUP_DIR/claude/hooks/carryover-doctor.sh" "$HOME/.claude/hooks/carryover-doctor.sh"
 python3 - "$HOME/.claude/settings.json" "$HOME/.claude/hooks/headroom-mem-prompt.sh" <<'PY'
 import json, os, sys
 path, hook = sys.argv[1], sys.argv[2]
@@ -63,6 +66,10 @@ if not has(post, "hr-changes-"):
 stop = h.setdefault("Stop", [])
 if not has(stop, "headroom-mem-prompt.sh"):
     stop.append({"hooks": [{"type": "command", "command": f"bash {hook}"}]})
+ss = h.setdefault("SessionStart", [])
+recall = os.path.expanduser("~/.claude/hooks/carryover-recall.sh")
+if not has(ss, "carryover-recall.sh"):
+    ss.append({"matcher": "startup|resume", "hooks": [{"type": "command", "command": f"bash {recall}"}]})
 json.dump(d, open(path, "w"), indent=2, ensure_ascii=False)
 PY
 

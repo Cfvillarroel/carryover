@@ -1,0 +1,10 @@
+description = "Recall what carryover already knows about a topic"
+prompt = """Recall stored knowledge for the user. Run via Bash:
+
+```bash
+bash ~/.headroom/recall.sh {{args}}
+```
+
+Present the matches clearly (grouped by repo if helpful). If no arguments were given, ask
+the user what they want to recall. This is a fast keyword lookup over the knowledge store;
+for the full live view use the `co-dash` dashboard."""

@@ -50,6 +50,22 @@ async def main():
     if not content:
         return
 
+    # dedup: drop facts already stored verbatim (each fact becomes its own memory)
+    try:
+        import subprocess, tempfile
+        hr = os.path.expanduser("~/.headroom/venv/bin/headroom")
+        tmpx = tempfile.mktemp(suffix=".json")
+        subprocess.run([hr, "memory", "export", "--output", tmpx, "--db-path", db],
+                       capture_output=True, timeout=20)
+        seen = {(m.get("content") or "").strip() for m in json.load(open(tmpx))}
+        os.unlink(tmpx)
+        if facts:
+            facts = [f for f in facts if f.strip() not in seen] or None
+        if not facts and content.strip() in seen:
+            return  # nothing new
+    except Exception:
+        pass
+
     # mirror the structure into metadata so `memory export` (and the dashboard) can read it
     md = {"source": "mem-save", "repo": payload.get("repo") or repo or "general"}
     if payload.get("category"):

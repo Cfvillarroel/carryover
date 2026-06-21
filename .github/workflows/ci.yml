@@ -1,0 +1,31 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: bash syntax (-n)
+        run: |
+          for f in install.sh wiki/*.sh wiki/pre-push claude/hooks/*.sh; do
+            echo "checking $f"; bash -n "$f"
+          done
+      - name: python syntax
+        run: python3 -m py_compile dash/carryover-dash.py claude/hooks/*.py
+      - name: JSON manifests valid
+        run: |
+          python3 - <<'PY'
+          import json, glob
+          for f in glob.glob(".claude-plugin/*.json") + ["hooks/hooks.json"]:
+              json.load(open(f)); print("ok", f)
+          PY
+      - name: TOML commands valid
+        run: |
+          python3 - <<'PY'
+          import tomllib, glob
+          for f in glob.glob("commands/*.toml"):
+              tomllib.load(open(f, "rb")); print("ok", f)
+          PY

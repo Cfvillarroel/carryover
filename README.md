@@ -126,12 +126,19 @@ You still need the headroom proxy for memory/compression:
 | `hr-mem` | stored memories |
 | `hr-stats` | memory summary |
 | `hr-save` | tokens saved |
-| `mem-save "text"` | save a memory by hand |
-| `co-dash` | open the local dashboard (memories + wikis) |
+| `mem-save "text"` | save a memory by hand (or structured `--json`) |
+| `hr-recall <query>` | recall knowledge by keyword |
+| `co-dash` | open the local dashboard (knowledge + wikis) |
 | `hr-dash` | open headroom's savings dashboard |
+| `hr-prune …` | prune memories (e.g. `--older-than 30d --dry-run`) |
+| `carryover doctor` | health-check the whole setup |
+| `carryover wrap <tool>` | route another tool (Cursor, Codex…) through the proxy |
 | `hr-on` / `hr-off` | start / stop the proxy |
 
-Inside Claude (any workspace): `/headroom` → proxy + memory + savings summary; `/carryover` → routing on/off/status.
+**Auto-recall:** when you start a session in a repo, carryover injects *what it already
+knows about that repo* as context — so the knowledge actually comes back, not just gets stored.
+
+Inside Claude (any workspace): `/headroom` (proxy + memory + savings), `/carryover` (routing on/off/status), `/recall <query>`, `/wiki-enable`.
 Status bar: **🐴** ponytail active, **🧠** headroom active.
 
 ## Dashboards (local)
@@ -320,12 +327,19 @@ Igual necesitas el proxy de headroom para memoria/compresión:
 | `hr-mem` | memorias guardadas |
 | `hr-stats` | resumen de memoria |
 | `hr-save` | tokens ahorrados |
-| `mem-save "texto"` | guardar una memoria a mano |
-| `co-dash` | abrir el dashboard local (memorias + wikis) |
+| `mem-save "texto"` | guardar una memoria a mano (o estructurada `--json`) |
+| `hr-recall <consulta>` | recordar conocimiento por keyword |
+| `co-dash` | abrir el dashboard local (conocimiento + wikis) |
 | `hr-dash` | abrir el dashboard de ahorro de headroom |
+| `hr-prune …` | purgar memorias (ej. `--older-than 30d --dry-run`) |
+| `carryover doctor` | chequeo de salud de todo el setup |
+| `carryover wrap <tool>` | enrutar otra herramienta (Cursor, Codex…) por el proxy |
 | `hr-on` / `hr-off` | arrancar / parar el proxy |
 
-Dentro de Claude (cualquier workspace): `/headroom` → resumen de proxy + memoria + ahorro; `/carryover` → routing on/off/status.
+**Auto-recall:** al iniciar una sesión en un repo, carryover inyecta *lo que ya sabe de ese
+repo* como contexto — así el conocimiento vuelve solo, no solo se guarda.
+
+Dentro de Claude (cualquier workspace): `/headroom`, `/carryover` (on/off/status), `/recall <consulta>`, `/wiki-enable`.
 Barra de estado: **🐴** ponytail activo, **🧠** headroom activo.
 
 ## Paneles / dashboards (local)

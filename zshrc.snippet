@@ -10,6 +10,8 @@ alias mem-save="bash $HOME/.claude/hooks/mem-save.sh"  # save a memory by hand
 alias co-dash="python3 $HOME/.headroom/carryover-dash.py"  # local dashboard: memories + wikis
 alias hr-dash="open http://127.0.0.1:8787/dashboard"       # headroom's savings dashboard
 alias wiki-enable="bash $HOME/.headroom/install-wiki.sh"   # enable the auto-wiki in the current repo
+alias hr-recall="bash $HOME/.headroom/recall.sh"           # recall knowledge by keyword
+alias hr-prune="hr memory prune"                           # prune memories (e.g. --older-than 30d --dry-run)
 alias hr-on="hr install start"                  # start proxy
 alias hr-off="hr install stop"                  # stop proxy
 
@@ -26,7 +28,14 @@ carryover() {
       unset ANTHROPIC_BASE_URL OPENAI_BASE_URL
       echo "carryover: OFF in this shell${2:+ (session only)}";;
     status|"") bash "$HOME/.claude/hooks/carryover-toggle.sh" status;;
-    *) echo "usage: carryover on|off [--session]|status";;
+    doctor) bash "$HOME/.claude/hooks/carryover-doctor.sh";;
+    wrap) shift
+      case "${1:-}" in
+        windsurf|devin) echo "Point Windsurf at the proxy: set its OpenAI base URL to http://127.0.0.1:${HEADROOM_PORT:-8787}/v1";;
+        "") echo "usage: carryover wrap <cursor|codex|aider|copilot|windsurf|…>";;
+        *) "$HOME/.headroom/venv/bin/headroom" wrap "$@";;
+      esac;;
+    *) echo "usage: carryover on|off [--session]|status|doctor|wrap <tool>";;
   esac
 }
 # apply global bypass in new shells (set by 'carryover off')
