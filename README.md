@@ -139,9 +139,10 @@ Status bar: **🐴** ponytail active, **🧠** headroom active.
 Two local web dashboards — nothing leaves your machine:
 
 - **`co-dash`** → carryover's own dashboard at `http://127.0.0.1:8788` — browse your
-  **knowledge** (facts, typed entities, tags, with search + entity/tag filters), an
-  auto-built **relationship graph**, and your project **wikis** (rendered Markdown +
-  mermaid). Reads your DB live; Ctrl-C to stop.
+  **knowledge** (facts, typed entities, tags, with search + entity/tag filters),
+  **grouped by the repo** it came from (or *general*), an auto-built **relationship
+  graph**, and your project **wikis** (Markdown + mermaid). It's also a **manager**:
+  delete a single memory or clear a whole repo with one click. Reads/writes your DB live; Ctrl-C to stop.
 - **`hr-dash`** → headroom's **savings** dashboard at `http://127.0.0.1:8787/dashboard` —
   tokens saved, compression, cache hit rate.
 
@@ -332,9 +333,10 @@ Barra de estado: **🐴** ponytail activo, **🧠** headroom activo.
 Dos dashboards web locales — nada sale de tu máquina:
 
 - **`co-dash`** → el dashboard propio de carryover en `http://127.0.0.1:8788` — explora tu
-  **conocimiento** (facts, entidades tipadas, tags, con búsqueda + filtros), un **grafo de
-  relaciones** auto-generado, y tus **wikis** de proyecto (Markdown + mermaid). Lee tu DB
-  en vivo; Ctrl-C para parar. (Capturas en la sección *Dashboards* de la versión inglesa.)
+  **conocimiento** (facts, entidades tipadas, tags, con búsqueda + filtros), **agrupado por
+  el repo** del que viene (o *general*), un **grafo de relaciones** auto-generado, y tus
+  **wikis** (Markdown + mermaid). También es **gestor**: borra una memoria o limpia un repo
+  entero con un clic. Lee/escribe tu DB en vivo; Ctrl-C para parar. (Capturas en la versión inglesa.)
 - **`hr-dash`** → el dashboard de **ahorro** de headroom en `http://127.0.0.1:8787/dashboard`
   — tokens ahorrados, compresión, cache.
 
