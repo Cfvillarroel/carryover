@@ -37,7 +37,9 @@ if not picked:
     sys.exit(0)
 lines = ["# carryover — what you already know" + (f" about {repo}" if repo else "")]
 for m in picked:
-    c = (m.get("content") or "").strip()
+    c = " ".join((m.get("content") or "").split())  # collapse whitespace
+    if len(c) > 180:                                  # cap per item to keep the block small
+        c = c[:180].rstrip() + "…"
     if c:
         tag = "" if md(m).get("repo", "general") == repo else " (general)"
         lines.append(f"- {c}{tag}")
