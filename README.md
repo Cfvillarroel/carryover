@@ -219,14 +219,16 @@ mem-save "what you want to remember"
 
 ## Auto‑wiki (local, GitHub‑Wiki format)
 
-Regenerates a project wiki **on push to master/main** using headless Claude (`claude -p`)
-to read the diff and draw mermaid diagrams. Local by default; publishing to the GitHub
-wiki is optional.
+Generates a project wiki with headless Claude (`claude -p`) — overview, architecture and
+flows with mermaid diagrams. **`wiki-enable` generates the first wiki immediately** (so it's
+never empty), then it stays current via `wiki-gen` and the end-of-session prompt. (A
+`pre-push` hook on master/main also refreshes it, though in Conductor worktrees you'll
+mostly use `wiki-gen`.) Local by default; publishing to the GitHub wiki is optional.
 
 ```bash
-cd /path/to/your/repo && wiki-enable     # installs a pre-push hook + wiki/gen-wiki.sh
-bash wiki/gen-wiki.sh                     # regenerate by hand
-WIKI_PUBLISH=1 bash wiki/gen-wiki.sh      # also push to the GitHub wiki
+cd /path/to/your/repo && wiki-enable     # enable + generate the first wiki now (background)
+wiki-gen                                  # regenerate / update on demand (no push needed)
+WIKI_PUBLISH=1 wiki-gen                    # also push to the GitHub wiki
 ```
 
 ## Manage / uninstall headroom
@@ -446,14 +448,16 @@ mem-save "lo que quieras recordar"
 
 ## Wiki automática (local, formato GitHub Wiki)
 
-Regenera una wiki del proyecto **al hacer push a master/main** usando Claude headless
-(`claude -p`) para leer el diff y dibujar diagramas mermaid. Local por defecto; publicar al
-wiki de GitHub es opcional.
+Genera una wiki del proyecto con Claude headless (`claude -p`) — visión general,
+arquitectura y flujos con diagramas mermaid. **`wiki-enable` genera la primera wiki de
+inmediato** (así nunca queda vacía), y se mantiene al día con `wiki-gen` y el prompt de fin
+de sesión. (Un hook `pre-push` en master/main también la refresca, aunque en worktrees de
+Conductor usarás sobre todo `wiki-gen`.) Local por defecto; publicar al wiki de GitHub es opcional.
 
 ```bash
-cd /ruta/a/tu/repo && wiki-enable        # instala un hook pre-push + wiki/gen-wiki.sh
-bash wiki/gen-wiki.sh                     # regenerar a mano
-WIKI_PUBLISH=1 bash wiki/gen-wiki.sh      # además publicar al wiki de GitHub
+cd /ruta/a/tu/repo && wiki-enable        # activa + genera la primera wiki ahora (background)
+wiki-gen                                  # regenerar / actualizar a demanda (sin push)
+WIKI_PUBLISH=1 wiki-gen                    # además publicar al wiki de GitHub
 ```
 
 ## Gestionar / desinstalar headroom

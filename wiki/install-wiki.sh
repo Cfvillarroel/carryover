@@ -29,5 +29,10 @@ abs="$(cd "$TARGET" && pwd)"
 grep -qxF "$abs" "$reg" 2>/dev/null || echo "$abs" >> "$reg"
 
 echo "Wiki enabled in $TARGET"
-echo "  → regenerates when pushing to master/main, in $TARGET/wiki/ (GitHub Wiki format)"
-echo "  → publish to the GitHub wiki: set WIKI_PUBLISH=1 before the push, or run wiki/gen-wiki.sh manually"
+if [ "${WIKI_NO_GEN:-0}" = "1" ]; then
+  echo "  → setup only (run wiki-gen to generate)"
+else
+  echo "  → generating the FIRST wiki now, in the background (~1 min) → $TARGET/wiki/"
+  nohup bash "$TARGET/wiki/gen-wiki.sh" >>"$TARGET/wiki/.gen.log" 2>&1 &
+fi
+echo "  → updates on push to master/main, or run 'wiki-gen' anytime · publish with WIKI_PUBLISH=1"
