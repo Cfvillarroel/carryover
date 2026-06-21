@@ -19,7 +19,9 @@ cp "$SRC/gen-wiki.sh" "$TARGET/wiki/gen-wiki.sh"; chmod +x "$TARGET/wiki/gen-wik
 HOOK_DIR="$(git -C "$TARGET" rev-parse --absolute-git-dir)/hooks"
 mkdir -p "$HOOK_DIR"
 cp "$SRC/pre-push" "$HOOK_DIR/pre-push"; chmod +x "$HOOK_DIR/pre-push"
-grep -qxF "wiki/.gen.log" "$TARGET/.gitignore" 2>/dev/null || echo "wiki/.gen.log" >> "$TARGET/.gitignore"
+# keep the generated wiki strictly local — never committed with the code repo.
+# (to version it instead, remove this line; to publish it, use WIKI_PUBLISH=1 → GitHub wiki)
+grep -qxF "wiki/" "$TARGET/.gitignore" 2>/dev/null || echo "wiki/" >> "$TARGET/.gitignore"
 
 # register this repo so the carryover dashboard (co-dash) can find its wiki
 reg="$HOME/.headroom/wikis.list"; mkdir -p "$HOME/.headroom"
