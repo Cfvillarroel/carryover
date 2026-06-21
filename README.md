@@ -18,6 +18,7 @@
 Claude Code · Cursor · Windsurf · Conductor — one install · 100% local</sub>
 
 <p>
+<a href="https://github.com/Cfvillarroel/carryover/actions/workflows/ci.yml"><img src="https://github.com/Cfvillarroel/carryover/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
 <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
 <img src="https://img.shields.io/badge/platform-macOS-black.svg" alt="Platform: macOS">
 <img src="https://img.shields.io/badge/local--first-yes-success.svg" alt="local-first">
@@ -52,9 +53,16 @@ A local layer that makes your context **carry over** across tools, projects and 
   (60–95% fewer tokens) + **shared, persistent memory** across all your repos.
 - 🐴 **[ponytail](https://github.com/DietrichGebert/ponytail)** — keeps the agent from
   over‑engineering (simplest solution that works).
-- Status bar **🐴/🧠**, `/headroom` command, terminal aliases.
-- **Auto‑wiki** on push to master/main (an LLM writes docs + mermaid diagrams).
-- **Save‑what‑mattered prompt** at the end of each session.
+- 🕸 **Structured knowledge** — saved as facts + typed entities + relationships (a queryable
+  graph), indexed by the repo it came from.
+- 🔁 **Auto‑recall** — when you start a session in a repo, what carryover knows about it is
+  injected as context (~0.5s, ~500 tokens, compressed). Plus `/recall` / `hr-recall` on demand.
+- 📊 **Local dashboard** (`co-dash`) — browse, search, filter and **manage** (delete/clear)
+  your knowledge, a relationship graph, and your project wikis.
+- 📄 **Auto‑wiki** on push to master/main (an LLM writes docs + mermaid diagrams).
+- 💾 **Save‑what‑mattered prompt** at session end · 🩺 **`carryover doctor`** health check ·
+  routing **on/off** toggle · `carryover wrap <tool>` for Cursor/Codex/…
+- Status bar **🐴/🧠**, slash commands, terminal aliases.
 
 One idempotent install, the **real upstream tools** (no forks), **global by design** — so
 your context follows you instead of resetting.
@@ -252,9 +260,16 @@ proyectos y sesiones:
   contexto (60–95% menos tokens) + **memoria compartida y persistente** entre todos tus repos.
 - 🐴 **[ponytail](https://github.com/DietrichGebert/ponytail)** — evita que el agente
   sobre‑diseñe (la solución más simple que funciona).
-- Barra de estado **🐴/🧠**, comando `/headroom`, aliases de terminal.
-- **Wiki automática** al hacer push a master/main (un LLM escribe docs + diagramas mermaid).
-- **Pregunta de "guardar lo importante"** al final de cada sesión.
+- 🕸 **Conocimiento estructurado** — facts + entidades tipadas + relaciones (un grafo
+  consultable), indexado por el repo del que viene.
+- 🔁 **Auto‑recall** — al iniciar una sesión en un repo, se inyecta como contexto lo que
+  carryover sabe de ese repo (~0.5s, ~500 tokens, comprimido). Más `/recall` / `hr-recall` a demanda.
+- 📊 **Dashboard local** (`co-dash`) — explora, busca, filtra y **gestiona** (borra/limpia)
+  tu conocimiento, un grafo de relaciones, y tus wikis.
+- 📄 **Wiki automática** al hacer push a master/main (un LLM escribe docs + diagramas mermaid).
+- 💾 **Pregunta de "guardar lo importante"** al final · 🩺 **`carryover doctor`** ·
+  toggle de routing **on/off** · `carryover wrap <tool>` para Cursor/Codex/…
+- Barra de estado **🐴/🧠**, slash commands, aliases de terminal.
 
 Un instalador idempotente, las **herramientas reales** (sin forks), **global por diseño** —
 para que tu contexto te siga en vez de reiniciarse.
