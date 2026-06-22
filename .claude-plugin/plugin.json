@@ -1,6 +1,6 @@
 {
   "name": "carryover",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Carry your context across AI coding tools. Adds /carryover and /headroom commands plus a save-to-memory prompt at the end of each session, backed by the headroom proxy.",
   "author": {
     "name": "Carlos Villarroel",
