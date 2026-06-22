@@ -195,7 +195,10 @@ HTML = r"""<!doctype html>
   .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
   input[type=search]{flex:1;min-width:220px;padding:10px 14px;border:1px solid var(--line);border-radius:10px;background:#fff;font-size:14px}
   .count{color:var(--muted);font-size:13px}
-  .filters{margin-bottom:14px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+  .facets{margin-bottom:14px}
+  .facets>summary{cursor:pointer;color:var(--muted);font-size:12px;padding:4px 0;user-select:none}
+  .facets>summary:hover{color:var(--accent2)} .facets>summary b{color:var(--accent2);font-weight:600}
+  .filters{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px}
   .filters .lbl{color:var(--muted);font-size:12px;margin-right:4px}
   .fchip{font-size:12px;padding:3px 10px;border-radius:20px;border:1px solid var(--tan);background:#fff;cursor:pointer;color:var(--accent2)}
   .fchip.on{background:var(--accent);color:#fff;border-color:var(--accent)}
@@ -247,7 +250,7 @@ HTML = r"""<!doctype html>
       <input type="search" id="q" placeholder="Search knowledge (content, facts, entities, tags)…">
       <span class="count" id="memcount"></span>
     </div>
-    <div class="filters" id="filters"></div>
+    <div id="filters"></div>
     <div id="memlist"></div>
   </section>
   <section id="graph" class="hide"><div class="graphbody" id="graphbody"></div></section>
@@ -294,9 +297,12 @@ function renderFilters(){
   const {ents,tags}=allFacets();
   if(!ents.length&&!tags.length){ $('#filters').innerHTML=''; return; }
   const chip=(v,cls)=>`<span class="fchip ${cls} ${active.has(v)?'on':''}" data-f="${esc(v)}">${esc(v)}</span>`;
-  $('#filters').innerHTML='<span class="lbl">entities:</span>'+ents.map(e=>chip(e,'ent')).join('')
+  const inner='<span class="lbl">entities:</span>'+ents.map(e=>chip(e,'ent')).join('')
     +(tags.length?'<span class="lbl" style="margin-left:10px">tags:</span>'+tags.map(t=>chip('#'+t,'tag')).join(''):'')
     +(active.size?` <span class="fchip" data-f="__clear__" style="border-style:dashed">clear ✕</span>`:'');
+  const sum=`filters · <b>${ents.length+tags.length}</b> entities &amp; tags`+(active.size?` · <b>${active.size}</b> active`:'');
+  // collapsed by default (they pile up); auto-open while a filter is active so you see what's on
+  $('#filters').innerHTML=`<details class="facets"${active.size?' open':''}><summary>${sum}</summary><div class="filters">${inner}</div></details>`;
   $$('#filters .fchip').forEach(c=>c.onclick=()=>{const f=c.dataset.f; f==='__clear__'?(active.clear(),renderFilters(),renderMems()):(active.has(f)?active.delete(f):active.add(f),renderFilters(),renderMems());});
 }
 function matchRepo(m){ return repoFilter==='__all__'||repoOf(m)===repoFilter; }
