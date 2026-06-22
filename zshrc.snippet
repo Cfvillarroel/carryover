@@ -45,7 +45,7 @@ carryover() {
       [ "$2" = "--session" ] || bash "$HOME/.claude/hooks/carryover-toggle.sh" off
       unset ANTHROPIC_BASE_URL OPENAI_BASE_URL
       echo "$tag ${Y}OFF${R}${D} · this shell${2:+ (session only)}${R}"
-      [ -s "$HOME/.carryover/wrapped" ] && echo "  ${Y}⚠${R}${D} still routing (off only affects Claude) — revert their config to stop: $(tr '\n' ' ' < "$HOME/.carryover/wrapped")${R}";;
+      [ -s "$HOME/.carryover/wrapped" ] && echo "  ${Y}⚠${R}${D} still routing (off only affects Claude): $(tr '\n' ' ' < "$HOME/.carryover/wrapped")— revert each tool's config, or 'carryover wrap --clear' to dismiss${R}";;
     status) bash "$HOME/.claude/hooks/carryover-toggle.sh" status;;
     "")
       bash "$HOME/.claude/hooks/carryover-toggle.sh" status
@@ -110,7 +110,7 @@ carryover() {
     update)
       local SRC="${CARRYOVER_SRC:-$HOME/carryover}"
       [ -d "$SRC/.git" ] || { echo "$tag ${E}✗${R} no checkout at $SRC (set CARRYOVER_SRC)"; return 1; }
-      git -C "$SRC" pull --ff-only || { echo "$tag ${E}✗${R} 'git pull' failed in $SRC"; return 1; }
+      git -C "$SRC" -c http.lowSpeedLimit=1000 -c http.lowSpeedTime=20 pull --ff-only || { echo "$tag ${E}✗${R} 'git pull' failed/timed out in $SRC (network down, or repo dirty/diverged?)"; return 1; }
       bash "$SRC/install.sh" --files-only || return 1
       if pgrep -f "carryover/carryover-dash.py" >/dev/null; then
         pkill -f "carryover/carryover-dash.py"
@@ -127,8 +127,9 @@ carryover() {
     wrap) shift
       local _t="${1:-}"
       case "$_t" in
+        --clear|clear) rm -f "$HOME/.carryover/wrapped"; echo "$tag ${D}wrap list cleared${R}"; return 0;;
         windsurf|devin) echo "Point Windsurf at the proxy: set its OpenAI base URL to http://127.0.0.1:${HEADROOM_PORT:-8787}/v1";;
-        "") echo "usage: carryover wrap <cursor|codex|aider|copilot|windsurf|…>";;
+        "") echo "usage: carryover wrap <cursor|codex|aider|copilot|windsurf|…>  ·  carryover wrap --clear"; return 0;;
         *) "$HOME/.headroom/venv/bin/headroom" wrap "$@";;
       esac
       # remember wrapped non-Claude tools so 'carryover off' can warn they still route

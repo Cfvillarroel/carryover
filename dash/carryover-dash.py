@@ -442,8 +442,22 @@ renderRepoBar(); renderMems(); renderWikiNav(); renderOverview();
 
 def main():
     socketserver.TCPServer.allow_reuse_address = True
-    url = f"http://127.0.0.1:{PORT}/"
-    with socketserver.TCPServer(("127.0.0.1", PORT), Handler) as httpd:
+    port, httpd = PORT, None
+    for attempt in range(10):
+        try:
+            httpd = socketserver.TCPServer(("127.0.0.1", port), Handler)
+            break
+        except OSError as e:
+            if e.errno in (48, 98) and attempt < 9:  # EADDRINUSE (macOS 48 / Linux 98) — try the next port
+                port += 1
+                continue
+            print(f"carryover dashboard: can't bind a port near {PORT} ({e}).")
+            print(f"  another co-dash may be running — check `lsof -i :{PORT}`, or set CARRYOVER_DASH_PORT.")
+            return
+    if port != PORT:
+        print(f"  (port {PORT} busy → using {port})")
+    url = f"http://127.0.0.1:{port}/"
+    with httpd:
         print(f"💼 carryover dashboard → {url}  (Ctrl-C to stop)")
         try:
             webbrowser.open(url)
