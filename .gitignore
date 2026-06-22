@@ -1,3 +1,5 @@
 .DS_Store
 headroom_memory.db
 wiki/
+__pycache__/
+*.pyc
