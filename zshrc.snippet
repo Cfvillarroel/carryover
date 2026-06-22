@@ -58,12 +58,21 @@ carryover() {
         "wiki-gen:regenerate the repo wiki · regenerar la wiki del repo"
         "wiki-prune:drop dead entries from the wiki registry · podar wikis muertas del registro"
         "co-dash:open the local dashboard · abrir el panel local"
+        "hr-recall <q>:recall knowledge by keyword · recordar conocimiento por keyword"
         "hr-prune:prune old memories, e.g. --older-than 30d · purgar memorias viejas"
         "hr-*:headroom CLI (proxy + memory) · CLI de headroom (proxy + memoria)"
       )
       printf '\n  %sShell commands · Comandos de shell%s\n' "$D" "$R"
       local c
       for c in "${cmds[@]}"; do printf '  %s%-18s%s %s\n' "$O" "${c%%:*}" "$R" "${c#*:}"; done
+      local -a inclaude=(
+        "/carryover:this command reference · esta referencia de comandos"
+        "/recall <q>:recall knowledge by keyword · recordar conocimiento por keyword"
+        "/wiki-enable:enable the auto-wiki here · activar la auto-wiki aquí"
+        "/headroom:headroom status + memory · estado y memoria de headroom"
+      )
+      printf '\n  %sCarryover · in Claude%s %s(slash-commands — type in the chat · en el chat)%s\n' "$D" "$R" "$D" "$R"
+      for c in "${inclaude[@]}"; do printf '  %s%-18s%s %s\n' "$O" "${c%%:*}" "$R" "${c#*:}"; done
       local -a pony=(
         "/ponytail:lite|full|ultra — lazy mode + intensity · modo lazy + intensidad"
         "/ponytail-review:review the diff for over-engineering · revisar el diff"
