@@ -9,7 +9,7 @@
 #            "category":"…","tags":["…"],"importance":0.7}
 #
 # The actual save runs in the BACKGROUND (loading the embedding model takes a few seconds),
-# so this returns immediately. Logs to ~/.headroom/mem-save.log.
+# so this returns immediately. Logs to ~/.carryover/mem-save.log.
 set -euo pipefail
 PY="$HOME/.headroom/venv/bin/python"
 DB="${HEADROOM_DB:-$HOME/.headroom/memory.db}"
@@ -36,5 +36,6 @@ WORKER="$(cd -P "$(dirname "$src")" && pwd)/mem-save.py"
 REPO="$(git remote get-url origin 2>/dev/null | sed -E 's#/+$##; s#.*/##; s#\.git$##')"
 [ -n "$REPO" ] || REPO="general"
 
-nohup "$PY" "$WORKER" "$DB" "$UID_" "$tmp" "$REPO" >>"$HOME/.headroom/mem-save.log" 2>&1 &
+mkdir -p "$HOME/.carryover"
+nohup "$PY" "$WORKER" "$DB" "$UID_" "$tmp" "$REPO" >>"$HOME/.carryover/mem-save.log" 2>&1 &
 echo "💾 mem-save: queued to knowledge store (repo: $REPO, background)"

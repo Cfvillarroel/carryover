@@ -18,13 +18,13 @@ else warn "proxy not registered with launchd (won't survive reboot) → run in Y
 
 if grep -q '"ANTHROPIC_BASE_URL"' "$HOME/.claude/settings.json" 2>/dev/null; then ok "Claude routing ON (settings.json)"
 else warn "Claude routing OFF (carryover off?) → carryover on"; fi
-[ -f "$HOME/.headroom/.bypass" ] && warn "global bypass flag set (routing off) → carryover on" || ok "no bypass flag"
+[ -f "$HOME/.carryover/.bypass" ] && warn "global bypass flag set (routing off) → carryover on" || ok "no bypass flag"
 
 for f in statusline.sh commands/headroom.md commands/recall.md hooks/mem-save.sh hooks/carryover-recall.sh hooks/carryover-toggle.sh; do
   if [ -e "$HOME/.claude/$f" ]; then ok "~/.claude/$f"; else warn "~/.claude/$f missing — re-run install.sh"; fi
 done
 for f in carryover-dash.py install-wiki.sh recall.sh; do
-  [ -e "$HOME/.headroom/$f" ] && ok "~/.headroom/$f" || warn "~/.headroom/$f missing — re-run install.sh"
+  [ -e "$HOME/.carryover/$f" ] && ok "~/.carryover/$f" || warn "~/.carryover/$f missing — re-run install.sh"
 done
 
 grep -q ">>> headroom aliases >>>" "$HOME/.zshrc" 2>/dev/null && ok "aliases in ~/.zshrc" || warn "aliases missing — open a new terminal / re-run install.sh"

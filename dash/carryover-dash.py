@@ -21,7 +21,8 @@ import webbrowser
 from pathlib import Path
 
 HOME = Path.home()
-HEADROOM = HOME / ".headroom"
+HEADROOM = HOME / ".headroom"      # headroom's store (memory DBs + venv)
+CARRYOVER = HOME / ".carryover"    # carryover's own files (wikis.list, dash export)
 DB = os.environ.get("HEADROOM_DB", str(HEADROOM / "memory.db"))
 HR_BIN = HEADROOM / "venv" / "bin" / "headroom"
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else int(os.environ.get("CARRYOVER_DASH_PORT", "8788"))
@@ -30,7 +31,7 @@ PORT = int(sys.argv[1]) if len(sys.argv) > 1 else int(os.environ.get("CARRYOVER_
 def load_memories():
     if not HR_BIN.exists():
         return []
-    tmp = HEADROOM / ".dash-export.json"
+    tmp = CARRYOVER / ".dash-export.json"
     try:
         subprocess.run([str(HR_BIN), "memory", "export", "--output", str(tmp), "--db-path", DB],
                        capture_output=True, timeout=20)
@@ -77,7 +78,7 @@ def repo_name(root):
 
 def wiki_dirs():
     dirs = []
-    listfile = HEADROOM / "wikis.list"
+    listfile = CARRYOVER / "wikis.list"
     if listfile.exists():
         for line in listfile.read_text().splitlines():
             if line.strip():

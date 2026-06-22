@@ -7,11 +7,11 @@ alias hr-mem="hr memory list --db-path \"$HEADROOM_DB\""    # saved memories
 alias hr-stats="hr memory stats --db-path \"$HEADROOM_DB\"" # memory summary
 alias hr-save="hr output-savings"               # tokens saved
 alias mem-save="bash $HOME/.claude/hooks/mem-save.sh"  # save a memory by hand
-alias co-dash="python3 $HOME/.headroom/carryover-dash.py"  # local dashboard: memories + wikis
+alias co-dash="python3 $HOME/.carryover/carryover-dash.py"  # local dashboard: memories + wikis
 alias hr-dash="open http://127.0.0.1:8787/dashboard"       # headroom's savings dashboard
-alias wiki-enable="bash $HOME/.headroom/install-wiki.sh"   # enable the auto-wiki in the current repo
-alias wiki-gen="bash $HOME/.headroom/wiki-gen.sh"          # generate/update the current repo's wiki now
-alias hr-recall="bash $HOME/.headroom/recall.sh"           # recall knowledge by keyword
+alias wiki-enable="bash $HOME/.carryover/install-wiki.sh"   # enable the auto-wiki in the current repo
+alias wiki-gen="bash $HOME/.carryover/wiki-gen.sh"          # generate/update the current repo's wiki now
+alias hr-recall="bash $HOME/.carryover/recall.sh"           # recall knowledge by keyword
 alias hr-prune="hr memory prune"                           # prune memories (e.g. --older-than 30d --dry-run)
 alias hr-on="hr install start"                  # start proxy
 alias hr-off="hr install stop"                  # stop proxy
@@ -66,14 +66,14 @@ carryover() {
       [ -d "$SRC/.git" ] || { echo "$tag ${E}✗${R} no checkout at $SRC (set CARRYOVER_SRC)"; return 1; }
       git -C "$SRC" pull --ff-only || { echo "$tag ${E}✗${R} 'git pull' failed in $SRC"; return 1; }
       bash "$SRC/install.sh" --files-only || return 1
-      if pgrep -f "headroom/carryover-dash.py" >/dev/null; then
-        pkill -f "headroom/carryover-dash.py"
-        (nohup python3 "$HOME/.headroom/carryover-dash.py" >>"$HOME/.headroom/dash.log" 2>&1 &)
+      if pgrep -f "carryover/carryover-dash.py" >/dev/null; then
+        pkill -f "carryover/carryover-dash.py"
+        (nohup python3 "$HOME/.carryover/carryover-dash.py" >>"$HOME/.carryover/dash.log" 2>&1 &)
         echo "$tag ${D}dashboard restarted${R}"
       fi
       echo "$tag ${G}✓ done${R}${D} (source: $SRC)${R}"
-      if [ -r "$HOME/.headroom/carryover.zsh" ]; then
-        source "$HOME/.headroom/carryover.zsh" 2>/dev/null   # don't gate on exit code: it reflects the snippet's last line, not failure
+      if [ -r "$HOME/.carryover/carryover.zsh" ]; then
+        source "$HOME/.carryover/carryover.zsh" 2>/dev/null   # don't gate on exit code: it reflects the snippet's last line, not failure
         echo "$tag ${G}✓ reloaded${R}${D} — new commands are live in this shell${R}"
       else
         echo "  ${D}reload to pick up command changes:${R} source ~/.zshrc"
@@ -88,5 +88,5 @@ carryover() {
   esac
 }
 # apply global bypass in new shells (set by 'carryover off')
-[ -f "$HOME/.headroom/.bypass" ] && unset ANTHROPIC_BASE_URL OPENAI_BASE_URL
+[ -f "$HOME/.carryover/.bypass" ] && unset ANTHROPIC_BASE_URL OPENAI_BASE_URL
 # <<< headroom aliases <<<

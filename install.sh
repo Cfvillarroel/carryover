@@ -5,7 +5,9 @@
 set -euo pipefail
 
 SETUP_DIR="$(cd "$(dirname "$0")" && pwd)"   # .../.conductor/setup
-HR_DIR="$HOME/.headroom"
+HR_DIR="$HOME/.headroom"          # headroom's own dir (venv + memory DBs) — we never move this
+CO_DIR="$HOME/.carryover"         # carryover's own dir (dashboard, wiki scripts, recall, flags)
+mkdir -p "$CO_DIR"
 MODE="${1:-full}"; [ "$MODE" = "--files-only" ] && MODE=files   # files = only symlinks/settings/zshrc (used by 'carryover update')
 
 if [ "$MODE" = full ]; then
@@ -35,12 +37,17 @@ echo "==> 3/4 ~/.claude config (symlinks to the repo)"
 mkdir -p "$HOME/.claude/commands"
 ln -sf "$SETUP_DIR/claude/statusline.sh"        "$HOME/.claude/statusline.sh"
 for c in "$SETUP_DIR"/claude/commands/*.md; do ln -sf "$c" "$HOME/.claude/commands/$(basename "$c")"; done
-ln -sf "$SETUP_DIR/GUIA.md"                      "$HR_DIR/GUIA.md"
-ln -sf "$SETUP_DIR/dash/carryover-dash.py"       "$HR_DIR/carryover-dash.py"   # 'co-dash' alias target
-ln -sf "$SETUP_DIR/wiki/install-wiki.sh"         "$HR_DIR/install-wiki.sh"     # 'wiki-enable' alias target
-ln -sf "$SETUP_DIR/claude/hooks/recall.sh"       "$HR_DIR/recall.sh"           # 'hr-recall' alias target
-ln -sf "$SETUP_DIR/claude/hooks/wiki-gen.sh"     "$HR_DIR/wiki-gen.sh"         # 'wiki-gen' alias target
-ln -sf "$SETUP_DIR/zshrc.snippet"                "$HR_DIR/carryover.zsh"       # sourced by ~/.zshrc; 'carryover update' re-sources this for instant reload
+ln -sf "$SETUP_DIR/GUIA.md"                      "$CO_DIR/GUIA.md"
+ln -sf "$SETUP_DIR/dash/carryover-dash.py"       "$CO_DIR/carryover-dash.py"   # 'co-dash' alias target
+ln -sf "$SETUP_DIR/wiki/install-wiki.sh"         "$CO_DIR/install-wiki.sh"     # 'wiki-enable' alias target
+ln -sf "$SETUP_DIR/claude/hooks/recall.sh"       "$CO_DIR/recall.sh"           # 'hr-recall' alias target
+ln -sf "$SETUP_DIR/claude/hooks/wiki-gen.sh"     "$CO_DIR/wiki-gen.sh"         # 'wiki-gen' alias target
+ln -sf "$SETUP_DIR/zshrc.snippet"                "$CO_DIR/carryover.zsh"       # sourced by ~/.zshrc; 'carryover update' re-sources this
+# migrate the old layout (carryover artifacts used to live in ~/.headroom): move data files, drop stale symlinks
+for f in .bypass wikis.list; do
+  if [ -f "$HR_DIR/$f" ] && [ ! -e "$CO_DIR/$f" ]; then mv "$HR_DIR/$f" "$CO_DIR/$f"; fi
+done
+rm -f "$HR_DIR"/carryover-dash.py "$HR_DIR"/install-wiki.sh "$HR_DIR"/recall.sh "$HR_DIR"/wiki-gen.sh "$HR_DIR"/GUIA.md "$HR_DIR"/carryover.zsh
 # statusLine in settings.json: set the key without clobbering the rest (hooks/env/plugins)
 python3 - "$HOME/.claude/settings.json" "$HOME/.claude/statusline.sh" <<'PY'
 import json, os, sys
@@ -79,20 +86,20 @@ json.dump(d, open(path, "w"), indent=2, ensure_ascii=False)
 PY
 
 echo "==> 4/4 ~/.zshrc sources the carryover aliases"
-# Static one-liner: ~/.zshrc just sources ~/.headroom/carryover.zsh (a symlink to
+# Static one-liner: ~/.zshrc just sources ~/.carryover/carryover.zsh (a symlink to
 # the repo snippet). All future changes land via 'git pull' — no ~/.zshrc rewrite,
 # and 'carryover update' re-sources just that file for an instant reload.
 python3 - "$HOME/.zshrc" <<'PY'
 import re, sys, pathlib
 zshrc = pathlib.Path(sys.argv[1])
 block = ('# >>> headroom aliases >>>\n'
-         '[ -r "$HOME/.headroom/carryover.zsh" ] && source "$HOME/.headroom/carryover.zsh"\n'
+         '[ -r "$HOME/.carryover/carryover.zsh" ] && source "$HOME/.carryover/carryover.zsh"\n'
          '# <<< headroom aliases <<<')
 text = zshrc.read_text() if zshrc.exists() else ""
 pat = re.compile(r"\n*[^\n]*>>> headroom aliases >>>[^\n]*\n.*?\n[^\n]*<<< headroom aliases <<<[^\n]*\n?", re.S)
 text = pat.sub(lambda m: "\n\n" + block + "\n", text) if pat.search(text) else (text.rstrip("\n") + "\n\n" + block + "\n")
 zshrc.write_text(text)
-print("  ~/.zshrc now sources ~/.headroom/carryover.zsh")
+print("  ~/.zshrc now sources ~/.carryover/carryover.zsh")
 PY
 
 echo

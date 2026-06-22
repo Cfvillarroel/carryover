@@ -5,7 +5,7 @@ description: Recall what carryover already knows about a topic
 Recall stored knowledge for the user. Run via Bash:
 
 ```bash
-bash ~/.headroom/recall.sh $ARGUMENTS
+bash ~/.carryover/recall.sh $ARGUMENTS
 ```
 
 Present the matches clearly (grouped by repo if helpful). If `$ARGUMENTS` is empty, ask the

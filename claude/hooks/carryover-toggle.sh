@@ -6,9 +6,9 @@
 # on:  reverts (removes guard, restores env, deletes flag).
 set -euo pipefail
 SETTINGS="$HOME/.claude/settings.json"
-FLAG="$HOME/.headroom/.bypass"
+FLAG="$HOME/.carryover/.bypass"
 PORT="${HEADROOM_PORT:-8787}"
-GUARD='[ -f "$HOME/.headroom/.bypass" ] || '
+GUARD='[ -f "$HOME/.carryover/.bypass" ] || '
 
 # colors + 💼 only on a real terminal (and unless NO_COLOR); empty otherwise → clean pipes/logs
 if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then

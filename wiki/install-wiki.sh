@@ -3,7 +3,7 @@
 # Usage:  bash install-wiki.sh [/path/to/repo]   (default: current repo)
 set -euo pipefail
 # resolve this script's REAL directory, following symlinks, so gen-wiki.sh / pre-push are
-# found even when invoked via ~/.headroom/install-wiki.sh (the wiki-enable alias target).
+# found even when invoked via ~/.carryover/install-wiki.sh (the wiki-enable alias target).
 src="${BASH_SOURCE[0]:-$0}"
 while [ -L "$src" ]; do
   dir="$(cd -P "$(dirname "$src")" && pwd)"; src="$(readlink "$src")"
@@ -24,7 +24,7 @@ cp "$SRC/pre-push" "$HOOK_DIR/pre-push"; chmod +x "$HOOK_DIR/pre-push"
 grep -qxF "wiki/" "$TARGET/.gitignore" 2>/dev/null || echo "wiki/" >> "$TARGET/.gitignore"
 
 # register this repo so the carryover dashboard (co-dash) can find its wiki
-reg="$HOME/.headroom/wikis.list"; mkdir -p "$HOME/.headroom"
+reg="$HOME/.carryover/wikis.list"; mkdir -p "$HOME/.carryover"
 abs="$(cd "$TARGET" && pwd)"
 grep -qxF "$abs" "$reg" 2>/dev/null || echo "$abs" >> "$reg"
 
