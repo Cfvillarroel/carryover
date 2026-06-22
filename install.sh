@@ -41,6 +41,7 @@ ln -sf "$SETUP_DIR/GUIA.md"                      "$CO_DIR/GUIA.md"
 ln -sf "$SETUP_DIR/dash/carryover-dash.py"       "$CO_DIR/carryover-dash.py"   # 'co-dash' alias target
 ln -sf "$SETUP_DIR/wiki/install-wiki.sh"         "$CO_DIR/install-wiki.sh"     # 'wiki-enable' alias target
 ln -sf "$SETUP_DIR/claude/hooks/recall.sh"       "$CO_DIR/recall.sh"           # 'hr-recall' alias target
+ln -sf "$SETUP_DIR/claude/hooks/forget.sh"       "$CO_DIR/forget.sh"           # 'hr-forget' alias target
 ln -sf "$SETUP_DIR/claude/hooks/wiki-gen.sh"     "$CO_DIR/wiki-gen.sh"         # 'wiki-gen' alias target
 ln -sf "$SETUP_DIR/zshrc.snippet"                "$CO_DIR/carryover.zsh"       # sourced by ~/.zshrc; 'carryover update' re-sources this
 # migrate the old layout (carryover artifacts used to live in ~/.headroom): move data files, drop stale symlinks

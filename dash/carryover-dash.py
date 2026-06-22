@@ -58,6 +58,20 @@ def delete_ids(ids):
     return n
 
 
+def edit_memory(mid, content=None, importance=None):
+    if not mid:
+        return False
+    cmd = [str(HR_BIN), "memory", "edit", mid, "--db-path", DB]
+    if content not in (None, ""):
+        cmd += ["--content", content]
+    if importance not in (None, ""):
+        cmd += ["--importance", str(importance)]
+    try:
+        return subprocess.run(cmd, capture_output=True, timeout=15).returncode == 0
+    except Exception:
+        return False
+
+
 def repo_name(root):
     """Real repository name (from git remote), not the Conductor worktree folder name."""
     try:
@@ -147,6 +161,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             data = json.loads(self.rfile.read(ln) or b"{}") if ln else {}
         except Exception:
             data = {}
+        if self.path == "/api/edit":
+            return self._json({"ok": edit_memory(data.get("id"), data.get("content"), data.get("importance"))})
         if self.path == "/api/delete":
             ids = [data["id"]] if data.get("id") else []
         elif self.path == "/api/clear":
@@ -210,8 +226,10 @@ HTML = r"""<!doctype html>
   .badge.cat{background:#e7dcff;color:#5b3fb5}
   .badge.repo{background:#fde9cf;color:#9a5b14}
   .date{color:var(--muted);font-size:12px}
-  .del-btn{margin-left:auto;border:1px solid var(--line);background:#fff;color:var(--red);cursor:pointer;border-radius:8px;font-size:12px;padding:2px 8px}
+  .del-btn{border:1px solid var(--line);background:#fff;color:var(--red);cursor:pointer;border-radius:8px;font-size:12px;padding:2px 8px}
   .del-btn:hover{background:#fbeaea;border-color:#e3bcbc}
+  .edit-btn{margin-left:auto;border:1px solid var(--line);background:#fff;color:var(--accent2);cursor:pointer;border-radius:8px;font-size:12px;padding:2px 8px}
+  .edit-btn:hover{background:var(--chip)}
   .impwrap{width:70px;height:6px;border-radius:4px;background:var(--line);display:inline-block;overflow:hidden}
   .imp{height:6px;border-radius:4px;background:var(--accent);display:inline-block;vertical-align:middle}
   .content{white-space:pre-wrap;word-break:break-word;font-weight:600}
@@ -278,6 +296,7 @@ let repoFilter='__all__', active=new Set();
 // --- mutations ---
 async function post(path,body){ try{ const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); return await r.json(); }catch(e){ alert('Failed: '+e); return null; } }
 async function delMem(id){ if(!confirm('Delete this memory?'))return; await post('/api/delete',{id}); location.reload(); }
+async function editMem(id){ const m=(DATA.memories||[]).find(x=>x.id===id); if(!m)return; const c=prompt('Edit memory content:', m.content||''); if(c===null)return; const t=c.trim(); if(!t||t===m.content)return; await post('/api/edit',{id,content:t}); location.reload(); }
 async function clearRepo(repo,label){ const m=DATA.memories.filter(x=>repo==='__all__'||repoOf(x)===repo).length; if(!confirm('Delete ALL '+m+' '+label+' memories? This cannot be undone.'))return; await post('/api/clear',{repo}); location.reload(); }
 
 // --- repo bar (index by repo) ---
@@ -329,6 +348,7 @@ function renderMems(){
         <span class="badge repo">📦 ${esc(repoOf(m))}</span>
         ${md.category?`<span class="badge cat">${esc(md.category)}</span>`:''}
         <span class="impwrap"><span class="imp" style="width:${imp}%"></span></span><span class="count">${imp}%</span>
+        <button class="edit-btn" data-edit="${esc(m.id)}">✏️</button>
         <button class="del-btn" data-del="${esc(m.id)}">🗑</button>
       </div>
       <div class="content">${esc(m.content||'')}</div>
@@ -339,6 +359,7 @@ function renderMems(){
   }).join('');
   $$('#memlist .chip').forEach(c=>c.onclick=()=>{const f=c.dataset.f;active.has(f)?active.delete(f):active.add(f);renderMems();});
   $$('#memlist .del-btn').forEach(b=>b.onclick=()=>delMem(b.dataset.del));
+  $$('#memlist .edit-btn').forEach(b=>b.onclick=()=>editMem(b.dataset.edit));
 }
 $('#q').oninput=renderMems;
 

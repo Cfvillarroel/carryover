@@ -28,6 +28,21 @@ def _norm(s):
     return re.sub(r"\s+", " ", (s or "").lower()).strip().strip(".,;:!?¿¡\"'`")
 
 
+def _toks(s):
+    return set(_norm(s).split())
+
+
+def _dup(s, seen, seen_toks, thresh=0.85):
+    # duplicate if normalized text matches, OR token-overlap (Jaccard) is high. Jaccard only
+    # for facts with >=4 tokens, so short distinct facts (e.g. "carryover on") aren't merged.
+    if _norm(s) in seen:
+        return True
+    t = _toks(s)
+    if len(t) < 4:
+        return False
+    return any(len(ex) >= 4 and len(t & ex) / len(t | ex) >= thresh for ex in seen_toks)
+
+
 def norm_entities(ents):
     out = []
     for e in ents or []:
@@ -56,18 +71,20 @@ async def main():
     if not content:
         return
 
-    # dedup: drop facts already stored (normalized: ignores case / whitespace / trailing punctuation)
+    # dedup: drop facts already stored — normalized-exact OR high token-overlap (Jaccard) near-dupes
     try:
         import subprocess, tempfile
         hr = os.path.expanduser("~/.headroom/venv/bin/headroom")
         tmpx = tempfile.mktemp(suffix=".json")
         subprocess.run([hr, "memory", "export", "--output", tmpx, "--db-path", db],
                        capture_output=True, timeout=20)
-        seen = {_norm(m.get("content")) for m in json.load(open(tmpx))}
+        data = json.load(open(tmpx))
         os.unlink(tmpx)
+        seen = {_norm(m.get("content")) for m in data}
+        seen_toks = [_toks(m.get("content")) for m in data]
         if facts:
-            facts = [f for f in facts if _norm(f) not in seen] or None
-        if not facts and _norm(content) in seen:
+            facts = [f for f in facts if not _dup(f, seen, seen_toks)] or None
+        if not facts and _dup(content, seen, seen_toks):
             return  # nothing new
     except Exception:
         pass
