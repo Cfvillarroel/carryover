@@ -230,6 +230,19 @@ HTML = r"""<!doctype html>
   .del-btn:hover{background:#fbeaea;border-color:#e3bcbc}
   .edit-btn{margin-left:auto;border:1px solid var(--line);background:#fff;color:var(--accent2);cursor:pointer;border-radius:8px;font-size:12px;padding:2px 8px}
   .edit-btn:hover{background:var(--chip)}
+  .ovgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:6px}
+  .ovcard{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;text-align:center}
+  .ovnum{font-size:26px;font-weight:700;color:var(--accent)} .ovlbl{font-size:12px;color:var(--muted)}
+  #overview h3{font-size:13px;color:var(--accent2);margin:20px 0 8px}
+  .ovspark{display:flex;align-items:flex-end;gap:5px;height:50px}
+  .ovspark .b{flex:1;background:var(--tan);border-radius:3px 3px 0 0;min-height:2px}
+  .ovcols{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+  .ovbar{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:13px}
+  .ovbarlbl{width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink)}
+  .ovbartrack{flex:1;height:10px;background:var(--chip);border-radius:6px;overflow:hidden}
+  .ovbarfill{display:block;height:100%;background:var(--accent)}
+  .ovbarval{width:30px;text-align:right;color:var(--muted)}
+  .ovreuse{font-size:13px;margin-bottom:6px;color:var(--ink)} .ovreuse b{color:var(--accent2)}
   .impwrap{width:70px;height:6px;border-radius:4px;background:var(--line);display:inline-block;overflow:hidden}
   .imp{height:6px;border-radius:4px;background:var(--accent);display:inline-block;vertical-align:middle}
   .content{white-space:pre-wrap;word-break:break-word;font-weight:600}
@@ -258,12 +271,14 @@ HTML = r"""<!doctype html>
   <a class="hr" href="http://127.0.0.1:8787/dashboard" target="_blank">headroom savings ↗</a>
 </header>
 <div class="tabs">
-  <div class="tab active" data-tab="mem">🧠 Knowledge</div>
+  <div class="tab active" data-tab="overview">📊 Overview</div>
+  <div class="tab" data-tab="mem">🧠 Knowledge</div>
   <div class="tab" data-tab="graph">🕸 Graph</div>
   <div class="tab" data-tab="wiki">📄 Wikis</div>
 </div>
 <main>
-  <section id="mem">
+  <section id="overview"><div id="overviewbody"></div></section>
+  <section id="mem" class="hide">
     <div class="repobar" id="repobar"></div>
     <div class="toolbar">
       <input type="search" id="q" placeholder="Search knowledge (content, facts, entities, tags)…">
@@ -328,6 +343,36 @@ function renderFilters(){
 function matchRepo(m){ return repoFilter==='__all__'||repoOf(m)===repoFilter; }
 function matchFacets(m){ if(!active.size)return true; const ents=entitiesOf(m).map(e=>e.entity),tags=tagsOf(m).map(t=>'#'+t); return [...active].every(f=>ents.includes(f)||tags.includes(f)); }
 
+function renderOverview(){
+  const M=DATA.memories||[], W=DATA.wikis||[];
+  const repoOf=m=>(m.metadata&&m.metadata.repo)||'general';
+  const now=Date.now(), week=6048e5;
+  const total=M.length, repos=new Set(M.map(repoOf)).size;
+  const addedWeek=M.filter(m=>now-Date.parse(m.created_at||0)<week).length;
+  const wk=Array(8).fill(0);
+  M.forEach(m=>{const d=Date.parse(m.created_at||0); if(d){const i=Math.floor((now-d)/week); if(i>=0&&i<8)wk[7-i]++;}});
+  const wkMax=Math.max(1,...wk);
+  const br={}; M.forEach(m=>{const r=repoOf(m); br[r]=(br[r]||0)+1;});
+  const repoRows=Object.entries(br).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const repoMax=Math.max(1,...repoRows.map(r=>r[1]));
+  const reuse=M.filter(m=>(m.access_count||0)>0).sort((a,b)=>(b.access_count||0)-(a.access_count||0)).slice(0,6);
+  const tc={}; M.forEach(m=>((m.metadata&&m.metadata.tags)||[]).forEach(t=>tc[t]=(tc[t]||0)+1));
+  const tags=Object.entries(tc).sort((a,b)=>b[1]-a[1]).slice(0,14);
+  const bar=(lbl,val,max)=>`<div class="ovbar"><span class="ovbarlbl" title="${esc(lbl)}">${esc(lbl)}</span><span class="ovbartrack"><span class="ovbarfill" style="width:${Math.round(val/max*100)}%"></span></span><span class="ovbarval">${val}</span></div>`;
+  let h=`<div class="ovgrid">
+    <div class="ovcard"><div class="ovnum">${total}</div><div class="ovlbl">memories</div></div>
+    <div class="ovcard"><div class="ovnum">${repos}</div><div class="ovlbl">repos</div></div>
+    <div class="ovcard"><div class="ovnum">+${addedWeek}</div><div class="ovlbl">this week</div></div>
+    <div class="ovcard"><div class="ovnum">${W.length}</div><div class="ovlbl">wikis</div></div>
+  </div>`;
+  h+=`<h3>Growth · last 8 weeks</h3><div class="ovspark">${wk.map(v=>`<span class="b" style="height:${Math.round(v/wkMax*100)}%" title="${v}"></span>`).join('')}</div>`;
+  h+=`<div class="ovcols">
+    <div><h3>By repo</h3>${repoRows.map(r=>bar(r[0],r[1],repoMax)).join('')||'<div class="empty">—</div>'}</div>
+    <div><h3>Most reused</h3>${reuse.map(m=>`<div class="ovreuse"><b>${m.access_count}×</b> ${esc((m.content||'').slice(0,72))}</div>`).join('')||'<div class="empty">nothing recalled yet</div>'}</div>
+  </div>`;
+  h+=`<h3>Top topics</h3><div class="chips">${tags.map(t=>`<span class="chip">${esc(t[0])} ${t[1]}</span>`).join('')||'<div class="empty">—</div>'}</div>`;
+  $('#overviewbody').innerHTML=h;
+}
 function renderMems(){
   renderFilters();
   const f=($('#q').value||'').toLowerCase();
@@ -388,9 +433,9 @@ function showPage(wi,name,el){
   $$('#wikibody code.language-mermaid').forEach(async(c,i)=>{const pre=c.closest('pre')||c,div=document.createElement('div');try{const {svg}=await window.__mermaid.render('mm'+Date.now()+i,c.textContent);div.innerHTML=svg;pre.replaceWith(div);}catch(e){}});
 }
 
-$$('.tab').forEach(t=>t.onclick=()=>{ $$('.tab').forEach(x=>x.classList.remove('active')); t.classList.add('active'); ['mem','graph','wiki'].forEach(s=>$('#'+s).classList.toggle('hide',t.dataset.tab!==s)); if(t.dataset.tab==='graph')renderGraph(); });
+$$('.tab').forEach(t=>t.onclick=()=>{ $$('.tab').forEach(x=>x.classList.remove('active')); t.classList.add('active'); ['overview','mem','graph','wiki'].forEach(s=>$('#'+s).classList.toggle('hide',t.dataset.tab!==s)); if(t.dataset.tab==='graph')renderGraph(); if(t.dataset.tab==='overview')renderOverview(); });
 
-renderRepoBar(); renderMems(); renderWikiNav();
+renderRepoBar(); renderMems(); renderWikiNav(); renderOverview();
 </script>
 </body></html>"""
 
