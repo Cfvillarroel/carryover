@@ -1,92 +1,88 @@
-# Headroom — Quick guide
+# carryover — Guía rápida
 
-Context compression layer for LLMs. Compresses what Claude reads/writes
-before it reaches the API → fewer tokens, same responses. Memory shared
-across repos. Installed durably on 2026-06-19.
+Lleva tu contexto entre herramientas de IA. Conecta Claude Code, Conductor, Cursor,
+Windsurf y Codex a un mismo **proxy + memoria local** (el motor *headroom*), y le suma
+una capa propia: memoria que se recuerda entre sesiones, wiki automática por repo, y un
+dashboard local. 100% local.
 
-Repo: https://github.com/chopratejas/headroom
+> Dos piezas, dos carpetas:
+> - **headroom** (`~/.headroom/`) — el motor: proxy, venv y store de memoria. Es una dependencia.
+> - **carryover** (`~/.carryover/`) — lo propio: dashboard, scripts de wiki, recall, flags.
 
 ---
 
-## What got installed
+## Instalar
 
-- **Service** `com.headroom.default` (launchd, starts on its own when the Mac reboots).
-  Proxy at `http://127.0.0.1:8787`.
-- **Claude routed at the user scope** in `~/.claude/settings.json`
-  (`env.ANTHROPIC_BASE_URL` + hooks). Applies to **all** Conductor workspaces.
-- **Memory:** global `~/.headroom/memory.db` (USER scope = shared across repos)
-  + per-project in `~/.headroom/memories/projects/<workspace>/`.
-- **CLI:** `~/.headroom/venv/bin/headroom` (service) and `~/.pipx/venvs/headroom-ai/bin/headroom` (hooks). Both 0.26.0, Python 3.13.
-- Claude Code plugin `headroom@headroom-marketplace` enabled.
-
-Tip: alias so you don't have to type the path:
 ```bash
-echo 'alias hr=~/.headroom/venv/bin/headroom' >> ~/.zshrc && source ~/.zshrc
+git clone https://github.com/Cfvillarroel/carryover && bash carryover/install.sh
+```
+
+Córrelo en una **Terminal real** (no SSH/agente): el servicio launchd solo se monta desde
+una sesión GUI. Abre una terminal nueva (o `source ~/.zshrc`) y reinicia Claude.
+
+---
+
+## Comandos
+
+Escribe **`carryover`** (sin nada) y verás el estado + la lista completa, en 3 secciones:
+comandos de shell, slash-commands de carryover en Claude, y ponytail. Los más usados:
+
+| Comando | Hace |
+|---------|------|
+| `carryover on` / `off` | activar / desactivar el routing por el proxy (`--session` = solo esta shell) |
+| `carryover status` | ¿routing activo? estado del proxy |
+| `carryover doctor [--fix]` | chequeo de salud de todo (y lo repara con `--fix`) |
+| `carryover persist` | que el proxy sobreviva al reboot (monta el servicio launchd) |
+| `carryover update` | traer lo último + re-sincronizar esta máquina (se auto-recarga) |
+| `carryover version` | versión instalada + si hay updates |
+| `carryover wrap <tool>` | enrutar otra herramienta (Cursor, Codex…) por el proxy |
+| `carryover uninstall` | quitar carryover (deja headroom y ponytail) |
+| `co-dash` | dashboard local (memorias + wikis) |
+| `hr-dash` | dashboard de ahorro/uso de headroom |
+| `wiki-enable` / `wiki-gen` / `wiki-prune` | activar / regenerar / podar la wiki del repo |
+| `hr-recall <q>` / `hr-forget <q>` / `hr-prune` | recordar / borrar / purgar conocimiento |
+| `mem-save "texto"` | guardar una memoria a mano |
+
+En Claude (en el chat): `/carryover`, `/recall <q>`, `/wiki-enable`, `/headroom`.
+
+---
+
+## Cómo funciona
+
+- **Memoria que viaja:** al iniciar una sesión, carryover inyecta lo que ya sabe del repo;
+  al terminar, te ofrece guardar lo que importó (con dedup para no acumular duplicados).
+- **Wiki automática:** `wiki-enable` en un repo genera y registra su wiki (Home, Architecture,
+  Flows con mermaid, Changelog); se ve en `co-dash`.
+- **Dashboard local** (`co-dash`, `localhost:8788`): busca, filtra, edita ✏️ y borra memorias;
+  navega las wikis. Para los números de ahorro de tokens usa `hr-dash` (dashboard de headroom).
+
+---
+
+## Verificar
+
+```bash
+carryover doctor          # chequea proxy, launchd (reboot), routing, symlinks, store
+carryover status          # ¿routing activo? proxy running/healthy
+hr-recall <palabra>       # buscar en el conocimiento
 ```
 
 ---
 
-## Using it in any workspace
+## Problemas comunes
 
-**There's nothing to install per-repo.** Routing is global. Just:
-
-- Open a **new** Claude session in the workspace → it already goes through headroom.
-- Already-open sessions: close and reopen them (`ANTHROPIC_BASE_URL` is read at startup).
-
----
-
-## Easy commands
-
-**Aliases** (in `~/.zshrc`, open a new terminal or `source ~/.zshrc`):
-
-| Alias | Does |
-|-------|------|
-| `hr` | base headroom CLI |
-| `hr-status` | is the proxy up/healthy? |
-| `hr-mem` | saved memories |
-| `hr-stats` | memory summary |
-| `hr-save` | tokens saved |
-| `hr-on` / `hr-off` | start / stop the proxy |
-
-**Inside Claude** (any workspace): type `/headroom` → summary of proxy,
-memory and savings. Also `/headroom list --scope USER`, `/headroom show <id>`, etc.
+- **Comandos nuevos no aparecen** tras `carryover update` → tu terminal tenía la función vieja
+  en memoria: `source ~/.zshrc` (o abre una pestaña nueva). A partir de ahí se auto-recarga.
+- **Claude falla / cuelga** → proxy caído: `carryover doctor --fix` (o `carryover off` para ir directo).
+- **El proxy no sobrevive al reboot** → `carryover persist` desde una Terminal real.
+- **No reinstalar con Python 3.14** → la extensión no compila; el venv usa 3.13.
+- **No borres `~/.headroom/venv`** sin `hr install remove` antes: respalda el servicio.
 
 ---
 
-## Verify
+## Quitar
 
 ```bash
-hr install status                 # Status: running · Healthy: yes
-curl -fsS http://127.0.0.1:8787/readyz   # {"status":"healthy",...}
-echo $ANTHROPIC_BASE_URL          # inside a Claude session → http://127.0.0.1:8787
-hr memory stats                   # accumulated memory (alias already points to the proxy store)
-hr memory list --scope USER       # memories shared across repos
+carryover uninstall                         # quita carryover (symlinks, aliases, hooks)
+~/.headroom/venv/bin/headroom install remove # quita headroom (proxy + memoria)
+claude plugin uninstall ponytail@ponytail    # quita ponytail
 ```
-
-> ⚠️ Important: by default the `headroom memory` CLI uses `./headroom_memory.db` from the
-> current directory, NOT the proxy store. That's why the `hr-mem`/`hr-stats` aliases
-> add `--db-path "$HOME/.headroom/memory.db"`. To save a memory to that store by hand:
-> `mem-save "whatever you want to remember"`.
-
----
-
-## Manage
-
-```bash
-hr install start | stop | restart   # control the service
-hr install status                   # status
-hr install remove                   # UNINSTALL everything (removes routing + service)
-```
-
-⚠️ If the proxy goes down, Claude sessions **fail** until `hr install start`
-(or `hr install remove` to go back to direct traffic).
-
----
-
-## Common problems
-
-- **Claude fails / hangs** → proxy down? `hr install status`; if not, `hr install start`.
-- **Not compressing in a session** → empty `echo $ANTHROPIC_BASE_URL` = old session, restart it.
-- **Get back to normal fast** → `hr install remove` (Claude goes back to talking directly to Anthropic).
-- **Don't reinstall with 3.14** → the Rust extension won't compile; the venv uses Python 3.13.
-- **Don't delete `~/.headroom/venv`** without `hr install remove` first: it backs the service.
