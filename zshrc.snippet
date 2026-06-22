@@ -11,6 +11,16 @@ alias co-dash="python3 $HOME/.carryover/carryover-dash.py"  # local dashboard: m
 alias hr-dash="open http://127.0.0.1:8787/dashboard"       # headroom's savings dashboard
 alias wiki-enable="bash $HOME/.carryover/install-wiki.sh"   # enable the auto-wiki in the current repo
 alias wiki-gen="bash $HOME/.carryover/wiki-gen.sh"          # generate/update the current repo's wiki now
+wiki-prune() {   # drop dead entries (gone worktrees) from carryover's wiki registry
+  local reg="$HOME/.carryover/wikis.list"
+  [ -f "$reg" ] || { echo "wiki-prune: no wikis registered"; return 0; }
+  local before; before=$(grep -c . "$reg" 2>/dev/null || echo 0)
+  local tmp="$reg.tmp"; : > "$tmp"
+  local d; while IFS= read -r d; do [ -n "$d" ] && [ -d "$d/wiki" ] && printf '%s\n' "$d" >> "$tmp"; done < "$reg"
+  mv "$tmp" "$reg"
+  local after; after=$(grep -c . "$reg" 2>/dev/null || echo 0)
+  echo "wiki-prune: removed $((before - after)) dead, $after remain"
+}
 alias hr-recall="bash $HOME/.carryover/recall.sh"           # recall knowledge by keyword
 alias hr-prune="hr memory prune"                           # prune memories (e.g. --older-than 30d --dry-run)
 alias hr-on="hr install start"                  # start proxy
@@ -46,7 +56,9 @@ carryover() {
         "carryover wrap <t>:route another tool (Cursor, Codex…) · enrutar otra herramienta"
         "wiki-enable:enable the auto-wiki in this repo · activar la auto-wiki en este repo"
         "wiki-gen:regenerate the repo wiki · regenerar la wiki del repo"
+        "wiki-prune:drop dead entries from the wiki registry · podar wikis muertas del registro"
         "co-dash:open the local dashboard · abrir el panel local"
+        "hr-prune:prune old memories, e.g. --older-than 30d · purgar memorias viejas"
         "hr-*:headroom CLI (proxy + memory) · CLI de headroom (proxy + memoria)"
       )
       printf '\n  %sShell commands · Comandos de shell%s\n' "$D" "$R"
