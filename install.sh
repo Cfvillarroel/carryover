@@ -85,7 +85,7 @@ zshrc, snippet = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])
 new = snippet.read_text().strip("\n")
 text = zshrc.read_text() if zshrc.exists() else ""
 pat = re.compile(r"\n*[^\n]*>>> headroom aliases >>>[^\n]*\n.*?\n[^\n]*<<< headroom aliases <<<[^\n]*\n?", re.S)
-text = pat.sub("\n\n" + new + "\n", text) if pat.search(text) else (text.rstrip("\n") + "\n\n" + new + "\n")
+text = pat.sub(lambda m: "\n\n" + new + "\n", text) if pat.search(text) else (text.rstrip("\n") + "\n\n" + new + "\n")  # lambda repl: don't interpret \e etc. as regex escapes
 zshrc.write_text(text)
 print("  ~/.zshrc block " + ("updated" if new else "unchanged"))
 PY
