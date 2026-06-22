@@ -30,6 +30,14 @@ carryover() {
       echo "carryover: OFF in this shell${2:+ (session only)}";;
     status|"") bash "$HOME/.claude/hooks/carryover-toggle.sh" status;;
     doctor) bash "$HOME/.claude/hooks/carryover-doctor.sh";;
+    version|--version|-v)
+      local SRC="${CARRYOVER_SRC:-$HOME/carryover}"
+      local v; v=$(python3 -c "import json,sys;print(json.load(open(sys.argv[1]))['version'])" "$SRC/.claude-plugin/plugin.json" 2>/dev/null || echo '?')
+      echo "carryover $v ($(git -C "$SRC" rev-parse --short HEAD 2>/dev/null || echo '?'))"
+      if git -C "$SRC" fetch -q origin master 2>/dev/null; then
+        local n; n=$(git -C "$SRC" rev-list --count HEAD..origin/master 2>/dev/null || echo 0)
+        [ "${n:-0}" -gt 0 ] && echo "  $n update(s) disponibles → corre: carryover update" || echo "  al día ✓"
+      fi;;
     update)
       local SRC="${CARRYOVER_SRC:-$HOME/carryover}"
       [ -d "$SRC/.git" ] || { echo "carryover update: no hay checkout en $SRC (set CARRYOVER_SRC)"; return 1; }
@@ -47,7 +55,7 @@ carryover() {
         "") echo "usage: carryover wrap <cursor|codex|aider|copilot|windsurf|…>";;
         *) "$HOME/.headroom/venv/bin/headroom" wrap "$@";;
       esac;;
-    *) echo "usage: carryover on|off [--session]|status|doctor|update|wrap <tool>";;
+    *) echo "usage: carryover on|off [--session]|status|doctor|update|version|wrap <tool>";;
   esac
 }
 # apply global bypass in new shells (set by 'carryover off')

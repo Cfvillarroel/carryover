@@ -150,21 +150,27 @@ You still need the headroom proxy for memory/compression:
 
 ## Easy commands
 
-| Alias | Does |
-|-------|------|
+| Command | Does |
+|---------|------|
 | `hr` | headroom CLI |
 | `hr-status` | proxy up / healthy? |
+| `hr-on` / `hr-off` | start / stop the proxy |
+| `hr-save` | tokens saved |
 | `hr-mem` | stored memories |
 | `hr-stats` | memory summary |
-| `hr-save` | tokens saved |
+| `hr-prune …` | prune memories (e.g. `--older-than 30d --dry-run`) |
 | `mem-save "text"` | save a memory by hand (or structured `--json`) |
 | `hr-recall <query>` | recall knowledge by keyword |
-| `co-dash` | open the local dashboard (knowledge + wikis) |
-| `hr-dash` | open headroom's savings dashboard |
-| `hr-prune …` | prune memories (e.g. `--older-than 30d --dry-run`) |
+| `wiki-enable` | enable the auto-wiki in the current repo (generates the first one) |
+| `wiki-gen` | regenerate the current repo's wiki on demand |
+| `co-dash` | local dashboard (knowledge + wikis) |
+| `hr-dash` | headroom's savings dashboard |
+| `carryover status` | is routing on? |
+| `carryover on` / `off` | turn proxy routing on / off (`--session` = this shell only) |
 | `carryover doctor` | health-check the whole setup |
+| `carryover update` | pull the latest carryover + re-sync this machine (no manual copies) |
+| `carryover version` | show installed version + whether updates are pending |
 | `carryover wrap <tool>` | route another tool (Cursor, Codex…) through the proxy |
-| `hr-on` / `hr-off` | start / stop the proxy |
 
 **Auto-recall:** when you start a session in a repo, carryover injects *what it already
 knows about that repo* as context — so the knowledge actually comes back, not just gets stored.
@@ -384,21 +390,27 @@ Igual necesitas el proxy de headroom para memoria/compresión:
 
 ## Comandos fáciles
 
-| Alias | Hace |
-|-------|------|
+| Comando | Hace |
+|---------|------|
 | `hr` | CLI de headroom |
 | `hr-status` | ¿proxy arriba/sano? |
+| `hr-on` / `hr-off` | arrancar / parar el proxy |
+| `hr-save` | tokens ahorrados |
 | `hr-mem` | memorias guardadas |
 | `hr-stats` | resumen de memoria |
-| `hr-save` | tokens ahorrados |
+| `hr-prune …` | purgar memorias (ej. `--older-than 30d --dry-run`) |
 | `mem-save "texto"` | guardar una memoria a mano (o estructurada `--json`) |
 | `hr-recall <consulta>` | recordar conocimiento por keyword |
-| `co-dash` | abrir el dashboard local (conocimiento + wikis) |
-| `hr-dash` | abrir el dashboard de ahorro de headroom |
-| `hr-prune …` | purgar memorias (ej. `--older-than 30d --dry-run`) |
+| `wiki-enable` | activar la auto-wiki en el repo actual (genera la primera) |
+| `wiki-gen` | regenerar la wiki del repo actual a demanda |
+| `co-dash` | dashboard local (conocimiento + wikis) |
+| `hr-dash` | dashboard de ahorro de headroom |
+| `carryover status` | ¿routing activo? |
+| `carryover on` / `off` | activar / desactivar el routing por el proxy (`--session` = solo esta shell) |
 | `carryover doctor` | chequeo de salud de todo el setup |
+| `carryover update` | traer lo último de carryover + re-sincronizar esta máquina (sin copias a mano) |
+| `carryover version` | ver versión instalada + si hay updates pendientes |
 | `carryover wrap <tool>` | enrutar otra herramienta (Cursor, Codex…) por el proxy |
-| `hr-on` / `hr-off` | arrancar / parar el proxy |
 
 **Auto-recall:** al iniciar una sesión en un repo, carryover inyecta *lo que ya sabe de ese
 repo* como contexto — así el conocimiento vuelve solo, no solo se guarda.
