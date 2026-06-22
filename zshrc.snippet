@@ -19,43 +19,50 @@ alias hr-off="hr install stop"                  # stop proxy
 # carryover: enable/disable routing through headroom (global + current session)
 carryover() {
   local p="http://127.0.0.1:${HEADROOM_PORT:-8787}"
+  # colors + 💼 only on a real terminal (and unless NO_COLOR); empty otherwise → clean pipes/logs
+  local R O G Y E D tag="carryover"
+  if [ -t 1 ] && [ -z "$NO_COLOR" ]; then
+    R=$'\e[0m'; O=$'\e[1;38;5;173m'; G=$'\e[32m'; Y=$'\e[33m'; E=$'\e[31m'; D=$'\e[2m'
+    tag="${O}💼 carryover${R}"
+  fi
   case "$1" in
     on)
       [ "$2" = "--session" ] || bash "$HOME/.claude/hooks/carryover-toggle.sh" on
       export ANTHROPIC_BASE_URL="$p" OPENAI_BASE_URL="$p/v1"
-      echo "carryover: ON in this shell${2:+ (session only)}";;
+      echo "$tag ${G}ON${R}${D} · this shell${2:+ (session only)}${R}";;
     off)
       [ "$2" = "--session" ] || bash "$HOME/.claude/hooks/carryover-toggle.sh" off
       unset ANTHROPIC_BASE_URL OPENAI_BASE_URL
-      echo "carryover: OFF in this shell${2:+ (session only)}";;
+      echo "$tag ${Y}OFF${R}${D} · this shell${2:+ (session only)}${R}";;
     status|"") bash "$HOME/.claude/hooks/carryover-toggle.sh" status;;
     doctor) bash "$HOME/.claude/hooks/carryover-doctor.sh";;
     version|--version|-v)
       local SRC="${CARRYOVER_SRC:-$HOME/carryover}"
       local v; v=$(python3 -c "import json,sys;print(json.load(open(sys.argv[1]))['version'])" "$SRC/.claude-plugin/plugin.json" 2>/dev/null || echo '?')
-      echo "carryover $v ($(git -C "$SRC" rev-parse --short HEAD 2>/dev/null || echo '?'))"
+      echo "$tag ${O}$v${R} ${D}($(git -C "$SRC" rev-parse --short HEAD 2>/dev/null || echo '?'))${R}"
       if git -C "$SRC" fetch -q origin master 2>/dev/null; then
         local n; n=$(git -C "$SRC" rev-list --count HEAD..origin/master 2>/dev/null || echo 0)
-        [ "${n:-0}" -gt 0 ] && echo "  $n update(s) disponibles → corre: carryover update" || echo "  al día ✓"
+        [ "${n:-0}" -gt 0 ] && echo "  ${Y}$n update(s) available${R} → run: carryover update" || echo "  ${G}up to date ✓${R}"
       fi;;
     update)
       local SRC="${CARRYOVER_SRC:-$HOME/carryover}"
-      [ -d "$SRC/.git" ] || { echo "carryover update: no hay checkout en $SRC (set CARRYOVER_SRC)"; return 1; }
-      git -C "$SRC" pull --ff-only || { echo "carryover update: 'git pull' falló en $SRC"; return 1; }
+      [ -d "$SRC/.git" ] || { echo "$tag ${E}✗${R} no checkout at $SRC (set CARRYOVER_SRC)"; return 1; }
+      git -C "$SRC" pull --ff-only || { echo "$tag ${E}✗${R} 'git pull' failed in $SRC"; return 1; }
       bash "$SRC/install.sh" --files-only || return 1
       if pgrep -f "headroom/carryover-dash.py" >/dev/null; then
         pkill -f "headroom/carryover-dash.py"
         (nohup python3 "$HOME/.headroom/carryover-dash.py" >>"$HOME/.headroom/dash.log" 2>&1 &)
-        echo "carryover update: dashboard reiniciado"
+        echo "$tag ${D}dashboard restarted${R}"
       fi
-      echo "carryover update: listo (fuente: $SRC)";;
+      echo "$tag ${G}✓ done${R}${D} (source: $SRC)${R}"
+      echo "  ${D}reload your shell to pick up command changes:${R} source ~/.zshrc";;
     wrap) shift
       case "${1:-}" in
         windsurf|devin) echo "Point Windsurf at the proxy: set its OpenAI base URL to http://127.0.0.1:${HEADROOM_PORT:-8787}/v1";;
         "") echo "usage: carryover wrap <cursor|codex|aider|copilot|windsurf|…>";;
         *) "$HOME/.headroom/venv/bin/headroom" wrap "$@";;
       esac;;
-    *) echo "usage: carryover on|off [--session]|status|doctor|update|version|wrap <tool>";;
+    *) echo "$tag ${D}usage:${R} on|off [--session]|status|doctor|update|version|wrap <tool>";;
   esac
 }
 # apply global bypass in new shells (set by 'carryover off')

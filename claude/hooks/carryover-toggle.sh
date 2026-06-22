@@ -10,6 +10,13 @@ FLAG="$HOME/.headroom/.bypass"
 PORT="${HEADROOM_PORT:-8787}"
 GUARD='[ -f "$HOME/.headroom/.bypass" ] || '
 
+# colors + 💼 only on a real terminal (and unless NO_COLOR); empty otherwise → clean pipes/logs
+if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then
+  R=$'\e[0m'; O=$'\e[1;38;5;173m'; G=$'\e[32m'; Y=$'\e[33m'; D=$'\e[2m'; TAG="${O}💼 carryover${R}"
+else
+  R=; O=; G=; Y=; D=; TAG="carryover"
+fi
+
 case "${1:-status}" in
   off)
     touch "$FLAG"
@@ -26,7 +33,7 @@ for e in d.get("hooks", {}).get("SessionStart", []):
             h["command"] = guard + c
 json.dump(d, open(path, "w"), indent=2, ensure_ascii=False)
 PY
-    echo "carryover: OFF — Claude will go direct to Anthropic in new sessions (the proxy stays alive)";;
+    echo "$TAG ${Y}OFF${R}${D} — Claude goes direct to Anthropic in new sessions (proxy stays alive)${R}";;
   on)
     rm -f "$FLAG"
     python3 - "$SETTINGS" "$GUARD" "$PORT" <<'PY'
@@ -41,10 +48,10 @@ for e in d.get("hooks", {}).get("SessionStart", []):
             h["command"] = h["command"][len(guard):]
 json.dump(d, open(path, "w"), indent=2, ensure_ascii=False)
 PY
-    echo "carryover: ON — Claude routes through headroom in new sessions";;
+    echo "$TAG ${G}ON${R}${D} — Claude routes through headroom in new sessions${R}";;
   status)
-    [ -f "$FLAG" ] && echo "global: OFF (bypass)" || echo "global: ON"
-    grep -q '"ANTHROPIC_BASE_URL"' "$SETTINGS" 2>/dev/null && echo "settings.json: routing present" || echo "settings.json: no routing"
-    "$HOME/.headroom/venv/bin/headroom" install status 2>/dev/null | grep -iE "Status|Healthy" | sed 's/^/proxy: /' || true;;
+    if [ -f "$FLAG" ]; then echo "$TAG ${Y}OFF${R}${D} (bypass active)${R}"; else echo "$TAG ${G}ON${R}"; fi
+    grep -q '"ANTHROPIC_BASE_URL"' "$SETTINGS" 2>/dev/null && echo "  ${D}routing in settings.json ✓${R}" || echo "  ${D}no routing in settings.json${R}"
+    "$HOME/.headroom/venv/bin/headroom" install status 2>/dev/null | grep -iE "Status|Healthy" | sed 's/^/  proxy: /' || true;;
   *) echo "usage: carryover-toggle.sh on|off|status"; exit 1;;
 esac
