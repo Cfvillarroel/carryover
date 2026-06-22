@@ -34,7 +34,24 @@ carryover() {
       [ "$2" = "--session" ] || bash "$HOME/.claude/hooks/carryover-toggle.sh" off
       unset ANTHROPIC_BASE_URL OPENAI_BASE_URL
       echo "$tag ${Y}OFF${R}${D} · this shell${2:+ (session only)}${R}";;
-    status|"") bash "$HOME/.claude/hooks/carryover-toggle.sh" status;;
+    status) bash "$HOME/.claude/hooks/carryover-toggle.sh" status;;
+    "")
+      bash "$HOME/.claude/hooks/carryover-toggle.sh" status
+      local -a cmds=(
+        "carryover on/off:enable/disable routing · activar/desactivar el routing"
+        "carryover status:show this status · mostrar este estado"
+        "carryover doctor:health-check the setup · chequeo de salud del setup"
+        "carryover update:pull latest + re-sync this machine · traer cambios y re-sincronizar"
+        "carryover version:installed version + pending updates · versión instalada y updates"
+        "carryover wrap <t>:route another tool (Cursor, Codex…) · enrutar otra herramienta"
+        "wiki-enable:enable the auto-wiki in this repo · activar la auto-wiki en este repo"
+        "wiki-gen:regenerate the repo wiki · regenerar la wiki del repo"
+        "co-dash:open the local dashboard · abrir el panel local"
+        "hr-*:headroom CLI (proxy + memory) · CLI de headroom (proxy + memoria)"
+      )
+      printf '\n  %sCommands · Comandos%s\n' "$D" "$R"
+      local c
+      for c in "${cmds[@]}"; do printf '  %s%-18s%s %s\n' "$O" "${c%%:*}" "$R" "${c#*:}"; done;;
     doctor) bash "$HOME/.claude/hooks/carryover-doctor.sh";;
     version|--version|-v)
       local SRC="${CARRYOVER_SRC:-$HOME/carryover}"
