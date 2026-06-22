@@ -30,13 +30,24 @@ carryover() {
       echo "carryover: OFF in this shell${2:+ (session only)}";;
     status|"") bash "$HOME/.claude/hooks/carryover-toggle.sh" status;;
     doctor) bash "$HOME/.claude/hooks/carryover-doctor.sh";;
+    update)
+      local SRC="${CARRYOVER_SRC:-$HOME/carryover}"
+      [ -d "$SRC/.git" ] || { echo "carryover update: no hay checkout en $SRC (set CARRYOVER_SRC)"; return 1; }
+      git -C "$SRC" pull --ff-only || { echo "carryover update: 'git pull' falló en $SRC"; return 1; }
+      bash "$SRC/install.sh" --files-only || return 1
+      if pgrep -f "headroom/carryover-dash.py" >/dev/null; then
+        pkill -f "headroom/carryover-dash.py"
+        (nohup python3 "$HOME/.headroom/carryover-dash.py" >>"$HOME/.headroom/dash.log" 2>&1 &)
+        echo "carryover update: dashboard reiniciado"
+      fi
+      echo "carryover update: listo (fuente: $SRC)";;
     wrap) shift
       case "${1:-}" in
         windsurf|devin) echo "Point Windsurf at the proxy: set its OpenAI base URL to http://127.0.0.1:${HEADROOM_PORT:-8787}/v1";;
         "") echo "usage: carryover wrap <cursor|codex|aider|copilot|windsurf|…>";;
         *) "$HOME/.headroom/venv/bin/headroom" wrap "$@";;
       esac;;
-    *) echo "usage: carryover on|off [--session]|status|doctor|wrap <tool>";;
+    *) echo "usage: carryover on|off [--session]|status|doctor|update|wrap <tool>";;
   esac
 }
 # apply global bypass in new shells (set by 'carryover off')

@@ -6,7 +6,9 @@ set -euo pipefail
 
 SETUP_DIR="$(cd "$(dirname "$0")" && pwd)"   # .../.conductor/setup
 HR_DIR="$HOME/.headroom"
+MODE="${1:-full}"; [ "$MODE" = "--files-only" ] && MODE=files   # files = only symlinks/settings/zshrc (used by 'carryover update')
 
+if [ "$MODE" = full ]; then
 echo "==> 1/4 headroom (venv Python 3.13)"
 if ! command -v python3.13 >/dev/null; then
   echo "    Missing python3.13 → install with: brew install python@3.13"; exit 1
@@ -27,6 +29,7 @@ claude plugin marketplace add DietrichGebert/ponytail 2>/dev/null || true
 claude plugin marketplace add chopratejas/headroom    2>/dev/null || true
 claude plugin install ponytail@ponytail                2>/dev/null || true
 claude plugin install headroom@headroom-marketplace    2>/dev/null || true
+fi   # end MODE=full; --files-only skips headroom venv + plugins above
 
 echo "==> 3/4 ~/.claude config (symlinks to the repo)"
 mkdir -p "$HOME/.claude/commands"
@@ -75,9 +78,17 @@ json.dump(d, open(path, "w"), indent=2, ensure_ascii=False)
 PY
 
 echo "==> 4/4 aliases in ~/.zshrc (headroom + wiki-enable)"
-if ! grep -qF ">>> headroom aliases >>>" "$HOME/.zshrc" 2>/dev/null; then
-  cat "$SETUP_DIR/zshrc.snippet" >> "$HOME/.zshrc"
-fi
+# Replace the marked block (so updates land), or append if missing.
+python3 - "$HOME/.zshrc" "$SETUP_DIR/zshrc.snippet" <<'PY'
+import re, sys, pathlib
+zshrc, snippet = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])
+new = snippet.read_text().strip("\n")
+text = zshrc.read_text() if zshrc.exists() else ""
+pat = re.compile(r"\n*[^\n]*>>> headroom aliases >>>[^\n]*\n.*?\n[^\n]*<<< headroom aliases <<<[^\n]*\n?", re.S)
+text = pat.sub("\n\n" + new + "\n", text) if pat.search(text) else (text.rstrip("\n") + "\n\n" + new + "\n")
+zshrc.write_text(text)
+print("  ~/.zshrc block " + ("updated" if new else "unchanged"))
+PY
 
 echo
 echo "Done. Open a new terminal (or 'source ~/.zshrc') and restart Claude."
