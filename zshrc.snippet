@@ -73,7 +73,8 @@ carryover() {
       fi
       echo "$tag ${G}✓ done${R}${D} (source: $SRC)${R}"
       if [ -r "$HOME/.headroom/carryover.zsh" ]; then
-        source "$HOME/.headroom/carryover.zsh" 2>/dev/null && echo "$tag ${G}✓ reloaded${R}${D} — new commands are live in this shell${R}"
+        source "$HOME/.headroom/carryover.zsh" 2>/dev/null   # don't gate on exit code: it reflects the snippet's last line, not failure
+        echo "$tag ${G}✓ reloaded${R}${D} — new commands are live in this shell${R}"
       else
         echo "  ${D}reload to pick up command changes:${R} source ~/.zshrc"
       fi;;
