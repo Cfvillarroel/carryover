@@ -50,7 +50,8 @@ carryover() {
       local -a cmds=(
         "carryover on/off:enable/disable routing · activar/desactivar el routing"
         "carryover status:show this status · mostrar este estado"
-        "carryover doctor:health-check the setup · chequeo de salud del setup"
+        "carryover doctor:health-check (--fix to repair) · chequeo (--fix para arreglar)"
+        "carryover persist:make the proxy survive reboot · que el proxy sobreviva al reboot"
         "carryover update:pull latest + re-sync this machine · traer cambios y re-sincronizar"
         "carryover version:installed version + pending updates · versión instalada y updates"
         "carryover wrap <t>:route another tool (Cursor, Codex…) · enrutar otra herramienta"
@@ -83,7 +84,17 @@ carryover() {
       )
       printf '\n  %sPonytail · lazy mode%s %s(slash-commands — type in Claude · escríbelos en el chat)%s\n' "$D" "$R" "$D" "$R"
       for c in "${pony[@]}"; do printf '  %s%-18s%s %s\n' "$O" "${c%%:*}" "$R" "${c#*:}"; done;;
-    doctor) bash "$HOME/.claude/hooks/carryover-doctor.sh";;
+    doctor) bash "$HOME/.claude/hooks/carryover-doctor.sh" "$2";;
+    persist)   # make the headroom proxy survive reboot (bootstrap its launchd service from this real Terminal)
+      local plist; plist=$(ls "$HOME"/Library/LaunchAgents/*headroom*.plist 2>/dev/null | head -1)
+      [ -n "$plist" ] || { echo "$tag ${E}✗${R} no headroom launchd plist — run install.sh in a real Terminal first"; return 1; }
+      local label; label=$(basename "$plist" .plist)
+      launchctl bootstrap "gui/$(id -u)" "$plist" 2>/dev/null
+      if launchctl kickstart -k "gui/$(id -u)/$label" 2>/dev/null; then
+        echo "$tag ${G}✓${R} $label bootstrapped — survives reboot"
+      else
+        echo "$tag ${E}✗${R} bootstrap failed — run from a real Terminal (GUI session), not SSH/agent"; return 1
+      fi;;
     version|--version|-v)
       local SRC="${CARRYOVER_SRC:-$HOME/carryover}"
       local v; v=$(python3 -c "import json,sys;print(json.load(open(sys.argv[1]))['version'])" "$SRC/.claude-plugin/plugin.json" 2>/dev/null || echo '?')
@@ -115,7 +126,7 @@ carryover() {
         "") echo "usage: carryover wrap <cursor|codex|aider|copilot|windsurf|…>";;
         *) "$HOME/.headroom/venv/bin/headroom" wrap "$@";;
       esac;;
-    *) echo "$tag ${D}usage:${R} on|off [--session]|status|doctor|update|version|wrap <tool>";;
+    *) echo "$tag ${D}usage:${R} on|off [--session]|status|doctor [--fix]|persist|update|version|wrap <tool>";;
   esac
 }
 # apply global bypass in new shells (set by 'carryover off')
