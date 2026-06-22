@@ -10,11 +10,16 @@ jobs:
           python-version: "3.12"
       - name: bash syntax (-n)
         run: |
-          for f in install.sh wiki/*.sh wiki/pre-push claude/hooks/*.sh; do
+          for f in install.sh uninstall.sh wiki/*.sh wiki/pre-push claude/hooks/*.sh hooks/*.sh; do
             echo "checking $f"; bash -n "$f"
           done
       - name: python syntax
-        run: python3 -m py_compile dash/carryover-dash.py claude/hooks/*.py
+        run: python3 -m py_compile dash/carryover-dash.py claude/hooks/*.py hooks/*.py
+      - name: no hook drift (plugin copies == canonical)
+        run: |
+          for f in mem-save.py mem-save.sh carryover-recall.sh; do
+            diff "hooks/$f" "claude/hooks/$f" && echo "in sync: $f"
+          done
       - name: JSON manifests valid
         run: |
           python3 - <<'PY'
@@ -29,3 +34,7 @@ jobs:
           for f in glob.glob("commands/*.toml"):
               tomllib.load(open(f, "rb")); print("ok", f)
           PY
+      - name: dedup unit test
+        run: python3 tests/test_dedup.py
+      - name: install/uninstall sandbox test
+        run: bash tests/sandbox-test.sh

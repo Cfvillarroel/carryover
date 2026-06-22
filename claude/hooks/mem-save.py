@@ -20,8 +20,6 @@ import sys
 os.environ.setdefault("HF_HUB_OFFLINE", "1")
 os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
 
-from headroom.memory.easy import Memory  # noqa: E402
-
 
 def _norm(s):
     # canonical form for dedup: lowercase, collapse whitespace, drop surrounding punctuation
@@ -102,6 +100,7 @@ async def main():
     if rels:
         md["relationships"] = rels
 
+    from headroom.memory.easy import Memory  # lazy: keeps _norm/_toks/_dup importable for tests without headroom
     m = Memory(backend="local", db_path=db)
     mid = await m.save(
         content=content,
