@@ -72,7 +72,11 @@ carryover() {
         echo "$tag ${D}dashboard restarted${R}"
       fi
       echo "$tag ${G}✓ done${R}${D} (source: $SRC)${R}"
-      echo "  ${D}reload your shell to pick up command changes:${R} source ~/.zshrc";;
+      if [ -r "$HOME/.headroom/carryover.zsh" ]; then
+        source "$HOME/.headroom/carryover.zsh" 2>/dev/null && echo "$tag ${G}✓ reloaded${R}${D} — new commands are live in this shell${R}"
+      else
+        echo "  ${D}reload to pick up command changes:${R} source ~/.zshrc"
+      fi;;
     wrap) shift
       case "${1:-}" in
         windsurf|devin) echo "Point Windsurf at the proxy: set its OpenAI base URL to http://127.0.0.1:${HEADROOM_PORT:-8787}/v1";;

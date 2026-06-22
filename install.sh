@@ -40,6 +40,7 @@ ln -sf "$SETUP_DIR/dash/carryover-dash.py"       "$HR_DIR/carryover-dash.py"   #
 ln -sf "$SETUP_DIR/wiki/install-wiki.sh"         "$HR_DIR/install-wiki.sh"     # 'wiki-enable' alias target
 ln -sf "$SETUP_DIR/claude/hooks/recall.sh"       "$HR_DIR/recall.sh"           # 'hr-recall' alias target
 ln -sf "$SETUP_DIR/claude/hooks/wiki-gen.sh"     "$HR_DIR/wiki-gen.sh"         # 'wiki-gen' alias target
+ln -sf "$SETUP_DIR/zshrc.snippet"                "$HR_DIR/carryover.zsh"       # sourced by ~/.zshrc; 'carryover update' re-sources this for instant reload
 # statusLine in settings.json: set the key without clobbering the rest (hooks/env/plugins)
 python3 - "$HOME/.claude/settings.json" "$HOME/.claude/statusline.sh" <<'PY'
 import json, os, sys
@@ -77,17 +78,21 @@ if not has(ss, "carryover-recall.sh"):
 json.dump(d, open(path, "w"), indent=2, ensure_ascii=False)
 PY
 
-echo "==> 4/4 aliases in ~/.zshrc (headroom + wiki-enable)"
-# Replace the marked block (so updates land), or append if missing.
-python3 - "$HOME/.zshrc" "$SETUP_DIR/zshrc.snippet" <<'PY'
+echo "==> 4/4 ~/.zshrc sources the carryover aliases"
+# Static one-liner: ~/.zshrc just sources ~/.headroom/carryover.zsh (a symlink to
+# the repo snippet). All future changes land via 'git pull' — no ~/.zshrc rewrite,
+# and 'carryover update' re-sources just that file for an instant reload.
+python3 - "$HOME/.zshrc" <<'PY'
 import re, sys, pathlib
-zshrc, snippet = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])
-new = snippet.read_text().strip("\n")
+zshrc = pathlib.Path(sys.argv[1])
+block = ('# >>> headroom aliases >>>\n'
+         '[ -r "$HOME/.headroom/carryover.zsh" ] && source "$HOME/.headroom/carryover.zsh"\n'
+         '# <<< headroom aliases <<<')
 text = zshrc.read_text() if zshrc.exists() else ""
 pat = re.compile(r"\n*[^\n]*>>> headroom aliases >>>[^\n]*\n.*?\n[^\n]*<<< headroom aliases <<<[^\n]*\n?", re.S)
-text = pat.sub(lambda m: "\n\n" + new + "\n", text) if pat.search(text) else (text.rstrip("\n") + "\n\n" + new + "\n")  # lambda repl: don't interpret \e etc. as regex escapes
+text = pat.sub(lambda m: "\n\n" + block + "\n", text) if pat.search(text) else (text.rstrip("\n") + "\n\n" + block + "\n")
 zshrc.write_text(text)
-print("  ~/.zshrc block " + ("updated" if new else "unchanged"))
+print("  ~/.zshrc now sources ~/.headroom/carryover.zsh")
 PY
 
 echo
