@@ -14,12 +14,18 @@ payload.json: {content, facts[], entities[{entity,type}], relationships[{source,
 import asyncio
 import json
 import os
+import re
 import sys
 
 os.environ.setdefault("HF_HUB_OFFLINE", "1")
 os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
 
 from headroom.memory.easy import Memory  # noqa: E402
+
+
+def _norm(s):
+    # canonical form for dedup: lowercase, collapse whitespace, drop surrounding punctuation
+    return re.sub(r"\s+", " ", (s or "").lower()).strip().strip(".,;:!?¿¡\"'`")
 
 
 def norm_entities(ents):
@@ -49,6 +55,22 @@ async def main():
     content = payload.get("content") or (facts[0] if facts else "")
     if not content:
         return
+
+    # dedup: drop facts already stored (normalized: ignores case / whitespace / trailing punctuation)
+    try:
+        import subprocess, tempfile
+        hr = os.path.expanduser("~/.headroom/venv/bin/headroom")
+        tmpx = tempfile.mktemp(suffix=".json")
+        subprocess.run([hr, "memory", "export", "--output", tmpx, "--db-path", db],
+                       capture_output=True, timeout=20)
+        seen = {_norm(m.get("content")) for m in json.load(open(tmpx))}
+        os.unlink(tmpx)
+        if facts:
+            facts = [f for f in facts if _norm(f) not in seen] or None
+        if not facts and _norm(content) in seen:
+            return  # nothing new
+    except Exception:
+        pass
 
     # mirror the structure into metadata so `memory export` (and the dashboard) can read it
     md = {"source": "mem-save", "repo": payload.get("repo") or repo or "general"}
