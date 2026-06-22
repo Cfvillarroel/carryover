@@ -44,7 +44,8 @@ carryover() {
     off)
       [ "$2" = "--session" ] || bash "$HOME/.claude/hooks/carryover-toggle.sh" off
       unset ANTHROPIC_BASE_URL OPENAI_BASE_URL
-      echo "$tag ${Y}OFF${R}${D} · this shell${2:+ (session only)}${R}";;
+      echo "$tag ${Y}OFF${R}${D} · this shell${2:+ (session only)}${R}"
+      [ -s "$HOME/.carryover/wrapped" ] && echo "  ${Y}⚠${R}${D} still routing (off only affects Claude) — revert their config to stop: $(tr '\n' ' ' < "$HOME/.carryover/wrapped")${R}";;
     status) bash "$HOME/.claude/hooks/carryover-toggle.sh" status;;
     "")
       bash "$HOME/.claude/hooks/carryover-toggle.sh" status
@@ -56,6 +57,7 @@ carryover() {
         "carryover update:pull latest + re-sync this machine · traer cambios y re-sincronizar"
         "carryover version:installed version + pending updates · versión instalada y updates"
         "carryover wrap <t>:route another tool (Cursor, Codex…) · enrutar otra herramienta"
+        "carryover uninstall:remove carryover, keep headroom · quitar carryover, deja headroom"
         "wiki-enable:enable the auto-wiki in this repo · activar la auto-wiki en este repo"
         "wiki-gen:regenerate the repo wiki · regenerar la wiki del repo"
         "wiki-prune:drop dead entries from the wiki registry · podar wikis muertas del registro"
@@ -123,12 +125,16 @@ carryover() {
         echo "  ${D}reload to pick up command changes:${R} source ~/.zshrc"
       fi;;
     wrap) shift
-      case "${1:-}" in
+      local _t="${1:-}"
+      case "$_t" in
         windsurf|devin) echo "Point Windsurf at the proxy: set its OpenAI base URL to http://127.0.0.1:${HEADROOM_PORT:-8787}/v1";;
         "") echo "usage: carryover wrap <cursor|codex|aider|copilot|windsurf|…>";;
         *) "$HOME/.headroom/venv/bin/headroom" wrap "$@";;
-      esac;;
-    *) echo "$tag ${D}usage:${R} on|off [--session]|status|doctor [--fix]|persist|update|version|wrap <tool>";;
+      esac
+      # remember wrapped non-Claude tools so 'carryover off' can warn they still route
+      [ -n "$_t" ] && { mkdir -p "$HOME/.carryover"; grep -qxF "$_t" "$HOME/.carryover/wrapped" 2>/dev/null || echo "$_t" >> "$HOME/.carryover/wrapped"; };;
+    uninstall) bash "${CARRYOVER_SRC:-$HOME/carryover}/uninstall.sh";;
+    *) echo "$tag ${D}usage:${R} on|off [--session]|status|doctor [--fix]|persist|update|version|wrap <tool>|uninstall";;
   esac
 }
 # apply global bypass in new shells (set by 'carryover off')
