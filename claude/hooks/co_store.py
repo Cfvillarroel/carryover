@@ -15,6 +15,8 @@ HOME = Path.home()
 HR_BIN = HOME / ".headroom" / "venv" / "bin" / "headroom"
 HR_DB = os.environ.get("HEADROOM_DB", str(HOME / ".headroom" / "memory.db"))
 CO_DB = str(HOME / ".carryover" / "memory.db")
+ACTIVITY = str(HOME / ".carryover" / "activity.jsonl")
+SAVINGS = HOME / ".headroom" / "proxy_savings.json"
 
 
 def _headroom():
@@ -144,3 +146,37 @@ def stats():
     n = c.execute("SELECT COUNT(*) FROM memories").fetchone()[0]
     c.close()
     return n
+
+
+def log_activity(event, repo="general", n=0, **extra):
+    """Append one context-management event to ~/.carryover/activity.jsonl (fail-safe)."""
+    try:
+        import datetime
+        Path(ACTIVITY).parent.mkdir(parents=True, exist_ok=True)
+        rec = {"ts": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+               "event": event, "repo": repo or "general", "n": n}
+        rec.update(extra)
+        with open(ACTIVITY, "a") as f:
+            f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+    except Exception:
+        pass
+
+
+def load_activity(limit=5000):
+    try:
+        with open(ACTIVITY) as f:
+            return [json.loads(ln) for ln in f.read().splitlines()[-limit:] if ln.strip()]
+    except Exception:
+        return []
+
+
+def load_savings():
+    """headroom proxy savings (lifetime + session), or None if headroom isn't installed."""
+    if not SAVINGS.exists():
+        return None
+    try:
+        d = json.loads(SAVINGS.read_text())
+        return {"lifetime": d.get("lifetime") or {}, "session": d.get("display_session") or {}}
+    except Exception:
+        return None
+

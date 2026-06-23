@@ -74,12 +74,18 @@ async def main():
 
     # dedup: drop facts already stored — normalized-exact OR high token-overlap (Jaccard) near-dupes
     try:
+        _repo = payload.get("repo") or repo or "general"
         data = co_store.export()
         seen = {_norm(m.get("content")) for m in data}
         seen_toks = [_toks(m.get("content")) for m in data]
         if facts:
+            before = len(facts)
             facts = [f for f in facts if not _dup(f, seen, seen_toks)] or None
+            dropped = before - (len(facts) if facts else 0)
+            if dropped:
+                co_store.log_activity("dedup", _repo, dropped)  # instrument: dupes avoided
         if not facts and _dup(content, seen, seen_toks):
+            co_store.log_activity("dedup", _repo, 1)
             return  # nothing new
     except Exception:
         pass

@@ -111,7 +111,8 @@ def load_wikis():
 
 
 def build_html():
-    data = json.dumps({"memories": load_memories(), "wikis": load_wikis()}, ensure_ascii=False)
+    data = json.dumps({"memories": load_memories(), "wikis": load_wikis(),
+                       "activity": co_store.load_activity(), "savings": co_store.load_savings()}, ensure_ascii=False)
     return HTML.replace("/*__DATA__*/", data)
 
 
@@ -352,6 +353,37 @@ function renderOverview(){
     <div><h3>Most reused</h3>${reuse.map(m=>`<div class="ovreuse"><b>${m.access_count}×</b> ${esc((m.content||'').slice(0,72))}</div>`).join('')||'<div class="empty">nothing recalled yet</div>'}</div>
   </div>`;
   h+=`<h3>Top topics</h3><div class="chips">${tags.map(t=>`<span class="chip">${esc(t[0])} ${t[1]}</span>`).join('')||'<div class="empty">—</div>'}</div>`;
+  // context-management metrics (from instrumented recall + dedup activity)
+  const A=DATA.activity||[];
+  const recalls=A.filter(a=>a.event==='recall');
+  const sessions=recalls.length;
+  const carried=recalls.reduce((s,a)=>s+(a.n||0),0);
+  const avgCarried=sessions?Math.round(carried/sessions*10)/10:0;
+  const dedupAvoided=A.filter(a=>a.event==='dedup').reduce((s,a)=>s+(a.n||0),0);
+  const reuseTotal=M.reduce((s,m)=>s+(m.access_count||0),0);
+  const days=Array(14).fill(0);
+  recalls.forEach(a=>{const d=Date.parse(a.ts||0); if(d){const i=Math.floor((now-d)/864e5); if(i>=0&&i<14)days[13-i]++;}});
+  const daysMax=Math.max(1,...days);
+  h+=`<h3>Context management</h3><div class="ovgrid">
+    <div class="ovcard"><div class="ovnum">${sessions}</div><div class="ovlbl">sessions w/ recall</div></div>
+    <div class="ovcard"><div class="ovnum">${avgCarried}</div><div class="ovlbl">avg carried/session</div></div>
+    <div class="ovcard"><div class="ovnum">${reuseTotal}</div><div class="ovlbl">recalls (reuse)</div></div>
+    <div class="ovcard"><div class="ovnum">${dedupAvoided}</div><div class="ovlbl">dupes avoided</div></div>
+  </div>`;
+  h+=`<h3>Context carried · last 14 days</h3><div class="ovspark">${days.map(v=>`<span class="b" style="height:${Math.round(v/daysMax*100)}%" title="${v} sessions"></span>`).join('')}</div>`;
+  const S=DATA.savings;
+  if(S){
+    const L=S.lifetime||{}, fmt=n=>(n||0).toLocaleString(), tok=L.tokens_saved||0, inTok=L.total_input_tokens||0;
+    const pct=inTok?Math.round(tok/inTok*1000)/10:0;
+    h+=`<h3>Proxy savings · <span style="color:var(--muted);font-weight:400">headroom</span> <a class="hr" href="http://127.0.0.1:8787/dashboard" target="_blank">full ↗</a></h3><div class="ovgrid">
+      <div class="ovcard"><div class="ovnum">${fmt(tok)}</div><div class="ovlbl">tokens saved</div></div>
+      <div class="ovcard"><div class="ovnum">${pct}%</div><div class="ovlbl">compression</div></div>
+      <div class="ovcard"><div class="ovnum">$${(L.compression_savings_usd||0).toFixed(2)}</div><div class="ovlbl">saved</div></div>
+      <div class="ovcard"><div class="ovnum">${fmt(L.requests||0)}</div><div class="ovlbl">requests</div></div>
+    </div>`;
+  } else {
+    h+=`<h3>Proxy savings</h3><div class="empty">headroom proxy not installed — add it (optional, <code>install.sh --with-headroom</code>) for token-compression savings.</div>`;
+  }
   $('#overviewbody').innerHTML=h;
 }
 function renderMems(){

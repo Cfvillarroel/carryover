@@ -1,33 +1,32 @@
 #!/usr/bin/env bash
-# SessionStart hook: inject "what I know about THIS repo" as context, so knowledge
-# carries over into a new session automatically. Fast (no embedder): reads the export
-# and filters by repo. Fail-safe — any problem just exits 0 with no output.
+# SessionStart hook: inject "what I know about THIS repo" as context, so knowledge carries
+# over into a new session. Backend-agnostic (co-mem → headroom or built-in). Fail-safe —
+# any problem just exits 0 with no output. Logs each injection for the dashboard's context metrics.
 set -uo pipefail
 input=$(cat 2>/dev/null || true)
-HR="$HOME/.headroom/venv/bin/headroom"
-DB="${HEADROOM_DB:-$HOME/.headroom/memory.db}"
-PY="$HOME/.headroom/venv/bin/python"
-[ -x "$HR" ] && [ -x "$PY" ] || exit 0
+# locate co-mem next to this script (follow symlink so it works via ~/.carryover/ or the plugin)
+src="${BASH_SOURCE[0]:-$0}"; while [ -L "$src" ]; do d="$(cd -P "$(dirname "$src")" && pwd)"; src="$(readlink "$src")"; [ "${src#/}" = "$src" ] && src="$d/$src"; done
+COMEM="$(cd -P "$(dirname "$src")" && pwd)/co-mem"
+[ -f "$COMEM" ] && command -v python3 >/dev/null 2>&1 || exit 0
 
 # repo of the session's cwd (fall back to current dir)
-cwd=$(printf '%s' "$input" | "$PY" -c 'import json,sys;
+cwd=$(printf '%s' "$input" | python3 -c 'import json,sys
 try: print(json.load(sys.stdin).get("cwd",""))
 except Exception: print("")' 2>/dev/null)
 [ -n "$cwd" ] || cwd="$PWD"
 repo=$(git -C "$cwd" remote get-url origin 2>/dev/null | sed -E 's#/+$##; s#.*/##; s#\.git$##')
 
 tmp="$(mktemp).json"
-"$HR" memory export --output "$tmp" --db-path "$DB" >/dev/null 2>&1 || { rm -f "$tmp"; exit 0; }
+python3 "$COMEM" export "$tmp" 2>/dev/null || { rm -f "$tmp"; exit 0; }
 
-ctx=$(REPO="$repo" "$PY" - "$tmp" <<'PY' 2>/dev/null
-import json, os, sys
+ctx=$(REPO="$repo" python3 - "$tmp" <<'PY' 2>/dev/null
+import datetime, json, os, sys
 repo = os.environ.get("REPO", "")
 try:
     mems = json.load(open(sys.argv[1]))
 except Exception:
     sys.exit(0)
 def md(m): return m.get("metadata") or {}
-# this repo's memories first, then a few general ones; by importance, capped
 this_repo = [m for m in mems if repo and md(m).get("repo") == repo]
 general = [m for m in mems if md(m).get("repo", "general") == "general"]
 this_repo.sort(key=lambda m: m.get("importance", 0), reverse=True)
@@ -37,13 +36,22 @@ if not picked:
     sys.exit(0)
 lines = ["# carryover — what you already know" + (f" about {repo}" if repo else "")]
 for m in picked:
-    c = " ".join((m.get("content") or "").split())  # collapse whitespace
-    if len(c) > 180:                                  # cap per item to keep the block small
+    c = " ".join((m.get("content") or "").split())
+    if len(c) > 180:
         c = c[:180].rstrip() + "…"
     if c:
         tag = "" if md(m).get("repo", "general") == repo else " (general)"
         lines.append(f"- {c}{tag}")
-print("\n".join(lines))
+out = "\n".join(lines)
+try:  # instrument: record what context we carried, for the dashboard
+    log = os.path.expanduser("~/.carryover/activity.jsonl")
+    os.makedirs(os.path.dirname(log), exist_ok=True)
+    with open(log, "a") as f:
+        f.write(json.dumps({"ts": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                            "event": "recall", "repo": repo or "general", "n": len(picked), "chars": len(out)}) + "\n")
+except Exception:
+    pass
+print(out)
 PY
 )
 rm -f "$tmp"
