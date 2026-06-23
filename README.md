@@ -56,10 +56,13 @@ A local layer that makes your context **carry over** across tools, projects and 
 - 🕸 **Structured knowledge** — saved as facts + typed entities + relationships (a queryable
   graph), indexed by the repo it came from.
 - 🔁 **Auto‑recall** — when you start a session in a repo, what carryover knows about it is
-  injected as context (~0.5s, ~500 tokens, compressed). Plus `/recall` / `hr-recall` on demand.
+  injected as context (~0.5s, ~500 tokens, compressed). Plus `/recall` / `co-recall` on demand
+  (current repo by default; `--all` for every repo).
 - 📊 **Local dashboard** (`co-dash`) — browse, search, filter and **manage** (delete/clear)
   your knowledge, a relationship graph, and your project wikis.
-- 📄 **Auto‑wiki** on push to master/main (an LLM writes docs + mermaid diagrams).
+- 📄 **Auto‑wiki** — an LLM writes docs + mermaid diagrams (overview, architecture, flows + a
+  **Features** catalog) and updates them **incrementally** (preserves existing pages, adds only
+  what changed) on push to master/main.
 - 💾 **Save‑what‑mattered prompt** at session end · 🩺 **`carryover doctor`** health check ·
   routing **on/off** toggle · `carryover wrap <tool>` for Cursor/Codex/…
 - Status bar **🐴/🧠**, slash commands, terminal aliases.
@@ -96,7 +99,7 @@ pointed at it **once**. (The proxy must be running: check with `carryover doctor
 
 Two things to keep in mind:
 
-- **Terminal commands** (`co-dash`, `mem-save`, `hr-recall`, `carryover …`) work in **any**
+- **Terminal commands** (`co-dash`, `mem-save`, `co-recall`, `carryover …`) work in **any**
   tool's integrated terminal — they live in your shell (`~/.zshrc`), not in a specific app.
 - **Slash commands** (`/headroom`, `/recall`, `/carryover`, `/wiki-enable`) and the 🐴/🧠 status
   bar are **Claude Code only**. Other tools get the shared memory + compression, not the slash UI.
@@ -147,7 +150,7 @@ You still need the headroom proxy for memory/compression:
 
 - **Global (once per Mac):** headroom proxy + memory + Claude config. Global **by
   design** — that's what makes context shared across all repos and tools.
-- **Per repo / a set of repos:** the **wiki** capability — run `wiki-enable` in each repo
+- **Per repo / a set of repos:** the **wiki** capability — run `co-wiki-enable` in each repo
   you want (one, several or all). It installs a `pre-push` hook there only.
 - Memory is global but internally scoped: `USER` = shared across repos, `project` = per
   workspace.
@@ -164,10 +167,10 @@ You still need the headroom proxy for memory/compression:
 | `hr-stats` | memory summary |
 | `hr-prune …` | prune memories (e.g. `--older-than 30d --dry-run`) |
 | `mem-save "text"` | save a memory by hand (or structured `--json`) |
-| `co-recall <query>` | recall knowledge by keyword (alias: `hr-recall`) |
+| `co-recall [--all] <query>` | recall knowledge by keyword — this repo only; `--all` searches every repo (alias: `hr-recall`) |
 | `co-forget <query>` | delete memories by keyword, with confirm (alias: `hr-forget`) |
 | `co-wiki-enable` | enable the auto-wiki in the current repo, generates the first one (alias: `wiki-enable`) |
-| `co-wiki-gen` | regenerate the current repo's wiki on demand (alias: `wiki-gen`) |
+| `co-wiki-gen` | update the current repo's wiki on demand, incrementally (alias: `wiki-gen`) |
 | `co-wiki-prune` | drop dead entries from the wiki registry (alias: `wiki-prune`) |
 | `co-dash` | local dashboard (overview, knowledge + wikis) |
 | `hr-dash` | headroom's savings dashboard |
@@ -182,8 +185,10 @@ You still need the headroom proxy for memory/compression:
 
 **Auto-recall:** when you start a session in a repo, carryover injects *what it already
 knows about that repo* as context — so the knowledge actually comes back, not just gets stored.
+Every recall (auto at session start or via `/recall`) is counted per memory, so `co-dash` shows
+which memories actually get reused (the ♻ badge).
 
-Inside Claude (any workspace): `/headroom` (proxy + memory + savings), `/carryover` (routing on/off/status), `/recall <query>`, `/wiki-enable`.
+Inside Claude (any workspace): `/headroom` (proxy + memory + savings), `/carryover` (routing on/off/status), `/recall [--all] <query>`, `/wiki-enable`.
 Status bar: **🐴** ponytail active, **🧠** headroom active.
 
 ## Dashboards (local)
@@ -191,7 +196,8 @@ Status bar: **🐴** ponytail active, **🧠** headroom active.
 Two local web dashboards — nothing leaves your machine:
 
 - **`co-dash`** → carryover's own dashboard at `http://127.0.0.1:8788` — browse your
-  **knowledge** (facts, typed entities, tags, with search + entity/tag filters),
+  **knowledge** (facts, typed entities, tags, with search + entity/tag filters), each memory
+  showing a **reuse badge** (♻ N = times recalled into context),
   **grouped by the repo** it came from (or *general*), an auto-built **relationship
   graph**, and your project **wikis** (Markdown + mermaid). It's also a **manager**:
   delete a single memory or clear a whole repo with one click. Reads/writes your DB live; Ctrl-C to stop.
@@ -199,7 +205,7 @@ Two local web dashboards — nothing leaves your machine:
   tokens saved, compression, cache hit rate.
 
 <sub>(Screenshots below use fictitious data. Wikis appear in `co-dash` after you run
-`wiki-enable` in a repo and push to master/main.)</sub>
+`co-wiki-enable` in a repo and push to master/main.)</sub>
 
 | Knowledge | Graph | Wikis |
 |---|---|---|
@@ -233,16 +239,19 @@ mem-save "what you want to remember"
 
 ## Auto‑wiki (local, GitHub‑Wiki format)
 
-Generates a project wiki with headless Claude (`claude -p`) — overview, architecture and
-flows with mermaid diagrams. **`wiki-enable` generates the first wiki immediately** (so it's
-never empty), then it stays current via `wiki-gen` and the end-of-session prompt. (A
-`pre-push` hook on master/main also refreshes it, though in Conductor worktrees you'll
-mostly use `wiki-gen`.) Local by default; publishing to the GitHub wiki is optional.
+Generates a project wiki with headless Claude (`claude -p`) — overview, architecture, flows
+and a **Features** catalog, with mermaid diagrams. It updates **incrementally**: each run
+preserves existing pages and complements them with what changed, so the wiki **grows** over
+time instead of being rewritten from scratch. **`co-wiki-enable` generates the first wiki
+immediately** (so it's never empty), then it stays current via `co-wiki-gen` and the
+end-of-session prompt. (A `pre-push` hook on master/main also folds in changes, though in
+Conductor worktrees you'll mostly use `co-wiki-gen`.) Local by default; publishing to the
+GitHub wiki is optional.
 
 ```bash
-cd /path/to/your/repo && wiki-enable     # enable + generate the first wiki now (background)
-wiki-gen                                  # regenerate / update on demand (no push needed)
-WIKI_PUBLISH=1 wiki-gen                    # also push to the GitHub wiki
+cd /path/to/your/repo && co-wiki-enable   # enable + generate the first wiki now (background)
+co-wiki-gen                               # update the wiki incrementally on demand (no push needed)
+WIKI_PUBLISH=1 co-wiki-gen                # also push to the GitHub wiki
 ```
 
 ## Manage / uninstall headroom
@@ -302,10 +311,13 @@ proyectos y sesiones:
 - 🕸 **Conocimiento estructurado** — facts + entidades tipadas + relaciones (un grafo
   consultable), indexado por el repo del que viene.
 - 🔁 **Auto‑recall** — al iniciar una sesión en un repo, se inyecta como contexto lo que
-  carryover sabe de ese repo (~0.5s, ~500 tokens, comprimido). Más `/recall` / `hr-recall` a demanda.
+  carryover sabe de ese repo (~0.5s, ~500 tokens, comprimido). Más `/recall` / `co-recall` a demanda
+  (solo el repo actual; `--all` para todos los repos).
 - 📊 **Dashboard local** (`co-dash`) — explora, busca, filtra y **gestiona** (borra/limpia)
   tu conocimiento, un grafo de relaciones, y tus wikis.
-- 📄 **Wiki automática** al hacer push a master/main (un LLM escribe docs + diagramas mermaid).
+- 📄 **Wiki automática** — un LLM escribe docs + diagramas mermaid (visión general, arquitectura,
+  flujos + un catálogo de **Features**) y los actualiza de forma **incremental** (preserva las
+  páginas existentes, añade solo lo que cambió) al hacer push a master/main.
 - 💾 **Pregunta de "guardar lo importante"** al final · 🩺 **`carryover doctor`** ·
   toggle de routing **on/off** · `carryover wrap <tool>` para Cursor/Codex/…
 - Barra de estado **🐴/🧠**, slash commands, aliases de terminal.
@@ -343,7 +355,7 @@ necesita que la apuntes a él **una vez**. (El proxy debe estar corriendo: reví
 
 Dos cosas a tener en cuenta:
 
-- Los **comandos de terminal** (`co-dash`, `mem-save`, `hr-recall`, `carryover …`) funcionan en
+- Los **comandos de terminal** (`co-dash`, `mem-save`, `co-recall`, `carryover …`) funcionan en
   la terminal integrada de **cualquier** herramienta — viven en tu shell (`~/.zshrc`), no en una app.
 - Los **slash commands** (`/headroom`, `/recall`, `/carryover`, `/wiki-enable`) y la barra 🐴/🧠
   son **solo de Claude Code**. Las demás herramientas reciben la memoria + compresión, no el slash UI.
@@ -398,7 +410,7 @@ Igual necesitas el proxy de headroom para memoria/compresión:
 
 - **Global (una vez por Mac):** proxy + memoria + config de Claude. Global **por diseño** —
   es lo que hace que el contexto sea compartido entre todos los repos y herramientas.
-- **Por repo / un conjunto:** la **wiki** — corre `wiki-enable` en cada repo que quieras
+- **Por repo / un conjunto:** la **wiki** — corre `co-wiki-enable` en cada repo que quieras
   (uno, varios o todos). Instala un hook `pre-push` solo ahí.
 - La memoria es global pero con scope interno: `USER` = compartida entre repos, `project` =
   por workspace.
@@ -415,10 +427,10 @@ Igual necesitas el proxy de headroom para memoria/compresión:
 | `hr-stats` | resumen de memoria |
 | `hr-prune …` | purgar memorias (ej. `--older-than 30d --dry-run`) |
 | `mem-save "texto"` | guardar una memoria a mano (o estructurada `--json`) |
-| `co-recall <consulta>` | recordar conocimiento por keyword (alias: `hr-recall`) |
+| `co-recall [--all] <consulta>` | recordar conocimiento por keyword — solo este repo; `--all` busca en todos (alias: `hr-recall`) |
 | `co-forget <consulta>` | borrar memorias por keyword, con confirmación (alias: `hr-forget`) |
 | `co-wiki-enable` | activar la auto-wiki en el repo actual, genera la primera (alias: `wiki-enable`) |
-| `co-wiki-gen` | regenerar la wiki del repo actual a demanda (alias: `wiki-gen`) |
+| `co-wiki-gen` | actualizar la wiki del repo actual a demanda, incrementalmente (alias: `wiki-gen`) |
 | `co-wiki-prune` | podar entradas muertas del registro de wikis (alias: `wiki-prune`) |
 | `co-dash` | dashboard local (overview, conocimiento + wikis) |
 | `hr-dash` | dashboard de ahorro de headroom |
@@ -432,9 +444,11 @@ Igual necesitas el proxy de headroom para memoria/compresión:
 | `carryover uninstall` | quitar carryover (deja headroom + ponytail) |
 
 **Auto-recall:** al iniciar una sesión en un repo, carryover inyecta *lo que ya sabe de ese
-repo* como contexto — así el conocimiento vuelve solo, no solo se guarda.
+repo* como contexto — así el conocimiento vuelve solo, no solo se guarda. Cada recall
+(automático al iniciar sesión o con `/recall`) se cuenta por memoria, así `co-dash` muestra
+qué memorias se reutilizan de verdad (la insignia ♻).
 
-Dentro de Claude (cualquier workspace): `/headroom`, `/carryover` (on/off/status), `/recall <consulta>`, `/wiki-enable`.
+Dentro de Claude (cualquier workspace): `/headroom`, `/carryover` (on/off/status), `/recall [--all] <consulta>`, `/wiki-enable`.
 Barra de estado: **🐴** ponytail activo, **🧠** headroom activo.
 
 ## Paneles / dashboards (local)
@@ -442,14 +456,15 @@ Barra de estado: **🐴** ponytail activo, **🧠** headroom activo.
 Dos dashboards web locales — nada sale de tu máquina:
 
 - **`co-dash`** → el dashboard propio de carryover en `http://127.0.0.1:8788` — explora tu
-  **conocimiento** (facts, entidades tipadas, tags, con búsqueda + filtros), **agrupado por
+  **conocimiento** (facts, entidades tipadas, tags, con búsqueda + filtros), con una
+  **insignia de reúso** (♻ N = veces recordada en contexto) en cada memoria, **agrupado por
   el repo** del que viene (o *general*), un **grafo de relaciones** auto-generado, y tus
   **wikis** (Markdown + mermaid). También es **gestor**: borra una memoria o limpia un repo
   entero con un clic. Lee/escribe tu DB en vivo; Ctrl-C para parar. (Capturas en la versión inglesa.)
 - **`hr-dash`** → el dashboard de **ahorro** de headroom en `http://127.0.0.1:8787/dashboard`
   — tokens ahorrados, compresión, cache.
 
-(Las wikis aparecen en `co-dash` después de correr `wiki-enable` en un repo y pushear a master/main.)
+(Las wikis aparecen en `co-dash` después de correr `co-wiki-enable` en un repo y pushear a master/main.)
 
 ## Habilitar / deshabilitar el routing
 
@@ -480,15 +495,18 @@ mem-save "lo que quieras recordar"
 ## Wiki automática (local, formato GitHub Wiki)
 
 Genera una wiki del proyecto con Claude headless (`claude -p`) — visión general,
-arquitectura y flujos con diagramas mermaid. **`wiki-enable` genera la primera wiki de
-inmediato** (así nunca queda vacía), y se mantiene al día con `wiki-gen` y el prompt de fin
-de sesión. (Un hook `pre-push` en master/main también la refresca, aunque en worktrees de
-Conductor usarás sobre todo `wiki-gen`.) Local por defecto; publicar al wiki de GitHub es opcional.
+arquitectura, flujos y un catálogo de **Features**, con diagramas mermaid. Se actualiza de
+forma **incremental**: cada corrida preserva las páginas existentes y las complementa con lo
+que cambió, así la wiki **crece** en vez de regenerarse desde cero. **`co-wiki-enable` genera
+la primera wiki de inmediato** (así nunca queda vacía), y se mantiene al día con `co-wiki-gen`
+y el prompt de fin de sesión. (Un hook `pre-push` en master/main también integra los cambios,
+aunque en worktrees de Conductor usarás sobre todo `co-wiki-gen`.) Local por defecto; publicar
+al wiki de GitHub es opcional.
 
 ```bash
-cd /ruta/a/tu/repo && wiki-enable        # activa + genera la primera wiki ahora (background)
-wiki-gen                                  # regenerar / actualizar a demanda (sin push)
-WIKI_PUBLISH=1 wiki-gen                    # además publicar al wiki de GitHub
+cd /ruta/a/tu/repo && co-wiki-enable     # activa + genera la primera wiki ahora (background)
+co-wiki-gen                               # actualizar la wiki incrementalmente a demanda (sin push)
+WIKI_PUBLISH=1 co-wiki-gen                # además publicar al wiki de GitHub
 ```
 
 ## Gestionar / desinstalar headroom
