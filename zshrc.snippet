@@ -9,9 +9,11 @@ alias hr-save="hr output-savings"               # tokens saved
 alias mem-save="bash $HOME/.claude/hooks/mem-save.sh"  # save a memory by hand
 alias co-dash="python3 $HOME/.carryover/carryover-dash.py"  # local dashboard: memories + wikis
 alias hr-dash="open http://127.0.0.1:8787/dashboard"       # headroom's savings dashboard
-alias wiki-enable="bash $HOME/.carryover/install-wiki.sh"   # enable the auto-wiki in the current repo
-alias wiki-gen="bash $HOME/.carryover/wiki-gen.sh"          # generate/update the current repo's wiki now
-wiki-prune() {   # drop dead entries (gone worktrees) from carryover's wiki registry
+alias co-wiki-enable="bash $HOME/.carryover/install-wiki.sh" # enable the auto-wiki in the current repo
+alias co-wiki-gen="bash $HOME/.carryover/wiki-gen.sh"       # generate/update the current repo's wiki now
+alias wiki-enable="bash $HOME/.carryover/install-wiki.sh"   # compat alias of co-wiki-enable
+alias wiki-gen="bash $HOME/.carryover/wiki-gen.sh"          # compat alias of co-wiki-gen
+co-wiki-prune() {   # drop dead entries (gone worktrees) from carryover's wiki registry
   local reg="$HOME/.carryover/wikis.list"
   [ -f "$reg" ] || { echo "wiki-prune: no wikis registered"; return 0; }
   local before; before=$(grep -c . "$reg" 2>/dev/null || echo 0)
@@ -21,6 +23,7 @@ wiki-prune() {   # drop dead entries (gone worktrees) from carryover's wiki regi
   local after; after=$(grep -c . "$reg" 2>/dev/null || echo 0)
   echo "wiki-prune: removed $((before - after)) dead, $after remain"
 }
+alias wiki-prune="co-wiki-prune"                            # compat alias of co-wiki-prune
 alias co-recall="bash $HOME/.carryover/recall.sh"          # recall knowledge by keyword
 alias co-forget="bash $HOME/.carryover/forget.sh"          # forget memories by keyword (with confirm)
 alias hr-recall="bash $HOME/.carryover/recall.sh"          # compat alias of co-recall
@@ -62,9 +65,9 @@ carryover() {
         "carryover version:installed version + pending updates · versión instalada y updates"
         "carryover wrap <t>:route another tool (Cursor, Codex…) · enrutar otra herramienta"
         "carryover uninstall:remove carryover, keep headroom · quitar carryover, deja headroom"
-        "wiki-enable:enable the auto-wiki in this repo · activar la auto-wiki en este repo"
-        "wiki-gen:regenerate the repo wiki · regenerar la wiki del repo"
-        "wiki-prune:drop dead entries from the wiki registry · podar wikis muertas del registro"
+        "co-wiki-enable:enable the auto-wiki in this repo · activar la auto-wiki en este repo"
+        "co-wiki-gen:regenerate the repo wiki · regenerar la wiki del repo"
+        "co-wiki-prune:drop dead entries from the wiki registry · podar wikis muertas del registro"
         "co-dash:open the local dashboard · abrir el panel local"
         "co-recall <q>:recall knowledge by keyword · recordar conocimiento por keyword"
         "co-forget <q>:delete memories by keyword (confirm) · borrar memorias por keyword"

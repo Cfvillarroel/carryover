@@ -41,7 +41,7 @@ comandos de shell, slash-commands de carryover en Claude, y ponytail. Los más u
 | `carryover uninstall` | quitar carryover (deja headroom y ponytail) |
 | `co-dash` | dashboard local (memorias + wikis) |
 | `hr-dash` | dashboard de ahorro/uso de headroom |
-| `wiki-enable` / `wiki-gen` / `wiki-prune` | activar / regenerar / podar la wiki del repo |
+| `co-wiki-enable` / `co-wiki-gen` / `co-wiki-prune` | activar / regenerar / podar la wiki del repo (alias: `wiki-*`) |
 | `co-recall <q>` / `co-forget <q>` / `hr-prune` | recordar / borrar / purgar conocimiento (alias `hr-recall`/`hr-forget`) |
 | `mem-save "texto"` | guardar una memoria a mano |
 

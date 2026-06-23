@@ -166,9 +166,9 @@ You still need the headroom proxy for memory/compression:
 | `mem-save "text"` | save a memory by hand (or structured `--json`) |
 | `co-recall <query>` | recall knowledge by keyword (alias: `hr-recall`) |
 | `co-forget <query>` | delete memories by keyword, with confirm (alias: `hr-forget`) |
-| `wiki-enable` | enable the auto-wiki in the current repo (generates the first one) |
-| `wiki-gen` | regenerate the current repo's wiki on demand |
-| `wiki-prune` | drop dead entries from the wiki registry |
+| `co-wiki-enable` | enable the auto-wiki in the current repo, generates the first one (alias: `wiki-enable`) |
+| `co-wiki-gen` | regenerate the current repo's wiki on demand (alias: `wiki-gen`) |
+| `co-wiki-prune` | drop dead entries from the wiki registry (alias: `wiki-prune`) |
 | `co-dash` | local dashboard (overview, knowledge + wikis) |
 | `hr-dash` | headroom's savings dashboard |
 | `carryover status` | is routing on? |
@@ -417,9 +417,9 @@ Igual necesitas el proxy de headroom para memoria/compresión:
 | `mem-save "texto"` | guardar una memoria a mano (o estructurada `--json`) |
 | `co-recall <consulta>` | recordar conocimiento por keyword (alias: `hr-recall`) |
 | `co-forget <consulta>` | borrar memorias por keyword, con confirmación (alias: `hr-forget`) |
-| `wiki-enable` | activar la auto-wiki en el repo actual (genera la primera) |
-| `wiki-gen` | regenerar la wiki del repo actual a demanda |
-| `wiki-prune` | podar entradas muertas del registro de wikis |
+| `co-wiki-enable` | activar la auto-wiki en el repo actual, genera la primera (alias: `wiki-enable`) |
+| `co-wiki-gen` | regenerar la wiki del repo actual a demanda (alias: `wiki-gen`) |
+| `co-wiki-prune` | podar entradas muertas del registro de wikis (alias: `wiki-prune`) |
 | `co-dash` | dashboard local (overview, conocimiento + wikis) |
 | `hr-dash` | dashboard de ahorro de headroom |
 | `carryover status` | ¿routing activo? |
