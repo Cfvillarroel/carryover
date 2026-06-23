@@ -109,23 +109,27 @@ git clone https://github.com/Cfvillarroel/carryover.git ~/carryover
 bash ~/carryover/install.sh
 ```
 
-Requirements: macOS · `brew install python@3.13` · Claude Code (`claude`) on PATH.
-Then open a new terminal (or `source ~/.zshrc`) and restart Claude.
+That installs **carryover standalone** — memory, recall, wikis and the dashboard, backed by a
+built-in local store (`~/.carryover/memory.db`). Open a new terminal (or `source ~/.zshrc`) and
+restart Claude. Requirements: macOS · Python 3 · Claude Code (`claude`) on PATH.
 
-The installer is **idempotent** and:
-1. installs headroom in `~/.headroom/venv` (Python 3.13) + `headroom install apply --memory`
-   → persistent proxy (launchd), Claude routing, shared memory;
-2. installs the `ponytail` and `headroom` Claude plugins;
-3. symlinks the status bar, `/headroom` command and hooks, sets `statusLine`;
-4. adds aliases to `~/.zshrc`.
+**Optional integrations** (opt-in):
+```bash
+bash ~/carryover/install.sh --with-headroom   # + headroom: compression proxy + shared memory backend
+bash ~/carryover/install.sh --with-ponytail   # + ponytail: a lazy-dev Claude plugin
+bash ~/carryover/install.sh --full            # carryover + headroom + ponytail
+```
+- **headroom** upgrades carryover's memory to a *shared* store across tools and adds the
+  compression proxy (routing for Claude / Cursor / Codex…). When installed, carryover uses it
+  automatically; otherwise it uses the built-in store. Needs `brew install python@3.13`
+  (headroom's Rust/PyO3 extension doesn't build on 3.14).
+- **ponytail** is an independent third-party plugin — purely optional.
 
-> ⚠️ headroom doesn't build on Python 3.14 (Rust/PyO3 extension) — the venv uses 3.13.
+The installer is **idempotent**: it symlinks the hooks, dashboard, status bar and `/headroom`
+command, and adds aliases to `~/.zshrc`.
 
-**Not on Claude Code?** carryover isn't Claude-only. The headroom proxy is shared, so the
-memory + compression apply to **any** tool once it's running — Cursor, Windsurf, Codex,
-Aider… you just point each one at the proxy (see [Works with](#works-with) for the
-one-liner per tool). `install.sh`'s Claude-specific extras (status bar, `/headroom`, the
-plugins) are for Claude Code / Conductor; everything else shares the same proxy + memory.
+**Not on Claude Code?** With headroom the proxy is shared, so memory + compression apply to
+**any** tool (Cursor, Windsurf, Codex, Aider…) — point each at the proxy (see [Works with](#works-with)).
 
 ### Install just the Claude plugin (optional)
 
@@ -352,17 +356,24 @@ git clone https://github.com/Cfvillarroel/carryover.git ~/carryover
 bash ~/carryover/install.sh
 ```
 
-Requisitos: macOS · `brew install python@3.13` · Claude Code (`claude`) en el PATH.
-Luego abre una terminal nueva (o `source ~/.zshrc`) y reinicia Claude.
+Instala **carryover standalone** — memoria, recall, wikis y el dashboard, con un store local
+propio (`~/.carryover/memory.db`). Abre una terminal nueva (o `source ~/.zshrc`) y reinicia
+Claude. Requisitos: macOS · Python 3 · Claude Code (`claude`) en el PATH.
 
-El instalador es **idempotente** y:
-1. instala headroom en `~/.headroom/venv` (Python 3.13) + `headroom install apply --memory`
-   → proxy persistente (launchd), routing de Claude, memoria compartida;
-2. instala los plugins `ponytail` y `headroom` en Claude;
-3. symlinkea la barra de estado, el comando `/headroom` y los hooks, fija el `statusLine`;
-4. añade los aliases a `~/.zshrc`.
+**Integraciones opcionales** (opt-in):
+```bash
+bash ~/carryover/install.sh --with-headroom   # + headroom: proxy de compresión + backend de memoria compartido
+bash ~/carryover/install.sh --with-ponytail   # + ponytail: plugin lazy-dev de Claude
+bash ~/carryover/install.sh --full            # carryover + headroom + ponytail
+```
+- **headroom** convierte la memoria en un store *compartido* entre herramientas y añade el
+  proxy de compresión (routing para Claude / Cursor / Codex…). Si está instalado, carryover lo
+  usa solo; si no, usa el store propio. Necesita `brew install python@3.13` (la extensión
+  Rust/PyO3 de headroom no compila en 3.14).
+- **ponytail** es un plugin de terceros independiente — puramente opcional.
 
-> ⚠️ headroom no compila en Python 3.14 (extensión Rust/PyO3) — el venv usa 3.13.
+El instalador es **idempotente**: symlinkea los hooks, el dashboard, la barra y el comando
+`/headroom`, y añade los aliases a `~/.zshrc`.
 
 **¿No usas Claude Code?** carryover no es solo para Claude. El proxy de headroom es
 compartido, así que la memoria + compresión aplican a **cualquier** herramienta una vez

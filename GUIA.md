@@ -1,13 +1,13 @@
 # carryover — Guía rápida
 
-Lleva tu contexto entre herramientas de IA. Conecta Claude Code, Conductor, Cursor,
-Windsurf y Codex a un mismo **proxy + memoria local** (el motor *headroom*), y le suma
-una capa propia: memoria que se recuerda entre sesiones, wiki automática por repo, y un
-dashboard local. 100% local.
+Lleva tu contexto entre herramientas de IA: memoria que se recuerda entre sesiones, wiki
+automática por repo, recall y un dashboard local. **Funciona solo**, con un store local propio.
+Opcionalmente se integra con **headroom** (proxy de compresión + memoria compartida entre
+herramientas) y con **ponytail** (plugin lazy-dev). 100% local.
 
-> Dos piezas, dos carpetas:
-> - **headroom** (`~/.headroom/`) — el motor: proxy, venv y store de memoria. Es una dependencia.
-> - **carryover** (`~/.carryover/`) — lo propio: dashboard, scripts de wiki, recall, flags.
+> Carpetas:
+> - **carryover** (`~/.carryover/`) — lo propio: backend de memoria, dashboard, wiki, recall, flags.
+> - **headroom** (`~/.headroom/`) — opcional: el motor proxy + store compartido. Si está, carryover lo usa; si no, usa el suyo.
 
 ---
 
@@ -17,8 +17,10 @@ dashboard local. 100% local.
 git clone https://github.com/Cfvillarroel/carryover && bash carryover/install.sh
 ```
 
-Córrelo en una **Terminal real** (no SSH/agente): el servicio launchd solo se monta desde
-una sesión GUI. Abre una terminal nueva (o `source ~/.zshrc`) y reinicia Claude.
+Eso instala **solo carryover** (store propio). Para sumar el proxy/memoria compartida o el
+plugin: `--with-headroom`, `--with-ponytail`, o `--full`. Con headroom, córrelo en una
+**Terminal real** (el servicio launchd solo se monta desde una sesión GUI). Abre una terminal
+nueva (o `source ~/.zshrc`) y reinicia Claude.
 
 ---
 
