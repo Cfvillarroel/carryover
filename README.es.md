@@ -22,8 +22,7 @@ Claude Code · Cursor · Windsurf · Conductor — one install · 100% local</su
 <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
 <img src="https://img.shields.io/badge/platform-macOS-black.svg" alt="Platform: macOS">
 <img src="https://img.shields.io/badge/local--first-yes-success.svg" alt="local-first">
-<a href="https://github.com/chopratejas/headroom"><img src="https://img.shields.io/badge/built%20on-headroom-orange.svg" alt="built on headroom"></a>
-<a href="https://github.com/DietrichGebert/ponytail"><img src="https://img.shields.io/badge/built%20on-ponytail-ff69b4.svg" alt="built on ponytail"></a>
+<a href="https://github.com/chopratejas/headroom"><img src="https://img.shields.io/badge/works%20with-headroom-orange.svg" alt="works with headroom"></a>
 <a href="https://github.com/Cfvillarroel/carryover/stargazers"><img src="https://img.shields.io/github/stars/Cfvillarroel/carryover?style=social" alt="GitHub stars"></a>
 </p>
 
@@ -47,10 +46,9 @@ captura. Y dejar el arreglo listo a mano es engorroso y hay que repetirlo en cad
 Una capa local que hace que tu contexto **se traspase** (*carry over*) entre herramientas,
 proyectos y sesiones:
 
-- 🧠 **[headroom](https://github.com/chopratejas/headroom)** — proxy de compresión de
-  contexto (60–95% menos tokens) + **memoria compartida y persistente** entre todos tus repos.
-- 🐴 **[ponytail](https://github.com/DietrichGebert/ponytail)** — evita que el agente
-  sobre‑diseñe (la solución más simple que funciona).
+- 🧠 **Memoria persistente y compartida** entre herramientas, repos y sesiones — un store
+  local que es tuyo, con **recall semántico** (por significado) con scope a cada repo o a un
+  grupo de repos relacionados.
 - 🕸 **Conocimiento estructurado** — facts + entidades tipadas + relaciones (un grafo
   consultable), indexado por el repo del que viene.
 - 🔁 **Auto‑recall** — al iniciar una sesión en un repo, se inyecta como contexto lo que
@@ -65,8 +63,9 @@ proyectos y sesiones:
   toggle de routing **on/off** · `carryover wrap <tool>` para Cursor/Codex/…
 - Barra de estado **🐴/🧠**, slash commands, aliases de terminal.
 
-Un instalador idempotente, las **herramientas reales** (sin forks), **global por diseño** —
-para que tu contexto te siga en vez de reiniciarse.
+Un instalador idempotente, **100% local**, **standalone por defecto** — con integraciones
+opcionales de headroom (store compartido + compresión de tokens) y ponytail — para que tu
+contexto te siga en vez de reiniciarse.
 
 ## Funciona con
 
@@ -257,6 +256,9 @@ Claude Desktop, Windsurf— puede `recall` y `remember` sobre el mismo store, no
 
 ¿Sin headroom? Usa `python3` como `command` (el recall cae a keyword). Tools: `recall`
 (semántico, con scope por repo) y `remember`.
+
+Corre **enteramente en tu máquina**: el cliente lo lanza como un subproceso local y se
+comunican por stdio — sin red, sin puerto, sin telemetría. Tu conocimiento nunca sale de tu equipo.
 
 ## Wiki automática (local, formato GitHub Wiki)
 

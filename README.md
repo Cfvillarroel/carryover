@@ -22,8 +22,7 @@ Claude Code · Cursor · Windsurf · Conductor — one install · 100% local</su
 <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
 <img src="https://img.shields.io/badge/platform-macOS-black.svg" alt="Platform: macOS">
 <img src="https://img.shields.io/badge/local--first-yes-success.svg" alt="local-first">
-<a href="https://github.com/chopratejas/headroom"><img src="https://img.shields.io/badge/built%20on-headroom-orange.svg" alt="built on headroom"></a>
-<a href="https://github.com/DietrichGebert/ponytail"><img src="https://img.shields.io/badge/built%20on-ponytail-ff69b4.svg" alt="built on ponytail"></a>
+<a href="https://github.com/chopratejas/headroom"><img src="https://img.shields.io/badge/works%20with-headroom-orange.svg" alt="works with headroom"></a>
 <a href="https://github.com/Cfvillarroel/carryover/stargazers"><img src="https://img.shields.io/github/stars/Cfvillarroel/carryover?style=social" alt="GitHub stars"></a>
 </p>
 
@@ -47,10 +46,8 @@ on every machine.
 
 A local layer that makes your context **carry over** across tools, projects and sessions:
 
-- 🧠 **[headroom](https://github.com/chopratejas/headroom)** — context‑compression proxy
-  (60–95% fewer tokens) + **shared, persistent memory** across all your repos.
-- 🐴 **[ponytail](https://github.com/DietrichGebert/ponytail)** — keeps the agent from
-  over‑engineering (simplest solution that works).
+- 🧠 **Persistent, shared memory** across tools, repos and sessions — a local store you own,
+  with **semantic recall** (by meaning) scoped to each repo or a group of related repos.
 - 🕸 **Structured knowledge** — saved as facts + typed entities + relationships (a queryable
   graph), indexed by the repo it came from.
 - 🔁 **Auto‑recall** — when you start a session in a repo, what carryover knows about it is
@@ -65,8 +62,9 @@ A local layer that makes your context **carry over** across tools, projects and 
   routing **on/off** toggle · `carryover wrap <tool>` for Cursor/Codex/…
 - Status bar **🐴/🧠**, slash commands, terminal aliases.
 
-One idempotent install, the **real upstream tools** (no forks), **global by design** — so
-your context follows you instead of resetting.
+One idempotent install, **100% local**, **standalone by default** — with optional headroom
+(shared store + token compression) and ponytail integrations — so your context follows you
+instead of resetting.
 
 ## Works with
 
@@ -257,6 +255,9 @@ Windsurf — can `recall` and `remember` against the same store, not just Claude
 
 No headroom? Use `python3` as the `command` (recall falls back to keyword). Tools exposed:
 `recall` (semantic, repo-scoped) and `remember`.
+
+It runs **entirely on your machine**: the client launches it as a local subprocess and talks
+over stdio — no network, no port, no telemetry. Your knowledge never leaves your computer.
 
 ## Auto‑wiki (local, GitHub‑Wiki format)
 
