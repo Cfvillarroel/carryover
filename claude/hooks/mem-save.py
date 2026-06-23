@@ -17,6 +17,9 @@ import os
 import re
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+import co_store  # noqa: E402  — memory backend (headroom or built-in SQLite)
+
 os.environ.setdefault("HF_HUB_OFFLINE", "1")
 os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
 
@@ -71,13 +74,7 @@ async def main():
 
     # dedup: drop facts already stored — normalized-exact OR high token-overlap (Jaccard) near-dupes
     try:
-        import subprocess, tempfile
-        hr = os.path.expanduser("~/.headroom/venv/bin/headroom")
-        tmpx = tempfile.mktemp(suffix=".json")
-        subprocess.run([hr, "memory", "export", "--output", tmpx, "--db-path", db],
-                       capture_output=True, timeout=20)
-        data = json.load(open(tmpx))
-        os.unlink(tmpx)
+        data = co_store.export()
         seen = {_norm(m.get("content")) for m in data}
         seen_toks = [_toks(m.get("content")) for m in data]
         if facts:
@@ -100,18 +97,15 @@ async def main():
     if rels:
         md["relationships"] = rels
 
-    from headroom.memory.easy import Memory  # lazy: keeps _norm/_toks/_dup importable for tests without headroom
-    m = Memory(backend="local", db_path=db)
-    mid = await m.save(
+    mid = await co_store.save(
         content=content,
-        user_id=uid,
+        uid=uid,
         importance=float(payload.get("importance", 0.7)),
         facts=facts,
         entities=entities,
         relationships=rels,
         metadata=md,
     )
-    await m.close()
     print(mid)
 
 

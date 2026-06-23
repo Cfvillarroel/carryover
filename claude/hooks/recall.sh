@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 # Recall knowledge by keyword (fast, no embedder). Usage: recall.sh <query...>
+# Works on either backend (headroom or the built-in store) via co-mem.
 set -uo pipefail
-HR="$HOME/.headroom/venv/bin/headroom"
-DB="${HEADROOM_DB:-$HOME/.headroom/memory.db}"
-PY="$HOME/.headroom/venv/bin/python"
 q="$*"
 [ -n "$q" ] || { echo "usage: recall <query>"; exit 1; }
-[ -x "$HR" ] || { echo "carryover: headroom not installed"; exit 1; }
+# locate co-mem next to this script (follow symlink so it works via ~/.carryover/ or the plugin)
+src="${BASH_SOURCE[0]:-$0}"; while [ -L "$src" ]; do d="$(cd -P "$(dirname "$src")" && pwd)"; src="$(readlink "$src")"; [ "${src#/}" = "$src" ] && src="$d/$src"; done
+COMEM="$(cd -P "$(dirname "$src")" && pwd)/co-mem"
 tmp="$(mktemp).json"
-"$HR" memory export --output "$tmp" --db-path "$DB" >/dev/null 2>&1 || { echo "carryover: no memory store"; exit 0; }
-Q="$q" "$PY" - "$tmp" <<'PY'
+python3 "$COMEM" export "$tmp" 2>/dev/null || { echo "carryover: no memory store"; exit 0; }
+Q="$q" python3 - "$tmp" <<'PY'
 import json, os, sys
 q = os.environ["Q"].lower()
 try:

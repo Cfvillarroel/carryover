@@ -11,10 +11,10 @@
 # The actual save runs in the BACKGROUND (loading the embedding model takes a few seconds),
 # so this returns immediately. Logs to ~/.carryover/mem-save.log.
 set -euo pipefail
-PY="$HOME/.headroom/venv/bin/python"
+PY="$HOME/.headroom/venv/bin/python"; [ -x "$PY" ] || PY="$(command -v python3 || true)"  # headroom venv, else system python3 (built-in store)
 DB="${HEADROOM_DB:-$HOME/.headroom/memory.db}"
 UID_="${HEADROOM_USER_ID:-$(whoami)}"
-[ -x "$PY" ] || { echo "mem-save: headroom not installed"; exit 1; }
+[ -n "$PY" ] || { echo "mem-save: python3 not found"; exit 1; }
 
 tmp="$(mktemp).json"
 if [ "${1:-}" = "--json" ]; then

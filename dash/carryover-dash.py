@@ -21,22 +21,18 @@ import webbrowser
 from pathlib import Path
 
 HOME = Path.home()
-HEADROOM = HOME / ".headroom"      # headroom's store (memory DBs + venv)
-CARRYOVER = HOME / ".carryover"    # carryover's own files (wikis.list, dash export)
-DB = os.environ.get("HEADROOM_DB", str(HEADROOM / "memory.db"))
-HR_BIN = HEADROOM / "venv" / "bin" / "headroom"
+CARRYOVER = HOME / ".carryover"    # carryover's own files (memory backend, wikis.list, dash export)
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else int(os.environ.get("CARRYOVER_DASH_PORT", "8788"))
+
+# memory backend (co_store): installed at ~/.carryover, or repo claude/hooks when run in-tree
+for _p in (Path(__file__).resolve().parent.parent / "claude" / "hooks", CARRYOVER):
+    sys.path.insert(0, str(_p))
+import co_store  # noqa: E402
 
 
 def load_memories():
-    if not HR_BIN.exists():
-        return []
-    tmp = CARRYOVER / ".dash-export.json"
     try:
-        subprocess.run([str(HR_BIN), "memory", "export", "--output", str(tmp), "--db-path", DB],
-                       capture_output=True, timeout=20)
-        data = json.loads(tmp.read_text() or "[]")
-        tmp.unlink(missing_ok=True)
+        data = co_store.export()
     except Exception:
         return []
     data.sort(key=lambda m: m.get("created_at", ""), reverse=True)
@@ -44,30 +40,15 @@ def load_memories():
 
 
 def delete_ids(ids):
-    n = 0
-    for mid in ids:
-        if not mid:
-            continue
-        try:
-            r = subprocess.run([str(HR_BIN), "memory", "delete", mid, "--db-path", DB, "--force"],
-                               capture_output=True, timeout=15)
-            if r.returncode == 0:
-                n += 1
-        except Exception:
-            pass
-    return n
+    try:
+        return co_store.delete([i for i in ids if i])
+    except Exception:
+        return 0
 
 
 def edit_memory(mid, content=None, importance=None):
-    if not mid:
-        return False
-    cmd = [str(HR_BIN), "memory", "edit", mid, "--db-path", DB]
-    if content not in (None, ""):
-        cmd += ["--content", content]
-    if importance not in (None, ""):
-        cmd += ["--importance", str(importance)]
     try:
-        return subprocess.run(cmd, capture_output=True, timeout=15).returncode == 0
+        return co_store.edit(mid, content, importance)
     except Exception:
         return False
 

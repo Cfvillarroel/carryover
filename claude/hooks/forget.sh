@@ -1,16 +1,15 @@
 #!/usr/bin/env bash
 # Forget (delete) memories matching a keyword query, with confirmation. Usage: forget.sh <query...>
+# Works on either backend (headroom or the built-in store) via co-mem.
 set -uo pipefail
-HR="$HOME/.headroom/venv/bin/headroom"
-DB="${HEADROOM_DB:-$HOME/.headroom/memory.db}"
-PY="$HOME/.headroom/venv/bin/python"
 q="$*"
 [ -n "$q" ] || { echo "usage: hr-forget <query>"; exit 1; }
-[ -x "$HR" ] || { echo "carryover: headroom not installed"; exit 1; }
+src="${BASH_SOURCE[0]:-$0}"; while [ -L "$src" ]; do d="$(cd -P "$(dirname "$src")" && pwd)"; src="$(readlink "$src")"; [ "${src#/}" = "$src" ] && src="$d/$src"; done
+COMEM="$(cd -P "$(dirname "$src")" && pwd)/co-mem"
 tmp="$(mktemp).json"
-"$HR" memory export --output "$tmp" --db-path "$DB" >/dev/null 2>&1 || { echo "carryover: no memory store"; exit 0; }
+python3 "$COMEM" export "$tmp" 2>/dev/null || { echo "carryover: no memory store"; exit 0; }
 # matches printed to the terminal (stderr); their ids captured (stdout)
-ids="$(Q="$q" "$PY" - "$tmp" <<'PY'
+ids="$(Q="$q" python3 - "$tmp" <<'PY'
 import json, os, sys
 q = os.environ["Q"].lower()
 try: mems = json.load(open(sys.argv[1]))
@@ -33,7 +32,8 @@ printf "Delete the %s shown memory(ies)? [y/N] " "$n"
 read -r ans
 case "$ans" in
   y|Y|yes|s|S|si)
-    printf '%s\n' "$ids" | while read -r id; do [ -n "$id" ] && "$HR" memory delete "$id" --db-path "$DB" --force >/dev/null 2>&1; done
+    # shellcheck disable=SC2086  — ids are UUIDs (no spaces); pass them all to one delete
+    python3 "$COMEM" delete $ids >/dev/null 2>&1
     echo "hr-forget: deleted $n";;
   *) echo "cancelled";;
 esac
