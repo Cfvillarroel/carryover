@@ -21,8 +21,10 @@ wiki-prune() {   # drop dead entries (gone worktrees) from carryover's wiki regi
   local after; after=$(grep -c . "$reg" 2>/dev/null || echo 0)
   echo "wiki-prune: removed $((before - after)) dead, $after remain"
 }
-alias hr-recall="bash $HOME/.carryover/recall.sh"           # recall knowledge by keyword
-alias hr-forget="bash $HOME/.carryover/forget.sh"          # forget memories by keyword (with confirm)
+alias co-recall="bash $HOME/.carryover/recall.sh"          # recall knowledge by keyword
+alias co-forget="bash $HOME/.carryover/forget.sh"          # forget memories by keyword (with confirm)
+alias hr-recall="bash $HOME/.carryover/recall.sh"          # compat alias of co-recall
+alias hr-forget="bash $HOME/.carryover/forget.sh"          # compat alias of co-forget
 alias hr-prune="hr memory prune"                           # prune memories (e.g. --older-than 30d --dry-run)
 alias hr-on="hr install start"                  # start proxy
 alias hr-off="hr install stop"                  # stop proxy
@@ -64,8 +66,8 @@ carryover() {
         "wiki-gen:regenerate the repo wiki · regenerar la wiki del repo"
         "wiki-prune:drop dead entries from the wiki registry · podar wikis muertas del registro"
         "co-dash:open the local dashboard · abrir el panel local"
-        "hr-recall <q>:recall knowledge by keyword · recordar conocimiento por keyword"
-        "hr-forget <q>:delete memories by keyword (confirm) · borrar memorias por keyword"
+        "co-recall <q>:recall knowledge by keyword · recordar conocimiento por keyword"
+        "co-forget <q>:delete memories by keyword (confirm) · borrar memorias por keyword"
         "hr-prune:prune old memories, e.g. --older-than 30d · purgar memorias viejas"
         "hr-*:headroom CLI (proxy + memory) · CLI de headroom (proxy + memoria)"
       )

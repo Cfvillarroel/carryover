@@ -42,7 +42,7 @@ comandos de shell, slash-commands de carryover en Claude, y ponytail. Los más u
 | `co-dash` | dashboard local (memorias + wikis) |
 | `hr-dash` | dashboard de ahorro/uso de headroom |
 | `wiki-enable` / `wiki-gen` / `wiki-prune` | activar / regenerar / podar la wiki del repo |
-| `hr-recall <q>` / `hr-forget <q>` / `hr-prune` | recordar / borrar / purgar conocimiento |
+| `co-recall <q>` / `co-forget <q>` / `hr-prune` | recordar / borrar / purgar conocimiento (alias `hr-recall`/`hr-forget`) |
 | `mem-save "texto"` | guardar una memoria a mano |
 
 En Claude (en el chat): `/carryover`, `/recall <q>`, `/wiki-enable`, `/headroom`.
@@ -65,7 +65,7 @@ En Claude (en el chat): `/carryover`, `/recall <q>`, `/wiki-enable`, `/headroom`
 ```bash
 carryover doctor          # chequea proxy, launchd (reboot), routing, symlinks, store
 carryover status          # ¿routing activo? proxy running/healthy
-hr-recall <palabra>       # buscar en el conocimiento
+co-recall <palabra>       # buscar en el conocimiento
 ```
 
 ---
