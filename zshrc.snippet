@@ -38,10 +38,12 @@ carryover() {
   fi
   case "$1" in
     on)
+      [ -x "$HOME/.headroom/venv/bin/headroom" ] || { echo "$tag ${Y}routing unavailable${R}${D} — headroom proxy not installed (memory & wiki work without it)${R}"; return 0; }
       [ "$2" = "--session" ] || bash "$HOME/.claude/hooks/carryover-toggle.sh" on
       export ANTHROPIC_BASE_URL="$p" OPENAI_BASE_URL="$p/v1"
       echo "$tag ${G}ON${R}${D} · this shell${2:+ (session only)}${R}";;
     off)
+      [ -x "$HOME/.headroom/venv/bin/headroom" ] || { echo "$tag ${D}routing not installed — nothing to turn off${R}"; return 0; }
       [ "$2" = "--session" ] || bash "$HOME/.claude/hooks/carryover-toggle.sh" off
       unset ANTHROPIC_BASE_URL OPENAI_BASE_URL
       echo "$tag ${Y}OFF${R}${D} · this shell${2:+ (session only)}${R}"
@@ -130,7 +132,7 @@ carryover() {
         --clear|clear) rm -f "$HOME/.carryover/wrapped"; echo "$tag ${D}wrap list cleared${R}"; return 0;;
         windsurf|devin) echo "Point Windsurf at the proxy: set its OpenAI base URL to http://127.0.0.1:${HEADROOM_PORT:-8787}/v1";;
         "") echo "usage: carryover wrap <cursor|codex|aider|copilot|windsurf|…>  ·  carryover wrap --clear"; return 0;;
-        *) "$HOME/.headroom/venv/bin/headroom" wrap "$@";;
+        *) if [ -x "$HOME/.headroom/venv/bin/headroom" ]; then "$HOME/.headroom/venv/bin/headroom" wrap "$@"; else echo "$tag ${Y}✗${R}${D} wrap needs the headroom proxy (not installed)${R}"; return 1; fi;;
       esac
       # remember wrapped non-Claude tools so 'carryover off' can warn they still route
       [ -n "$_t" ] && { mkdir -p "$HOME/.carryover"; grep -qxF "$_t" "$HOME/.carryover/wrapped" 2>/dev/null || echo "$_t" >> "$HOME/.carryover/wrapped"; };;
