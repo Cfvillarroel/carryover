@@ -254,10 +254,14 @@ Windsurf — can `recall` and `remember` against the same store, not just Claude
 ```
 
 No headroom? Use `python3` as the `command` (recall falls back to keyword). Tools exposed:
-`recall` (semantic, repo-scoped) and `remember`.
+`recall` (semantic, repo-scoped) and `remember`. Most clients don't expand `~` — use absolute
+paths.
 
 It runs **entirely on your machine**: the client launches it as a local subprocess and talks
 over stdio — no network, no port, no telemetry. Your knowledge never leaves your computer.
+
+📖 **Full setup per client** (Claude Desktop / Cursor / Windsurf), repo scoping, examples and
+troubleshooting: **[docs/MCP.md](docs/MCP.md)**.
 
 ## Auto‑wiki (local, GitHub‑Wiki format)
 

@@ -255,10 +255,14 @@ Claude Desktop, Windsurf— puede `recall` y `remember` sobre el mismo store, no
 ```
 
 ¿Sin headroom? Usa `python3` como `command` (el recall cae a keyword). Tools: `recall`
-(semántico, con scope por repo) y `remember`.
+(semántico, con scope por repo) y `remember`. La mayoría de clientes no expanden `~` — usa
+rutas absolutas.
 
 Corre **enteramente en tu máquina**: el cliente lo lanza como un subproceso local y se
 comunican por stdio — sin red, sin puerto, sin telemetría. Tu conocimiento nunca sale de tu equipo.
+
+📖 **Guía completa por cliente** (Claude Desktop / Cursor / Windsurf), scope por repo, ejemplos
+y troubleshooting: **[docs/MCP.md](docs/MCP.md)**.
 
 ## Wiki automática (local, formato GitHub Wiki)
 
