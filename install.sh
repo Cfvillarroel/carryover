@@ -55,6 +55,7 @@ ln -sf "$SETUP_DIR/claude/hooks/recall.sh"       "$CO_DIR/recall.sh"           #
 ln -sf "$SETUP_DIR/claude/hooks/forget.sh"       "$CO_DIR/forget.sh"           # 'hr-forget' alias target
 ln -sf "$SETUP_DIR/claude/hooks/co_store.py"     "$CO_DIR/co_store.py"         # memory backend (headroom or built-in SQLite)
 ln -sf "$SETUP_DIR/claude/hooks/co-mem"          "$CO_DIR/co-mem"              # memory CLI used by recall/forget/dashboard
+ln -sf "$SETUP_DIR/claude/hooks/co-mcp.py"       "$CO_DIR/co-mcp.py"           # 'co-mcp' alias target: MCP server for any client
 ln -sf "$SETUP_DIR/claude/hooks/wiki-gen.sh"     "$CO_DIR/wiki-gen.sh"         # 'wiki-gen' alias target
 ln -sf "$SETUP_DIR/zshrc.snippet"                "$CO_DIR/carryover.zsh"       # sourced by ~/.zshrc; 'carryover update' re-sources this
 # migrate the old layout (carryover artifacts used to live in ~/.headroom): move data files, drop stale symlinks

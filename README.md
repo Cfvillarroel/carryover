@@ -150,8 +150,9 @@ You still need the headroom proxy for memory/compression:
   design** — that's what makes context shared across all repos and tools.
 - **Per repo / a set of repos:** the **wiki** capability — run `co-wiki-enable` in each repo
   you want (one, several or all). It installs a `pre-push` hook there only.
-- Memory is global but internally scoped: `USER` = shared across repos, `project` = per
-  workspace.
+- Memory is global but **scoped by repo**: recall returns the current repo's memories by
+  default. Group related repos (e.g. the front + back of one product) so they share recall by
+  listing them on one line of `~/.carryover/groups.conf` (space/comma-separated).
 
 ## Easy commands
 
@@ -165,12 +166,15 @@ You still need the headroom proxy for memory/compression:
 | `hr-stats` | memory summary |
 | `hr-prune …` | prune memories (e.g. `--older-than 30d --dry-run`) |
 | `mem-save "text"` | save a memory by hand (or structured `--json`) |
-| `co-recall [--all] <query>` | recall knowledge by keyword — this repo only; `--all` searches every repo (alias: `hr-recall`) |
+| `co-recall [--all] <query>` | recall knowledge **by meaning** (semantic with headroom, keyword otherwise) — this repo's group; `--all` for every repo (alias: `hr-recall`) |
 | `co-forget <query>` | delete memories by keyword, with confirm (alias: `hr-forget`) |
+| `co-supersede <old> <new>` | mark an old memory as replaced by a newer one so recall skips it |
 | `co-wiki-enable` | enable the auto-wiki in the current repo, generates the first one (alias: `wiki-enable`) |
 | `co-wiki-gen` | update the current repo's wiki on demand, incrementally (alias: `wiki-gen`) |
 | `co-wiki-prune` | drop dead entries from the wiki registry (alias: `wiki-prune`) |
 | `co-dash` | local dashboard (overview, knowledge + wikis) |
+| `co-backup` / `co-restore <file>` | snapshot / restore all memories (carry them to another machine) |
+| `co-mcp` | run carryover's MCP server (use the memory from Cursor, Claude Desktop, any MCP client) |
 | `hr-dash` | headroom's savings dashboard |
 | `carryover status` | is routing on? |
 | `carryover on` / `off` | turn proxy routing on / off (`--session` = this shell only) |
@@ -234,6 +238,25 @@ mem-save "what you want to remember"
 
 > The `headroom memory` CLI defaults to `./headroom_memory.db` in the current dir, **not**
 > the proxy store — that's why the aliases pass `--db-path ~/.headroom/memory.db`.
+
+**Recall is semantic** (by meaning, via headroom's embedder) and **scoped to the current
+repo's group**; `co-recall --all` searches everything. `co-backup` / `co-restore` move the
+whole store to another machine. `co-supersede <old> <new>` hides a stale memory so an updated
+fact wins.
+
+## Use the memory from other tools (MCP)
+
+carryover's memory is also an **MCP server**, so any MCP client — Cursor, Claude Desktop,
+Windsurf — can `recall` and `remember` against the same store, not just Claude Code:
+
+```json
+{ "mcpServers": {
+    "carryover": { "command": "~/.headroom/venv/bin/python", "args": ["~/.carryover/co-mcp.py"] }
+} }
+```
+
+No headroom? Use `python3` as the `command` (recall falls back to keyword). Tools exposed:
+`recall` (semantic, repo-scoped) and `remember`.
 
 ## Auto‑wiki (local, GitHub‑Wiki format)
 

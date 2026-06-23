@@ -42,10 +42,16 @@ comandos de shell, slash-commands de carryover en Claude, y ponytail. Los más u
 | `co-dash` | dashboard local (memorias + wikis) |
 | `hr-dash` | dashboard de ahorro/uso de headroom |
 | `co-wiki-enable` / `co-wiki-gen` / `co-wiki-prune` | activar / regenerar / podar la wiki del repo (alias: `wiki-*`) |
-| `co-recall <q>` / `co-forget <q>` / `hr-prune` | recordar / borrar / purgar conocimiento (alias `hr-recall`/`hr-forget`) |
+| `co-recall [--all] <q>` / `co-forget <q>` | recordar (semántico, grupo del repo; `--all` = todos) / borrar (alias `hr-recall`/`hr-forget`) |
+| `co-supersede <viejo> <nuevo>` | marcar una memoria como reemplazada (recall la omite) |
+| `co-backup` / `co-restore <file>` | respaldar / restaurar la memoria (llevarla a otra máquina) |
+| `co-mcp` | servidor MCP: usar la memoria desde Cursor, Claude Desktop, etc. |
 | `mem-save "texto"` | guardar una memoria a mano |
 
-En Claude (en el chat): `/carryover`, `/recall <q>`, `/wiki-enable`, `/headroom`.
+En Claude (en el chat): `/carryover`, `/recall [--all] <q>`, `/wiki-enable`, `/headroom`.
+
+**Agrupar repos:** lista repos relacionados (front + back de un producto) en una línea de
+`~/.carryover/groups.conf` para que compartan recall. Sin grupo, cada repo ve solo lo suyo.
 
 ---
 

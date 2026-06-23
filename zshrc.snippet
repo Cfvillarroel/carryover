@@ -24,10 +24,24 @@ co-wiki-prune() {   # drop dead entries (gone worktrees) from carryover's wiki r
   echo "wiki-prune: removed $((before - after)) dead, $after remain"
 }
 alias wiki-prune="co-wiki-prune"                            # compat alias of co-wiki-prune
-alias co-recall="bash $HOME/.carryover/recall.sh"          # recall knowledge by keyword
+alias co-recall="bash $HOME/.carryover/recall.sh"          # recall knowledge (semantic w/ headroom; this repo's group, --all for every repo)
 alias co-forget="bash $HOME/.carryover/forget.sh"          # forget memories by keyword (with confirm)
 alias hr-recall="bash $HOME/.carryover/recall.sh"          # compat alias of co-recall
 alias hr-forget="bash $HOME/.carryover/forget.sh"          # compat alias of co-forget
+alias co-supersede="python3 $HOME/.carryover/co-mem supersede"  # co-supersede <old-id> <new-id>: hide the stale one from recall
+co-backup() {   # snapshot all memories to a timestamped JSON (carry them to another machine)
+  local dir="$HOME/.carryover/backups"; mkdir -p "$dir"
+  local f="$dir/memory-$(date +%Y%m%d-%H%M%S).json"
+  python3 "$HOME/.carryover/co-mem" export "$f" && echo "co-backup → $f"
+}
+co-restore() {  # import memories from a backup/export JSON (dedup by id)
+  [ -n "${1:-}" ] || { echo "usage: co-restore <file.json>"; return 1; }
+  python3 "$HOME/.carryover/co-mem" import "$1" && echo "co-restore: imported from $1"
+}
+co-mcp() {      # run carryover's MCP server (semantic if headroom present, else keyword)
+  local py="$HOME/.headroom/venv/bin/python"; [ -x "$py" ] || py=python3
+  "$py" "$HOME/.carryover/co-mcp.py"
+}
 alias hr-prune="hr memory prune"                           # prune memories (e.g. --older-than 30d --dry-run)
 alias hr-on="hr install start"                  # start proxy
 alias hr-off="hr install stop"                  # stop proxy

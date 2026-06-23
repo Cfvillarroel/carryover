@@ -16,6 +16,7 @@ HR_BIN = HOME / ".headroom" / "venv" / "bin" / "headroom"
 HR_DB = os.environ.get("HEADROOM_DB", str(HOME / ".headroom" / "memory.db"))
 CO_DB = str(HOME / ".carryover" / "memory.db")
 ACTIVITY = str(HOME / ".carryover" / "activity.jsonl")
+GROUPS = str(HOME / ".carryover" / "groups.conf")  # repo groups: one group per line, repos space/comma-separated
 SAVINGS = HOME / ".headroom" / "proxy_savings.json"
 
 
@@ -155,6 +156,166 @@ def touch(ids):
         else:
             c.execute(f"UPDATE memories SET access_count=COALESCE(access_count,0)+1 WHERE id IN ({qs})", ids)
         n = c.total_changes
+        c.commit()
+        c.close()
+        return n
+    except Exception:
+        return 0
+
+
+def search(query, uid=None, k=20):
+    """Semantic search via headroom's embedder (HNSW + graph). Returns [{id,content,metadata,score}]
+    or None when there's no semantic backend (builtin store) — callers fall back to keyword."""
+    if not _headroom():
+        return None
+    try:
+        import asyncio
+        import warnings
+        warnings.filterwarnings("ignore")  # hush the embedder's FutureWarning/HF notices
+        os.environ.setdefault("HF_HUB_OFFLINE", "1")
+        os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
+        from headroom.memory.easy import Memory  # noqa: E402
+        uid = uid or os.environ.get("HEADROOM_USER_ID") or Path.home().name
+
+        async def _run():
+            m = Memory(backend="local", db_path=HR_DB)
+            res = await m.search(query=query, user_id=uid, top_k=k)
+            await m.close()
+            return res
+        return [{"id": r.id, "content": r.content, "metadata": r.metadata or {},
+                 "score": float(getattr(r, "score", 0.0) or 0.0)} for r in asyncio.run(_run())]
+    except Exception:
+        return None
+
+
+def is_superseded(m):
+    """A memory replaced by a newer one (headroom column or builtin metadata) — skip in recall."""
+    return bool(m.get("superseded_by") or (m.get("metadata") or {}).get("superseded_by"))
+
+
+def rank_score(m, now=None):
+    """Recall rank when there's no semantic query: importance × recency-decay × reuse-boost.
+    Recency half-life ~60d (floored so old-but-important memories don't vanish)."""
+    import math
+    imp = float(m.get("importance") or 0.5)
+    ac = int(m.get("access_count") or 0)
+    rec = 1.0
+    ts = m.get("last_accessed") or m.get("created_at") or ""
+    try:
+        t = datetime.fromisoformat(str(ts).replace("Z", "+00:00"))
+        now = now or datetime.now(timezone.utc)
+        age_days = max(0.0, (now - t).total_seconds() / 86400)
+        rec = 0.5 ** (age_days / 60.0)
+    except Exception:
+        pass
+    return imp * (0.4 + 0.6 * rec) * (1.0 + math.log1p(ac))
+
+
+def group_for(repo):
+    """Set of repos that share recall with `repo` (its group), or {repo} if ungrouped.
+    groups.conf: one group per line, repo names separated by spaces/commas; # starts a comment."""
+    repos = {repo} if repo else set()
+    try:
+        for ln in open(GROUPS):
+            ln = ln.split("#", 1)[0].strip()
+            if ln and repo in (members := set(ln.replace(",", " ").split())):
+                repos |= members
+    except Exception:
+        pass
+    return repos
+
+
+def recall(query=None, repos=None, k=10, uid=None, semantic=True):
+    """Unified recall used by recall.sh, the auto-recall hook and the MCP server.
+    - repos: iterable of repo names to scope to (None = every repo).
+    - query + semantic + headroom → semantic search; else keyword over export().
+    - no query → decay-ranked browse (importance × recency × reuse).
+    Always drops superseded memories and scopes by repo. Returns a list of memory dicts."""
+    scope = set(repos) if repos else None
+
+    def in_scope(m):
+        return scope is None or (m.get("metadata") or {}).get("repo", "general") in scope
+
+    if query and semantic:
+        sem = search(query, uid=uid, k=max(k * 3, 30))  # over-fetch, then filter/scope
+        if sem:
+            return [m for m in sem if not is_superseded(m) and in_scope(m)][:k]
+
+    data = [m for m in export() if not is_superseded(m) and in_scope(m)]
+    if query:
+        words = query.lower().split()
+
+        def hay(m):
+            md = m.get("metadata") or {}
+            ents = [e.get("entity", "") if isinstance(e, dict) else e
+                    for e in (md.get("entities") or m.get("entity_refs") or [])]
+            parts = [m.get("content", "")] + (md.get("facts") or []) + ents + (md.get("tags") or [])
+            return " ".join(str(p) for p in parts).lower()
+        data = [m for m in data if all(w in hay(m) for w in words)]
+    data.sort(key=rank_score, reverse=True)
+    return data[:k]
+
+
+def supersede(old_id, new_id):
+    """Mark old_id as replaced by new_id so recall skips the stale one. Fail-safe."""
+    if not old_id or not new_id:
+        return False
+    hr = _headroom()
+    db = HR_DB if hr else CO_DB
+    try:
+        if not hr:
+            Path(CO_DB).parent.mkdir(parents=True, exist_ok=True)
+        c = sqlite3.connect(db, timeout=5)
+        c.execute("PRAGMA busy_timeout=3000")
+        cols = {r[1] for r in c.execute("PRAGMA table_info(memories)")}
+        if "superseded_by" in cols:
+            c.execute("UPDATE memories SET superseded_by=? WHERE id=?", (new_id, old_id))
+        else:  # builtin: stash it in metadata json
+            row = c.execute("SELECT metadata FROM memories WHERE id=?", (old_id,)).fetchone()
+            if not row:
+                c.close()
+                return False
+            md = json.loads(row[0] or "{}")
+            md["superseded_by"] = new_id
+            c.execute("UPDATE memories SET metadata=? WHERE id=?",
+                      (json.dumps(md, ensure_ascii=False), old_id))
+        ok = c.total_changes > 0
+        c.commit()
+        c.close()
+        return ok
+    except Exception:
+        return False
+
+
+def import_(path):
+    """Import memories from a JSON export (cross-machine portability). headroom → its CLI;
+    builtin → insert rows we don't already have (dedup by id). Returns imported count (or -1)."""
+    hr = _headroom()
+    if hr:
+        try:
+            import subprocess
+            r = subprocess.run([hr, "memory", "import", path, "--db-path", HR_DB],
+                               capture_output=True, text=True, timeout=120)
+            return -1 if r.returncode == 0 else 0
+        except Exception:
+            return 0
+    try:
+        data = json.load(open(path))
+    except Exception:
+        return 0
+    try:
+        c = _conn()
+        have = {r[0] for r in c.execute("SELECT id FROM memories")}
+        n = 0
+        for m in data:
+            mid = m.get("id") or str(uuid.uuid4())
+            if mid in have:
+                continue
+            c.execute("INSERT OR IGNORE INTO memories(id,content,created_at,importance,access_count,metadata) "
+                      "VALUES(?,?,?,?,?,?)",
+                      (mid, m.get("content", ""), m.get("created_at"), float(m.get("importance", 0.7) or 0.7),
+                       int(m.get("access_count", 0) or 0), json.dumps(m.get("metadata") or {}, ensure_ascii=False)))
+            n += 1
         c.commit()
         c.close()
         return n

@@ -43,6 +43,25 @@ assert cs.touch([mid]) == 1
 assert cs.export()[0]["access_count"] == 2
 assert cs.touch([]) == 0  # empty is a no-op
 
+# --- recall / scope / supersede / groups / import (cross-tool memory features) ---
+m2 = asyncio.run(cs.save(content="old: uses MySQL", uid="default", importance=0.8,
+                         metadata={"source": "mem-save", "repo": "other-repo"}))
+m3 = asyncio.run(cs.save(content="new: uses Postgres", uid="default", importance=0.8,
+                         metadata={"source": "mem-save", "repo": "other-repo"}))
+assert cs.search("anything") is None  # builtin has no embedder → recall falls back to keyword
+r = cs.recall(query=None, repos={"other-repo"})  # scope filter
+assert {x["metadata"]["repo"] for x in r} == {"other-repo"} and len(r) == 2
+assert cs.supersede(m2, m3) is True  # hide the stale one
+r = cs.recall(query=None, repos={"other-repo"})
+assert [x["id"] for x in r] == [m3], "superseded memory must be dropped from recall"
+open(os.path.join(os.environ["HOME"], ".carryover", "groups.conf"), "w").write("carryover other-repo\n")
+assert cs.group_for("carryover") == {"carryover", "other-repo"}  # grouped repos share recall
+assert cs.rank_score({"importance": 0.9, "access_count": 3}) > cs.rank_score({"importance": 0.4, "access_count": 0})
+exp = tempfile.mktemp(suffix=".json")
+__import__("json").dump(cs.export(), open(exp, "w"))
+assert cs.import_(exp) == 0  # all ids already present → dedup, no dupes
+assert cs.delete([m2, m3]) == 2
+
 assert cs.delete([mid]) == 1
 assert cs.stats() == 0
 
