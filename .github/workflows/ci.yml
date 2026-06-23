@@ -36,5 +36,7 @@ jobs:
           PY
       - name: dedup unit test
         run: python3 tests/test_dedup.py
+      - name: memory backend (builtin) test
+        run: python3 tests/test_store.py
       - name: install/uninstall sandbox test
         run: bash tests/sandbox-test.sh
