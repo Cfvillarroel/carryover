@@ -1,0 +1,308 @@
+<div align="center">
+
+<h2>💼</h2>
+
+<pre>
+ ██████╗ █████╗ ██████╗ ██████╗ ██╗   ██╗ ██████╗ ██╗   ██╗███████╗██████╗
+██╔════╝██╔══██╗██╔══██╗██╔══██╗╚██╗ ██╔╝██╔═══██╗██║   ██║██╔════╝██╔══██╗
+██║     ███████║██████╔╝██████╔╝ ╚████╔╝ ██║   ██║██║   ██║█████╗  ██████╔╝
+██║     ██╔══██║██╔══██╗██╔══██╗  ╚██╔╝  ██║   ██║╚██╗ ██╔╝██╔══╝  ██╔══██╗
+╚██████╗██║  ██║██║  ██║██║  ██║   ██║   ╚██████╔╝ ╚████╔╝ ███████╗██║  ██║
+ ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝    ╚═════╝   ╚═══╝  ╚══════╝╚═╝  ╚═╝
+</pre>
+
+<strong>Pack your context once — carry it across every AI tool.</strong><br/>
+<sub><em>like a carry-on for your AI's brain 💼</em></sub>
+
+<sub>shared persistent memory · 60–95% fewer tokens · leaner agent · auto-wiki · save-to-memory<br/>
+Claude Code · Cursor · Windsurf · Conductor — one install · 100% local</sub>
+
+<p>
+<a href="https://github.com/Cfvillarroel/carryover/actions/workflows/ci.yml"><img src="https://github.com/Cfvillarroel/carryover/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+<a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
+<img src="https://img.shields.io/badge/platform-macOS-black.svg" alt="Platform: macOS">
+<img src="https://img.shields.io/badge/local--first-yes-success.svg" alt="local-first">
+<a href="https://github.com/chopratejas/headroom"><img src="https://img.shields.io/badge/built%20on-headroom-orange.svg" alt="built on headroom"></a>
+<a href="https://github.com/DietrichGebert/ponytail"><img src="https://img.shields.io/badge/built%20on-ponytail-ff69b4.svg" alt="built on ponytail"></a>
+<a href="https://github.com/Cfvillarroel/carryover/stargazers"><img src="https://img.shields.io/github/stars/Cfvillarroel/carryover?style=social" alt="GitHub stars"></a>
+</p>
+
+<strong><a href="README.md">English</a> · Español · <a href="#instalar">Instalar</a></strong>
+
+</div>
+
+---
+
+## El problema
+
+Ya no trabajas en una sola herramienta de IA — hoy Claude Code, mañana Cursor o Windsurf,
+Conductor para trabajo en paralelo. Pero **el contexto no viaja contigo**: cada
+herramienta, proyecto y sesión empieza de cero, así que re‑explicas el mismo código una y
+otra vez. Encima cada agente **quema tokens** con contexto inflado, **olvida** todo entre
+sesiones y tiende a **sobre‑diseñar** — y lo poco que vale la pena recordar nunca se
+captura. Y dejar el arreglo listo a mano es engorroso y hay que repetirlo en cada Mac.
+
+## La solución
+
+Una capa local que hace que tu contexto **se traspase** (*carry over*) entre herramientas,
+proyectos y sesiones:
+
+- 🧠 **[headroom](https://github.com/chopratejas/headroom)** — proxy de compresión de
+  contexto (60–95% menos tokens) + **memoria compartida y persistente** entre todos tus repos.
+- 🐴 **[ponytail](https://github.com/DietrichGebert/ponytail)** — evita que el agente
+  sobre‑diseñe (la solución más simple que funciona).
+- 🕸 **Conocimiento estructurado** — facts + entidades tipadas + relaciones (un grafo
+  consultable), indexado por el repo del que viene.
+- 🔁 **Auto‑recall** — al iniciar una sesión en un repo, se inyecta como contexto lo que
+  carryover sabe de ese repo (~0.5s, ~500 tokens, comprimido). Más `/recall` / `co-recall` a demanda
+  (solo el repo actual; `--all` para todos los repos).
+- 📊 **Dashboard local** (`co-dash`) — explora, busca, filtra y **gestiona** (borra/limpia)
+  tu conocimiento, un grafo de relaciones, y tus wikis.
+- 📄 **Wiki automática** — un LLM escribe docs + diagramas mermaid (visión general, arquitectura,
+  flujos + un catálogo de **Features**) y los actualiza de forma **incremental** (preserva las
+  páginas existentes, añade solo lo que cambió) al hacer push a master/main.
+- 💾 **Pregunta de "guardar lo importante"** al final · 🩺 **`carryover doctor`** ·
+  toggle de routing **on/off** · `carryover wrap <tool>` para Cursor/Codex/…
+- Barra de estado **🐴/🧠**, slash commands, aliases de terminal.
+
+Un instalador idempotente, las **herramientas reales** (sin forks), **global por diseño** —
+para que tu contexto te siga en vez de reiniciarse.
+
+## Funciona con
+
+La memoria compartida + compresión funcionan con cualquier agente que pase por el proxy local:
+
+| Herramienta | Compresión + memoria compartida | Extras de Claude (🐴/🧠, `/headroom`, guardar en memoria) |
+|-------------|:-------------------------------:|:---:|
+| Claude Code | ✅ auto (instalador) | ✅ |
+| Conductor | ✅ auto (corre Claude Code) | ✅ |
+| Cursor | ✅ `headroom wrap cursor` (pega la config) | — |
+| Windsurf / Devin | ✅ OpenAI‑compatible → base URL `http://127.0.0.1:8787/v1` | — |
+| Codex / Copilot / Aider / Cline / Continue / Goose | ✅ `headroom wrap <tool>` | — |
+
+### Configurarlo en cada herramienta (la parte cross-tool)
+
+La memoria y la compresión se comparten a través del proxy local — cada herramienta solo
+necesita que la apuntes a él **una vez**. (El proxy debe estar corriendo: revísalo con
+`carryover doctor` o `hr-status`.)
+
+- **Claude Code / Conductor** — automático. El `install.sh` ya dejó el routing; nada que hacer.
+- **Cursor** — corre `carryover wrap cursor` (delega en `headroom wrap cursor`). Imprime la
+  config exacta para pegar en los ajustes de modelo de Cursor (apunta su API base al proxy).
+  Desde ahí, la IA de Cursor comparte la misma memoria + compresión que Claude.
+- **Windsurf / Devin** — en sus ajustes de IA/modelo, pon una **OpenAI base URL** personalizada:
+  `http://127.0.0.1:8787/v1`. (`carryover wrap windsurf` imprime este recordatorio.)
+- **Codex / Aider / Cline / Continue / Goose / Copilot** — `carryover wrap <tool>`.
+- **Cualquier otra herramienta compatible con OpenAI/Anthropic** — apunta su base URL al proxy:
+  `http://127.0.0.1:8787` (estilo Anthropic) o `http://127.0.0.1:8787/v1` (estilo OpenAI).
+
+Dos cosas a tener en cuenta:
+
+- Los **comandos de terminal** (`co-dash`, `mem-save`, `co-recall`, `carryover …`) funcionan en
+  la terminal integrada de **cualquier** herramienta — viven en tu shell (`~/.zshrc`), no en una app.
+- Los **slash commands** (`/headroom`, `/recall`, `/carryover`, `/wiki-enable`) y la barra 🐴/🧠
+  son **solo de Claude Code**. Las demás herramientas reciben la memoria + compresión, no el slash UI.
+- Una herramienta **no** se auto-detecta — comparte todo solo después de apuntarla al proxy una vez.
+
+## Instalar
+
+```bash
+git clone https://github.com/Cfvillarroel/carryover.git ~/carryover
+bash ~/carryover/install.sh
+```
+
+Instala **carryover standalone** — memoria, recall, wikis y el dashboard, con un store local
+propio (`~/.carryover/memory.db`). Abre una terminal nueva (o `source ~/.zshrc`) y reinicia
+Claude. Requisitos: macOS · Python 3 · Claude Code (`claude`) en el PATH.
+
+**Integraciones opcionales** (opt-in):
+```bash
+bash ~/carryover/install.sh --with-headroom   # + headroom: proxy de compresión + backend de memoria compartido
+bash ~/carryover/install.sh --with-ponytail   # + ponytail: plugin lazy-dev de Claude
+bash ~/carryover/install.sh --full            # carryover + headroom + ponytail
+```
+- **headroom** convierte la memoria en un store *compartido* entre herramientas y añade el
+  proxy de compresión (routing para Claude / Cursor / Codex…). Si está instalado, carryover lo
+  usa solo; si no, usa el store propio. Necesita `brew install python@3.13` (la extensión
+  Rust/PyO3 de headroom no compila en 3.14).
+- **ponytail** es un plugin de terceros independiente — puramente opcional.
+
+El instalador es **idempotente**: symlinkea los hooks, el dashboard, la barra y el comando
+`/headroom`, y añade los aliases a `~/.zshrc`.
+
+**¿No usas Claude Code?** carryover no es solo para Claude. El proxy de headroom es
+compartido, así que la memoria + compresión aplican a **cualquier** herramienta una vez
+corriendo — Cursor, Windsurf, Codex, Aider… solo apuntas cada una al proxy (mira
+[Funciona con](#funciona-con) para el one-liner por herramienta). Los extras específicos
+de Claude del `install.sh` (barra de estado, `/headroom`, los plugins) son para Claude
+Code / Conductor; lo demás comparte el mismo proxy + memoria.
+
+### Instalar solo el plugin de Claude (opcional)
+
+¿Solo quieres los comandos de Claude + el prompt de guardar-en-memoria, sin el instalador completo?
+
+```bash
+claude plugin marketplace add Cfvillarroel/carryover
+claude plugin install carryover@carryover
+```
+
+Igual necesitas el proxy de headroom para memoria/compresión:
+`pip install "headroom-ai[all]" && headroom install apply --memory`.
+
+## Alcance: global vs por‑repo
+
+- **Global (una vez por Mac):** proxy + memoria + config de Claude. Global **por diseño** —
+  es lo que hace que el contexto sea compartido entre todos los repos y herramientas.
+- **Por repo / un conjunto:** la **wiki** — corre `co-wiki-enable` en cada repo que quieras
+  (uno, varios o todos). Instala un hook `pre-push` solo ahí.
+- La memoria es global pero con scope interno: `USER` = compartida entre repos, `project` =
+  por workspace.
+
+## Comandos fáciles
+
+| Comando | Hace |
+|---------|------|
+| `hr` | CLI de headroom |
+| `hr-status` | ¿proxy arriba/sano? |
+| `hr-on` / `hr-off` | arrancar / parar el proxy |
+| `hr-save` | tokens ahorrados |
+| `hr-mem` | memorias guardadas |
+| `hr-stats` | resumen de memoria |
+| `hr-prune …` | purgar memorias (ej. `--older-than 30d --dry-run`) |
+| `mem-save "texto"` | guardar una memoria a mano (o estructurada `--json`) |
+| `co-recall [--all] <consulta>` | recordar conocimiento por keyword — solo este repo; `--all` busca en todos (alias: `hr-recall`) |
+| `co-forget <consulta>` | borrar memorias por keyword, con confirmación (alias: `hr-forget`) |
+| `co-wiki-enable` | activar la auto-wiki en el repo actual, genera la primera (alias: `wiki-enable`) |
+| `co-wiki-gen` | actualizar la wiki del repo actual a demanda, incrementalmente (alias: `wiki-gen`) |
+| `co-wiki-prune` | podar entradas muertas del registro de wikis (alias: `wiki-prune`) |
+| `co-dash` | dashboard local (overview, conocimiento + wikis) |
+| `hr-dash` | dashboard de ahorro de headroom |
+| `carryover status` | ¿routing activo? |
+| `carryover on` / `off` | activar / desactivar el routing por el proxy (`--session` = solo esta shell) |
+| `carryover doctor [--fix]` | chequeo de salud de todo el setup (y auto-arreglo con `--fix`) |
+| `carryover update` | traer lo último de carryover + re-sincronizar esta máquina (sin copias a mano) |
+| `carryover version` | ver versión instalada + si hay updates pendientes |
+| `carryover persist` | que el proxy sobreviva al reboot (monta su servicio launchd) |
+| `carryover wrap <tool>` | enrutar otra herramienta (Cursor, Codex…) por el proxy |
+| `carryover uninstall` | quitar carryover (deja headroom + ponytail) |
+
+**Auto-recall:** al iniciar una sesión en un repo, carryover inyecta *lo que ya sabe de ese
+repo* como contexto — así el conocimiento vuelve solo, no solo se guarda. Cada recall
+(automático al iniciar sesión o con `/recall`) se cuenta por memoria, así `co-dash` muestra
+qué memorias se reutilizan de verdad (la insignia ♻).
+
+Dentro de Claude (cualquier workspace): `/headroom`, `/carryover` (on/off/status), `/recall [--all] <consulta>`, `/wiki-enable`.
+Barra de estado: **🐴** ponytail activo, **🧠** headroom activo.
+
+## Paneles / dashboards (local)
+
+Dos dashboards web locales — nada sale de tu máquina:
+
+- **`co-dash`** → el dashboard propio de carryover en `http://127.0.0.1:8788` — explora tu
+  **conocimiento** (facts, entidades tipadas, tags, con búsqueda + filtros), con una
+  **insignia de reúso** (♻ N = veces recordada en contexto) en cada memoria, **agrupado por
+  el repo** del que viene (o *general*), un **grafo de relaciones** auto-generado, y tus
+  **wikis** (Markdown + mermaid). También es **gestor**: borra una memoria o limpia un repo
+  entero con un clic. Lee/escribe tu DB en vivo; Ctrl-C para parar. (Capturas en la versión inglesa.)
+- **`hr-dash`** → el dashboard de **ahorro** de headroom en `http://127.0.0.1:8787/dashboard`
+  — tokens ahorrados, compresión, cache.
+
+(Las wikis aparecen en `co-dash` después de correr `co-wiki-enable` en un repo y pushear a master/main.)
+
+## Habilitar / deshabilitar el routing
+
+El routing está **ON por defecto** en cada sesión nueva. Conmútalo sin desinstalar (el
+proxy sigue corriendo):
+
+```bash
+carryover off            # las sesiones nuevas van directo a Anthropic (global)
+carryover on             # vuelve a enrutar por headroom (global)
+carryover off --session  # solo la terminal actual
+carryover status         # ver estado
+```
+
+`off` es quirúrgico y reversible: quita la env de routing y le pone un guard al hook
+SessionStart de headroom para que no la re‑inyecte; `on` lo revierte.
+
+## Memoria
+
+```bash
+hr memory stats --db-path ~/.headroom/memory.db    # (los alias hr-* ya lo pasan)
+hr memory list  --db-path ~/.headroom/memory.db --scope USER
+mem-save "lo que quieras recordar"
+```
+
+> El CLI `headroom memory` usa por defecto `./headroom_memory.db` del directorio actual,
+> **no** el store del proxy — por eso los aliases pasan `--db-path ~/.headroom/memory.db`.
+
+## Wiki automática (local, formato GitHub Wiki)
+
+Genera una wiki del proyecto con Claude headless (`claude -p`) — visión general,
+arquitectura, flujos y un catálogo de **Features**, con diagramas mermaid. Se actualiza de
+forma **incremental**: cada corrida preserva las páginas existentes y las complementa con lo
+que cambió, así la wiki **crece** en vez de regenerarse desde cero. **`co-wiki-enable` genera
+la primera wiki de inmediato** (así nunca queda vacía), y se mantiene al día con `co-wiki-gen`
+y el prompt de fin de sesión. (Un hook `pre-push` en master/main también integra los cambios,
+aunque en worktrees de Conductor usarás sobre todo `co-wiki-gen`.) Local por defecto; publicar
+al wiki de GitHub es opcional.
+
+```bash
+cd /ruta/a/tu/repo && co-wiki-enable     # activa + genera la primera wiki ahora (background)
+co-wiki-gen                               # actualizar la wiki incrementalmente a demanda (sin push)
+WIKI_PUBLISH=1 co-wiki-gen                # además publicar al wiki de GitHub
+```
+
+<details>
+<summary><b>Gestionar / desinstalar headroom</b></summary>
+
+```bash
+hr install status | start | stop | restart
+hr install remove        # quita servicio + routing (vuelve a Anthropic directo)
+```
+
+⚠️ Si el proxy se cae, las sesiones de Claude fallan hasta `hr-on` (o `hr install remove`).
+
+</details>
+
+<details>
+<summary><b>Instalación directa (sin este repo)</b></summary>
+
+```bash
+pip install "headroom-ai[all]" && headroom install apply --memory
+claude plugin marketplace add DietrichGebert/ponytail && claude plugin install ponytail@ponytail
+```
+
+carryover es más que un bundle: sobre un instalador idempotente de un comando, añade su
+propia capa — memoria cross‑tool, la barra 🐴/🧠, el comando `/headroom`, el sistema de
+guardar‑en‑memoria (hook Stop + `mem-save`, porque headroom no tiene `memory add`), la
+**wiki automática** (`claude -p` → docs formato GitHub‑Wiki con mermaid) y el toggle de
+routing `carryover`.
+
+</details>
+
+<details>
+<summary><b>Problemas comunes</b></summary>
+
+- **Claude cuelga / falla** → ¿proxy caído? `hr-status`; si sí, `hr-on`.
+- **No comprime en una sesión** → `echo $ANTHROPIC_BASE_URL` vacío = sesión vieja, reiníciala.
+- **`pip install` falla** → usa Python 3.13 (no 3.14): `brew install python@3.13`.
+- **`headroom install apply` falla con error de `launchctl`** → corre `install.sh` desde tu
+  **Terminal real**, no desde SSH/automatización/un agente — launchd de macOS (dominio GUI)
+  necesita sesión interactiva. El instalador continúa igual; re-corre apply en tu Terminal.
+- **No borres `~/.headroom/venv`** antes de `hr install remove` — respalda el servicio.
+
+</details>
+
+---
+
+## Credits · Créditos
+
+carryover adds its own layer (cross‑tool memory wiring, the 🐴/🧠 status bar, `/headroom`,
+the save‑to‑memory system, the auto‑wiki and the routing toggle) on top of two excellent
+tools. Full credit to their creators — carryover construye encima de dos herramientas
+excelentes; todo el crédito a sus creadores:
+
+- **headroom** — [@chopratejas](https://github.com/chopratejas/headroom)
+- **ponytail** — [@DietrichGebert](https://github.com/DietrichGebert/ponytail)
+
+Licensed [MIT](LICENSE) · Licencia [MIT](LICENSE).
