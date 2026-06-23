@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """carryover memory CLI — thin resolver over co_store for shell consumers (recall, forget,
 doctor) and the dashboard. Routes to headroom or the built-in SQLite store transparently.
-Usage: co-mem export <file> | delete <id…> | edit <id> [--content X] [--importance Y] | stats | backend"""
+Usage: co-mem export <file> | delete <id…> | edit <id> [--content X] [--importance Y] | touch <id…> | stats | backend"""
 import json
 import os
 import sys
@@ -27,11 +27,13 @@ elif cmd == "edit" and len(a) > 1:
         else:
             i += 1
     print("ok" if co_store.edit(a[1], content, importance) else "fail")
+elif cmd == "touch":
+    print(co_store.touch(a[1:]))
 elif cmd == "stats":
     print(co_store.stats())
 elif cmd == "backend":
     b, db = co_store.backend()
     print(f"{b}\t{db}")
 else:
-    sys.stderr.write("usage: co-mem export <file> | delete <id…> | edit <id> [--content X] [--importance Y] | stats | backend\n")
+    sys.stderr.write("usage: co-mem export <file> | delete <id…> | edit <id> [--content X] [--importance Y] | touch <id…> | stats | backend\n")
     sys.exit(1)

@@ -207,6 +207,7 @@ HTML = r"""<!doctype html>
   .badge.user{background:#dcebd8;color:var(--ok)}
   .badge.cat{background:#e7dcff;color:#5b3fb5}
   .badge.repo{background:#fde9cf;color:#9a5b14}
+  .badge.reuse{background:#d8eef0;color:#15727e}
   .date{color:var(--muted);font-size:12px}
   .del-btn{border:1px solid var(--line);background:#fff;color:var(--red);cursor:pointer;border-radius:8px;font-size:12px;padding:2px 8px}
   .del-btn:hover{background:#fbeaea;border-color:#e3bcbc}
@@ -343,7 +344,7 @@ function renderOverview(){
   const tags=Object.entries(tc).sort((a,b)=>b[1]-a[1]).slice(0,14);
   const bar=(lbl,val,max)=>`<div class="ovbar"><span class="ovbarlbl" title="${esc(lbl)}">${esc(lbl)}</span><span class="ovbartrack"><span class="ovbarfill" style="width:${Math.round(val/max*100)}%"></span></span><span class="ovbarval">${val}</span></div>`;
   const day=864e5;
-  // context carried, from instrumented recall activity (carryover doesn't increment access_count)
+  // context carried, from instrumented recall activity (aggregate; per-memory reuse is the ♻ badge)
   const A=DATA.activity||[];
   const recalls=A.filter(a=>a.event==='recall');
   const sessions=recalls.length;
@@ -432,6 +433,7 @@ function renderMems(){
         <span class="badge ${sc==='USER'?'user':''}">${sc}</span>
         <span class="badge repo">📦 ${esc(repoOf(m))}</span>
         ${md.category?`<span class="badge cat">${esc(md.category)}</span>`:''}
+        ${m.access_count?`<span class="badge reuse" title="times recalled into context">♻ ${m.access_count}</span>`:''}
         <span class="impwrap"><span class="imp" style="width:${imp}%"></span></span><span class="count">${imp}%</span>
         <button class="edit-btn" data-edit="${esc(m.id)}">✏️</button>
         <button class="del-btn" data-del="${esc(m.id)}">🗑</button>

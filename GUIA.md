@@ -53,8 +53,9 @@ En Claude (en el chat): `/carryover`, `/recall <q>`, `/wiki-enable`, `/headroom`
 
 - **Memoria que viaja:** al iniciar una sesión, carryover inyecta lo que ya sabe del repo;
   al terminar, te ofrece guardar lo que importó (con dedup para no acumular duplicados).
-- **Wiki automática:** `wiki-enable` en un repo genera y registra su wiki (Home, Architecture,
-  Flows con mermaid, Changelog); se ve en `co-dash`.
+- **Wiki automática:** `wiki-enable` en un repo genera y registra su wiki (Home, Features,
+  Architecture, Flows con mermaid, Changelog); se ve en `co-dash`. Se actualiza de forma
+  **incremental** — complementa y preserva lo que ya existe, no regenera todo desde cero.
 - **Dashboard local** (`co-dash`, `localhost:8788`): busca, filtra, edita ✏️ y borra memorias;
   navega las wikis. Para los números de ahorro de tokens usa `hr-dash` (dashboard de headroom).
 

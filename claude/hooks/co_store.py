@@ -131,6 +131,37 @@ def edit(mid, content=None, importance=None):
     return ok
 
 
+def touch(ids):
+    """Bump access_count (+ last_accessed where the column exists) for recalled memories.
+    Fail-safe: any error returns 0 and never breaks a recall. headroom has no CLI for this,
+    so we UPDATE its db directly.
+    # ponytail: direct UPDATE on headroom's db; switch to a CLI if headroom ever adds one."""
+    ids = [i for i in ids if i]
+    if not ids:
+        return 0
+    hr = _headroom()
+    db = HR_DB if hr else CO_DB
+    qs = ",".join("?" * len(ids))
+    try:
+        if not hr:
+            Path(CO_DB).parent.mkdir(parents=True, exist_ok=True)
+        c = sqlite3.connect(db, timeout=5)
+        c.execute("PRAGMA busy_timeout=3000")  # proxy may be reading headroom's db
+        now = datetime.now(timezone.utc).isoformat()
+        cols = {r[1] for r in c.execute("PRAGMA table_info(memories)")}
+        if "last_accessed" in cols:
+            c.execute(f"UPDATE memories SET access_count=COALESCE(access_count,0)+1, last_accessed=? WHERE id IN ({qs})",
+                      [now, *ids])
+        else:
+            c.execute(f"UPDATE memories SET access_count=COALESCE(access_count,0)+1 WHERE id IN ({qs})", ids)
+        n = c.total_changes
+        c.commit()
+        c.close()
+        return n
+    except Exception:
+        return 0
+
+
 def stats():
     hr = _headroom()
     if hr:

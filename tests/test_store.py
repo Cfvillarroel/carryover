@@ -35,6 +35,14 @@ assert m["metadata"]["facts"] == ["standalone fact"]
 
 assert cs.edit(mid, content="edited content", importance=0.9) is True
 assert cs.export()[0]["content"] == "edited content"
+
+assert m["access_count"] == 0  # nothing recalled yet
+assert cs.touch([mid]) == 1
+assert cs.export()[0]["access_count"] == 1
+assert cs.touch([mid]) == 1
+assert cs.export()[0]["access_count"] == 2
+assert cs.touch([]) == 0  # empty is a no-op
+
 assert cs.delete([mid]) == 1
 assert cs.stats() == 0
 

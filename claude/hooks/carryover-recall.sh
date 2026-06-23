@@ -16,10 +16,10 @@ except Exception: print("")' 2>/dev/null)
 [ -n "$cwd" ] || cwd="$PWD"
 repo=$(git -C "$cwd" remote get-url origin 2>/dev/null | sed -E 's#/+$##; s#.*/##; s#\.git$##')
 
-tmp="$(mktemp).json"
-python3 "$COMEM" export "$tmp" 2>/dev/null || { rm -f "$tmp"; exit 0; }
+tmp="$(mktemp).json"; pidf="$(mktemp)"
+python3 "$COMEM" export "$tmp" 2>/dev/null || { rm -f "$tmp" "$pidf"; exit 0; }
 
-ctx=$(REPO="$repo" python3 - "$tmp" <<'PY' 2>/dev/null
+ctx=$(REPO="$repo" IDS="$pidf" python3 - "$tmp" <<'PY' 2>/dev/null
 import datetime, json, os, sys
 repo = os.environ.get("REPO", "")
 try:
@@ -34,6 +34,11 @@ general.sort(key=lambda m: m.get("importance", 0), reverse=True)
 picked = this_repo[:12] + general[:4]
 if not picked:
     sys.exit(0)
+try:  # ids of carried memories → bump their access_count (auto-recall counts as use)
+    with open(os.environ["IDS"], "w") as fh:
+        fh.write("\n".join(str(m.get("id")) for m in picked if m.get("id")))
+except Exception:
+    pass
 lines = ["# carryover — what you already know" + (f" about {repo}" if repo else "")]
 for m in picked:
     c = " ".join((m.get("content") or "").split())
@@ -54,6 +59,9 @@ except Exception:
 print(out)
 PY
 )
-rm -f "$tmp"
+# bump access_count for the memories we carried into context (fail-safe)
+pids="$(tr '\n' ' ' < "$pidf" 2>/dev/null)"
+[ -n "${pids// }" ] && python3 "$COMEM" touch $pids >/dev/null 2>&1 || true
+rm -f "$tmp" "$pidf"
 [ -n "$ctx" ] || exit 0
 jq -nc --arg c "$ctx" '{hookSpecificOutput:{hookEventName:"SessionStart", additionalContext:$c}}'

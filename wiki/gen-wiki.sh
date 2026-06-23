@@ -17,7 +17,19 @@ mkdir -p "$WIKI_DIR"
 LOG="$(git -C "$REPO_ROOT" log --no-merges --pretty='- %s (%h)' "$RANGE" 2>/dev/null | head -100)"
 DIFFSTAT="$(git -C "$REPO_ROOT" diff --stat "$RANGE" 2>/dev/null | tail -80)"
 TREE="$(git -C "$REPO_ROOT" ls-files 2>/dev/null | head -400)"
-HOME_PREV="$([ -f "$WIKI_DIR/Home.md" ] && cat "$WIKI_DIR/Home.md" || echo '(sin wiki previa)')"
+# wiki actual COMPLETA (todas las páginas .md) → para complementar, no regenerar.
+# Separador distinto al marcador de salida (=== FILE ===) para no confundir al modelo.
+# ponytail: pasamos todo el texto y confiamos en la instrucción de preservar; si una wiki
+# crece a megas, acotar por página. headroom ya comprime el prompt.
+WIKI_PREV=""
+for p in "$WIKI_DIR"/*.md; do
+  [ -f "$p" ] || continue
+  WIKI_PREV="$WIKI_PREV
+----- PÁGINA: $(basename "$p") -----
+$(cat "$p")
+"
+done
+[ -n "$WIKI_PREV" ] || WIKI_PREV="(sin wiki previa)"
 MEM=""
 HR="$HOME/.headroom/venv/bin/headroom"
 if [ -x "$HR" ]; then
@@ -27,21 +39,30 @@ fi
 
 # --- prompt → Claude headless ---
 OUT="$(claude -p 2>/dev/null <<EOF
-Eres documentalista técnico. Genera/actualiza la wiki de un repositorio en
-formato GitHub Wiki (páginas Markdown sueltas). Idioma: español.
+Eres documentalista técnico. Actualiza de forma INCREMENTAL la wiki de un
+repositorio en formato GitHub Wiki (páginas Markdown sueltas). Idioma: español.
+
+INCREMENTAL = la wiki CRECE y se COMPLEMENTA con el tiempo, NO se regenera desde
+cero. Parte SIEMPRE de la "Wiki actual" de abajo:
+- PRESERVA el contenido existente que siga siendo válido (cópialo tal cual).
+- AÑADE lo nuevo y ACTUALIZA solo lo que el cambio invalida o vuelve obsoleto.
+- NO resumas, recortes ni borres secciones útiles que ya existían.
+- Devuelve SOLO las páginas que cambian o son nuevas; las que no toques quedan intactas.
+  (Changelog-Entry.md devuélvela SIEMPRE: resume el push actual.)
 
 Devuelve SOLO archivos, cada uno precedido por una línea marcador EXACTA:
 === FILE: <nombre>.md ===
 
-Páginas a generar:
+Páginas de la wiki:
 - Home.md            visión general: qué es, para qué, cómo se usa.
+- Features.md        catálogo de funcionalidades (qué hace y para qué cada una). LISTA VIVA:
+                     añade las features nuevas de este push y CONSERVA todas las anteriores.
 - Architecture.md    componentes y cómo encajan; AL MENOS un diagrama \`\`\`mermaid.
 - Flows.md           flujos principales (request/build/deploy/datos) con \`\`\`mermaid.
-- _Sidebar.md        navegación con wiki-links: [[Home]] [[Architecture]] [[Flows]] [[Changelog]].
+- _Sidebar.md        navegación: [[Home]] [[Features]] [[Architecture]] [[Flows]] [[Changelog]].
 - Changelog-Entry.md SOLO 3-8 bullets resumiendo los cambios de este push.
 
 Reglas: diagramas en bloques \`\`\`mermaid. No inventes archivos que no existan.
-Si había wiki previa, mantén coherencia al actualizar.
 
 == Árbol de archivos ==
 $TREE
@@ -55,8 +76,8 @@ $DIFFSTAT
 == Memoria headroom (contexto, puede ir vacía) ==
 $MEM
 
-== Home.md previa ==
-$HOME_PREV
+== Wiki actual (COMPLETA — preserva y complementa, no regeneres) ==
+$WIKI_PREV
 EOF
 )"
 [ -n "$OUT" ] || { echo "wiki: claude no devolvió contenido"; exit 0; }
