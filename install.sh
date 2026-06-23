@@ -1,17 +1,26 @@
 #!/usr/bin/env bash
-# Installs my setup (headroom + ponytail + Claude config) on this machine.
-# Idempotent: it can be re-run. Usage: bash <repo>/install.sh
-# Optional env: HEADROOM_PORT / HEADROOM_PROFILE to run it isolated (testing).
+# Installs carryover (standalone). headroom (proxy + shared memory backend) and ponytail are OPTIONAL:
+#   bash install.sh                 # carryover only — built-in SQLite memory store
+#   bash install.sh --with-headroom # + headroom proxy/memory backend
+#   bash install.sh --with-ponytail # + the ponytail lazy-dev plugin
+#   bash install.sh --full          # carryover + headroom + ponytail
+# Idempotent. Optional env: HEADROOM_PORT / HEADROOM_PROFILE.
 set -euo pipefail
 
 SETUP_DIR="$(cd "$(dirname "$0")" && pwd)"   # .../.conductor/setup
 HR_DIR="$HOME/.headroom"          # headroom's own dir (venv + memory DBs) — we never move this
 CO_DIR="$HOME/.carryover"         # carryover's own dir (dashboard, wiki scripts, recall, flags)
 mkdir -p "$CO_DIR"
-MODE="${1:-full}"; [ "$MODE" = "--files-only" ] && MODE=files   # files = only symlinks/settings/zshrc (used by 'carryover update')
+MODE=full; WITH_HR=0; WITH_PONY=0    # default: carryover only (built-in store). --files-only used by 'carryover update'.
+for a in "$@"; do case "$a" in
+  --files-only) MODE=files;;
+  --with-headroom) WITH_HR=1;;
+  --with-ponytail) WITH_PONY=1;;
+  --full) WITH_HR=1; WITH_PONY=1;;
+esac; done
 
-if [ "$MODE" = full ]; then
-echo "==> 1/4 headroom (venv Python 3.13)"
+if [ "$MODE" = full ] && [ "$WITH_HR" = 1 ]; then
+echo "==> headroom (optional: proxy + shared memory backend; venv Python 3.13)"
 if ! command -v python3.13 >/dev/null; then
   echo "    Missing python3.13 → install with: brew install python@3.13"; exit 1
 fi
@@ -23,15 +32,17 @@ if "$HR_DIR/venv/bin/headroom" install status >/dev/null 2>&1; then
 else
   "$HR_DIR/venv/bin/headroom" install apply --memory \
     ${HEADROOM_PROFILE:+--profile "$HEADROOM_PROFILE"} ${HEADROOM_PORT:+--port "$HEADROOM_PORT"} \
-    || echo "    ⚠️  'headroom install apply' failed (commonly launchctl from a non-interactive shell). Re-run it once in YOUR terminal to enable the persistent service — the rest of the install continues."
+    || echo "    ⚠️  'headroom install apply' failed (commonly launchctl from a non-interactive shell). Re-run it once in YOUR terminal — the rest of the install continues."
+fi
+claude plugin marketplace add chopratejas/headroom 2>/dev/null || true
+claude plugin install headroom@headroom-marketplace 2>/dev/null || true
 fi
 
-echo "==> 2/4 Claude plugins (ponytail + headroom)"
+if [ "$MODE" = full ] && [ "$WITH_PONY" = 1 ]; then
+echo "==> ponytail (optional lazy-dev plugin)"
 claude plugin marketplace add DietrichGebert/ponytail 2>/dev/null || true
-claude plugin marketplace add chopratejas/headroom    2>/dev/null || true
-claude plugin install ponytail@ponytail                2>/dev/null || true
-claude plugin install headroom@headroom-marketplace    2>/dev/null || true
-fi   # end MODE=full; --files-only skips headroom venv + plugins above
+claude plugin install ponytail@ponytail 2>/dev/null || true
+fi
 
 echo "==> 3/4 ~/.claude config (symlinks to the repo)"
 mkdir -p "$HOME/.claude/commands"
@@ -42,6 +53,8 @@ ln -sf "$SETUP_DIR/dash/carryover-dash.py"       "$CO_DIR/carryover-dash.py"   #
 ln -sf "$SETUP_DIR/wiki/install-wiki.sh"         "$CO_DIR/install-wiki.sh"     # 'wiki-enable' alias target
 ln -sf "$SETUP_DIR/claude/hooks/recall.sh"       "$CO_DIR/recall.sh"           # 'hr-recall' alias target
 ln -sf "$SETUP_DIR/claude/hooks/forget.sh"       "$CO_DIR/forget.sh"           # 'hr-forget' alias target
+ln -sf "$SETUP_DIR/claude/hooks/co_store.py"     "$CO_DIR/co_store.py"         # memory backend (headroom or built-in SQLite)
+ln -sf "$SETUP_DIR/claude/hooks/co-mem"          "$CO_DIR/co-mem"              # memory CLI used by recall/forget/dashboard
 ln -sf "$SETUP_DIR/claude/hooks/wiki-gen.sh"     "$CO_DIR/wiki-gen.sh"         # 'wiki-gen' alias target
 ln -sf "$SETUP_DIR/zshrc.snippet"                "$CO_DIR/carryover.zsh"       # sourced by ~/.zshrc; 'carryover update' re-sources this
 # migrate the old layout (carryover artifacts used to live in ~/.headroom): move data files, drop stale symlinks

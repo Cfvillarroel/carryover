@@ -80,16 +80,18 @@ carryover() {
       )
       printf '\n  %s💬 In Claude — type in the chat, NOT this terminal · escríbelos en el chat%s\n' "$Y" "$R"
       for c in "${inclaude[@]}"; do printf '  %s%-18s%s %s\n' "$O" "${c%%:*}" "$R" "${c#*:}"; done
-      local -a pony=(
-        "/ponytail:lite|full|ultra — lazy mode + intensity · modo lazy + intensidad"
-        "/ponytail-review:review the diff for over-engineering · revisar el diff"
-        "/ponytail-audit:audit the whole repo for bloat · auditar todo el repo"
-        "/ponytail-debt:list deferred shortcuts · listar atajos diferidos"
-        "/ponytail-help:ponytail quick reference · referencia rápida"
-        "stop ponytail:back to normal mode · volver al modo normal"
-      )
-      printf '\n  %s💬 Ponytail — also in the chat, NOT this terminal · también en el chat%s\n' "$Y" "$R"
-      for c in "${pony[@]}"; do printf '  %s%-18s%s %s\n' "$O" "${c%%:*}" "$R" "${c#*:}"; done;;
+      if [ -d "$HOME/.claude/plugins/cache/ponytail" ]; then
+        local -a pony=(
+          "/ponytail:lite|full|ultra — lazy mode + intensity · modo lazy + intensidad"
+          "/ponytail-review:review the diff for over-engineering · revisar el diff"
+          "/ponytail-audit:audit the whole repo for bloat · auditar todo el repo"
+          "/ponytail-debt:list deferred shortcuts · listar atajos diferidos"
+          "/ponytail-help:ponytail quick reference · referencia rápida"
+          "stop ponytail:back to normal mode · volver al modo normal"
+        )
+        printf '\n  %s💬 Ponytail — also in the chat, NOT this terminal · también en el chat%s\n' "$Y" "$R"
+        for c in "${pony[@]}"; do printf '  %s%-18s%s %s\n' "$O" "${c%%:*}" "$R" "${c#*:}"; done
+      fi;;
     doctor) bash "$HOME/.claude/hooks/carryover-doctor.sh" "$2";;
     persist)   # make the headroom proxy survive reboot (bootstrap its launchd service from this real Terminal)
       local plist; plist=$(ls "$HOME"/Library/LaunchAgents/*headroom*.plist 2>/dev/null | head -1)
