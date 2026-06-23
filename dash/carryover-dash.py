@@ -185,7 +185,7 @@ HTML = r"""<!doctype html>
   .tabs{display:flex;gap:6px;padding:14px 24px 0}
   .tab{padding:8px 18px;border:1px solid var(--line);border-bottom:none;border-radius:10px 10px 0 0;cursor:pointer;background:#f0e6d6;color:var(--muted);font-weight:600}
   .tab.active{background:var(--panel);color:var(--ink);box-shadow:0 -2px 0 var(--accent) inset}
-  main{padding:20px 24px;max-width:1100px;margin:0 auto}
+  main{padding:20px 24px;max-width:1320px;margin:0 auto}
   .repobar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:12px}
   .rchip{font-size:13px;padding:4px 12px;border-radius:20px;border:1px solid var(--tan);background:#fff;cursor:pointer;color:var(--accent2)}
   .rchip b{color:var(--muted);font-weight:600}
@@ -225,6 +225,8 @@ HTML = r"""<!doctype html>
   .ovbarfill{display:block;height:100%;background:var(--accent)}
   .ovbarval{width:30px;text-align:right;color:var(--muted)}
   .ovreuse{font-size:13px;margin-bottom:6px;color:var(--ink)} .ovreuse b{color:var(--accent2)}
+  .ovnudge{font-size:13px;margin-bottom:7px;color:var(--ink)} .ovnudge b{color:var(--accent)}
+  .ovnudge code{background:var(--chip);padding:1px 7px;border-radius:5px;font-size:12px;margin-left:4px;color:var(--accent2)}
   .impwrap{width:70px;height:6px;border-radius:4px;background:var(--line);display:inline-block;overflow:hidden}
   .imp{height:6px;border-radius:4px;background:var(--accent);display:inline-block;vertical-align:middle}
   .content{white-space:pre-wrap;word-break:break-word;font-weight:600}
@@ -337,40 +339,64 @@ function renderOverview(){
   const br={}; M.forEach(m=>{const r=repoOf(m); br[r]=(br[r]||0)+1;});
   const repoRows=Object.entries(br).sort((a,b)=>b[1]-a[1]).slice(0,8);
   const repoMax=Math.max(1,...repoRows.map(r=>r[1]));
-  const reuse=M.filter(m=>(m.access_count||0)>0).sort((a,b)=>(b.access_count||0)-(a.access_count||0)).slice(0,6);
   const tc={}; M.forEach(m=>((m.metadata&&m.metadata.tags)||[]).forEach(t=>tc[t]=(tc[t]||0)+1));
   const tags=Object.entries(tc).sort((a,b)=>b[1]-a[1]).slice(0,14);
   const bar=(lbl,val,max)=>`<div class="ovbar"><span class="ovbarlbl" title="${esc(lbl)}">${esc(lbl)}</span><span class="ovbartrack"><span class="ovbarfill" style="width:${Math.round(val/max*100)}%"></span></span><span class="ovbarval">${val}</span></div>`;
+  const day=864e5;
+  // context carried, from instrumented recall activity (carryover doesn't increment access_count)
+  const A=DATA.activity||[];
+  const recalls=A.filter(a=>a.event==='recall');
+  const sessions=recalls.length;
+  const carriedTotal=recalls.reduce((s,a)=>s+(a.n||0),0);
+  const avgCarried=sessions?Math.round(carriedTotal/sessions*10)/10:0;
+  const charsTot=recalls.reduce((s,a)=>s+(a.chars||0),0);
+  const tokPerSession=sessions?Math.round(charsTot/sessions/4):0;
+  const dedupAvoided=A.filter(a=>a.event==='dedup').reduce((s,a)=>s+(a.n||0),0);
+  const cr={}; recalls.forEach(a=>{const r=a.repo||'general'; cr[r]=(cr[r]||0)+(a.n||0);});
+  const carriedRows=Object.entries(cr).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const carriedMax=Math.max(1,...carriedRows.map(r=>r[1]));
+  const days=Array(14).fill(0);
+  recalls.forEach(a=>{const d=Date.parse(a.ts||0); if(d){const i=Math.floor((now-d)/day); if(i>=0&&i<14)days[13-i]++;}});
+  const daysMax=Math.max(1,...days);
+  // cleanup nudges
+  const stale=M.filter(m=>(now-Date.parse(m.created_at||0)>30*day)&&(m.importance||0)<0.5).length;
+  let dupPairs=0;
+  if(M.length<=600){
+    const tk=M.map(m=>new Set((m.content||'').toLowerCase().replace(/[^\w\s]/g,' ').split(/\s+/).filter(w=>w)));
+    for(let i=0;i<M.length;i++){const a=tk[i]; if(a.size<4)continue;
+      for(let j=i+1;j<M.length;j++){const b=tk[j]; if(b.size<4)continue;
+        let inter=0; a.forEach(t=>{if(b.has(t))inter++;});
+        if(inter/(a.size+b.size-inter)>=0.85)dupPairs++;}}
+  } else dupPairs=-1;
+  const wikiRepos=new Set((W||[]).map(w=>w.repo));
+  const reposNoWiki=[...new Set(M.map(repoOf))].filter(r=>r!=='general'&&!wikiRepos.has(r)).length;
+  const rel=ts=>{const s=(now-Date.parse(ts||0))/1000; return s<60?'just now':s<3600?Math.floor(s/60)+'m ago':s<86400?Math.floor(s/3600)+'h ago':Math.floor(s/86400)+'d ago';};
+  const feed=A.slice(-12).reverse();
+
   let h=`<div class="ovgrid">
     <div class="ovcard"><div class="ovnum">${total}</div><div class="ovlbl">memories</div></div>
     <div class="ovcard"><div class="ovnum">${repos}</div><div class="ovlbl">repos</div></div>
     <div class="ovcard"><div class="ovnum">+${addedWeek}</div><div class="ovlbl">this week</div></div>
     <div class="ovcard"><div class="ovnum">${W.length}</div><div class="ovlbl">wikis</div></div>
   </div>`;
-  h+=`<h3>Growth · last 8 weeks</h3><div class="ovspark">${wk.map(v=>`<span class="b" style="height:${Math.round(v/wkMax*100)}%" title="${v}"></span>`).join('')}</div>`;
-  h+=`<div class="ovcols">
-    <div><h3>By repo</h3>${repoRows.map(r=>bar(r[0],r[1],repoMax)).join('')||'<div class="empty">—</div>'}</div>
-    <div><h3>Most reused</h3>${reuse.map(m=>`<div class="ovreuse"><b>${m.access_count}×</b> ${esc((m.content||'').slice(0,72))}</div>`).join('')||'<div class="empty">nothing recalled yet</div>'}</div>
-  </div>`;
-  h+=`<h3>Top topics</h3><div class="chips">${tags.map(t=>`<span class="chip">${esc(t[0])} ${t[1]}</span>`).join('')||'<div class="empty">—</div>'}</div>`;
-  // context-management metrics (from instrumented recall + dedup activity)
-  const A=DATA.activity||[];
-  const recalls=A.filter(a=>a.event==='recall');
-  const sessions=recalls.length;
-  const carried=recalls.reduce((s,a)=>s+(a.n||0),0);
-  const avgCarried=sessions?Math.round(carried/sessions*10)/10:0;
-  const dedupAvoided=A.filter(a=>a.event==='dedup').reduce((s,a)=>s+(a.n||0),0);
-  const reuseTotal=M.reduce((s,m)=>s+(m.access_count||0),0);
-  const days=Array(14).fill(0);
-  recalls.forEach(a=>{const d=Date.parse(a.ts||0); if(d){const i=Math.floor((now-d)/864e5); if(i>=0&&i<14)days[13-i]++;}});
-  const daysMax=Math.max(1,...days);
   h+=`<h3>Context management</h3><div class="ovgrid">
-    <div class="ovcard"><div class="ovnum">${sessions}</div><div class="ovlbl">sessions w/ recall</div></div>
-    <div class="ovcard"><div class="ovnum">${avgCarried}</div><div class="ovlbl">avg carried/session</div></div>
-    <div class="ovcard"><div class="ovnum">${reuseTotal}</div><div class="ovlbl">recalls (reuse)</div></div>
+    <div class="ovcard"><div class="ovnum">${sessions}</div><div class="ovlbl">sessions carried</div></div>
+    <div class="ovcard"><div class="ovnum">${avgCarried}</div><div class="ovlbl">avg memories/session</div></div>
+    <div class="ovcard"><div class="ovnum">~${tokPerSession.toLocaleString()}</div><div class="ovlbl">tokens/session</div></div>
     <div class="ovcard"><div class="ovnum">${dedupAvoided}</div><div class="ovlbl">dupes avoided</div></div>
   </div>`;
   h+=`<h3>Context carried · last 14 days</h3><div class="ovspark">${days.map(v=>`<span class="b" style="height:${Math.round(v/daysMax*100)}%" title="${v} sessions"></span>`).join('')}</div>`;
+  h+=`<div class="ovcols">
+    <div><h3>Knowledge by repo</h3>${repoRows.map(r=>bar(r[0],r[1],repoMax)).join('')||'<div class="empty">—</div>'}</div>
+    <div><h3>Most carried (by repo)</h3>${carriedRows.length?carriedRows.map(r=>bar(r[0],r[1],carriedMax)).join(''):'<div class="empty">no sessions yet</div>'}</div>
+  </div>`;
+  const nud=(n,label,cmd)=>n>0?`<div class="ovnudge"><b>${n}</b> ${label} <code>${cmd}</code></div>`:'';
+  const nudges=[nud(stale,'old & low-importance — prune them','hr-prune --older-than 30d'),
+                nud(dupPairs,'near-duplicate pairs — review','hr-forget <kw>'),
+                nud(reposNoWiki,'repos with knowledge but no wiki','wiki-enable')].filter(Boolean).join('');
+  h+=`<h3>Cleanup</h3>${nudges||'<div class="empty">✓ nothing to clean up</div>'}`;
+  h+=`<h3>Growth · last 8 weeks</h3><div class="ovspark">${wk.map(v=>`<span class="b" style="height:${Math.round(v/wkMax*100)}%" title="${v}"></span>`).join('')}</div>`;
+  h+=`<h3>Top topics</h3><div class="chips">${tags.map(t=>`<span class="chip">${esc(t[0])} ${t[1]}</span>`).join('')||'<div class="empty">—</div>'}</div>`;
   const S=DATA.savings;
   if(S){
     const L=S.lifetime||{}, fmt=n=>(n||0).toLocaleString(), tok=L.tokens_saved||0, inTok=L.total_input_tokens||0;
@@ -384,6 +410,7 @@ function renderOverview(){
   } else {
     h+=`<h3>Proxy savings</h3><div class="empty">headroom proxy not installed — add it (optional, <code>install.sh --with-headroom</code>) for token-compression savings.</div>`;
   }
+  h+=`<h3>Recent activity</h3>${feed.length?feed.map(a=>`<div class="ovreuse"><b>${esc(a.event)}</b> · ${esc(a.repo||'general')} · ${a.event==='recall'?(a.n||0)+' carried':(a.n||0)+' avoided'} <span style="color:var(--muted)">${rel(a.ts)}</span></div>`).join(''):'<div class="empty">no activity yet</div>'}`;
   $('#overviewbody').innerHTML=h;
 }
 function renderMems(){
