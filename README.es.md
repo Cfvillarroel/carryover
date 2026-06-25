@@ -215,11 +215,13 @@ workspace, no están atados a un repo (así un workspace de frontend puede avisa
   `co-say <mensaje>` envía a **todos** los workspaces conectados sin reteclear nombres;
   `co-connections` los lista y `co-disconnect <ws>` desconecta. Útil para un par frontend/backend
   entre repos.
-- **Entrega automática:** las notas pendientes se inyectan en el contexto del workspace tanto
-  cuando su sesión **arranca** como **antes de cada uno de tus turnos** (un hook `UserPromptSubmit`),
-  bajo un encabezado "📬 messages for this workspace", y luego se marcan como entregadas. Así,
-  mientras trabajas en un workspace, las notas que otros te dejan aparecen en tu siguiente turno,
-  sin reiniciar.
+- **Entrega automática:** las notas pendientes se inyectan en el contexto del workspace cuando su
+  sesión **arranca**, **antes de cada uno de tus turnos** (`UserPromptSubmit`), y **cuando el agente
+  termina un turno** (`Stop`) — así una nota que llega mientras trabaja se recoge en cuanto queda
+  libre, sin interrumpirlo a media tarea. Se entrega una sola vez y se marca leída. La entrega por
+  `Stop` tiene un freno anti-bucle (`stop_hook_active`) para que dos workspaces conectados no entren
+  en ping-pong. (Sigue siendo pull: un agente totalmente inactivo —que ya te devolvió el control—
+  la recibe en su siguiente turno.)
 
 Solo pull, por diseño: a un agente *en marcha* no se le interrumpe — las notas llegan cuando su
 sesión vuelve a arrancar, o cuando ejecutas `co-inbox`. Los mensajes viven en su propio buzón

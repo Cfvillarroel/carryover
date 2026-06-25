@@ -1,0 +1,1 @@
+../claude/hooks/co-stop-inbox.sh

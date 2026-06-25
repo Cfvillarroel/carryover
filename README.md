@@ -208,10 +208,12 @@ workspace can message a backend one).
 - `co-connect <workspace>` — link two workspaces two-way (persistent). Then `co-say <message>`
   sends to **all** connected workspaces without retyping names; `co-connections` lists them and
   `co-disconnect <ws>` unlinks. Handy for a frontend/backend pair across repos.
-- **Automatic delivery:** pending notes are injected into a workspace's context both when its
-  session **starts** and **before each of your turns** (a `UserPromptSubmit` hook), under a
-  "📬 messages for this workspace" heading, then marked delivered. So while you're working in a
-  workspace, notes left by others show up on your next turn — no restart needed.
+- **Automatic delivery:** pending notes are injected into a workspace's context when its session
+  **starts**, **before each of your turns** (`UserPromptSubmit`), and **when the agent finishes a
+  turn** (`Stop`) — so a note that arrives while it's working gets picked up the moment it's free,
+  without interrupting it mid-task. Delivered once, then marked read. The `Stop` delivery has an
+  anti-loop guard (`stop_hook_active`) so two connected workspaces can't ping-pong forever. (Still
+  pull: a fully idle agent — one that already handed control back to you — receives on its next turn.)
 
 Pull-only by design: a *running* agent isn't interrupted — notes arrive when its session next
 starts, or when you run `co-inbox`. Messages live in their own `@<workspace>` mailbox, so they

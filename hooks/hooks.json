@@ -37,6 +37,14 @@
         "hooks": [
           {
             "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/co-stop-inbox.sh\""
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
             "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/mem-prompt.sh\" \"${CLAUDE_PLUGIN_ROOT}\""
           }
         ]
