@@ -60,7 +60,23 @@ elif cmd == "inbox":                                  # co-mem inbox [who] [--pe
     peek = "--peek" in a[1:]
     who = next((x for x in a[1:] if not x.startswith("-")), None)
     print(json.dumps(co_store.inbox(who=who, consume=not peek), ensure_ascii=False))
+elif cmd == "connect" and len(a) > 1:                 # co-mem connect <ws>
+    print(json.dumps(sorted(co_store.connect(a[1])), ensure_ascii=False))
+elif cmd == "disconnect" and len(a) > 1:              # co-mem disconnect <ws>
+    print(json.dumps(sorted(co_store.disconnect(a[1])), ensure_ascii=False))
+elif cmd == "connections":                            # co-mem connections
+    print(json.dumps(sorted(co_store.peers()), ensure_ascii=False))
+elif cmd == "say" and len(a) > 1:                     # co-mem say <message...>
+    import asyncio
+    prs = sorted(co_store.peers())
+    if not prs:
+        sys.stderr.write("co-say: not connected to any workspace — first run: co-connect <workspace>\n")
+        sys.exit(1)
+    msg = " ".join(a[1:])
+    ids = [asyncio.run(co_store.send_msg(p, msg)) for p in prs]
+    print(json.dumps({"to": prs, "ids": ids}, ensure_ascii=False))
 else:
     sys.stderr.write("usage: co-mem export <file> | delete <id…> | edit <id> [--content X] [--importance Y] "
-                     "| touch <id…> | send <to> <msg> | inbox [who] [--peek] | stats | backend\n")
+                     "| touch <id…> | send <to> <msg> | inbox [who] [--peek] "
+                     "| connect <ws> | disconnect <ws> | connections | say <msg> | stats | backend\n")
     sys.exit(1)

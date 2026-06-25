@@ -201,15 +201,20 @@ Barra de estado: **🐴** ponytail activo, **🧠** headroom activo.
 
 ## Mensajes entre workspaces
 
-¿Corres varios workspaces de Conductor sobre el mismo proyecto a la vez? Comparten un único store
-de memoria, así que pueden dejarse notas entre sí — "mergeé X, rebasea", "build roto, no hagas
-pull". Un workspace se dirige a otro por su **nombre de workspace en Conductor** (p.ej. `paris`,
-`surabaya`) — el nombre que ves en la app, tomado de `CONDUCTOR_WORKSPACE_NAME` y estable sin
-importar el branch de git.
+¿Corres varios workspaces de Conductor a la vez? Comparten un único store de memoria, así que
+pueden dejarse notas entre sí — "mergeé X, rebasea", "build roto, no hagas pull". Un workspace se
+dirige a otro por su **nombre de workspace en Conductor** (p.ej. `paris`, `surabaya`) — el nombre
+que ves en la app, tomado de `CONDUCTOR_WORKSPACE_NAME` y estable sin importar el branch de git.
+Esto funciona **entre proyectos/repos distintos** también: los buzones son globales por nombre de
+workspace, no están atados a un repo (así un workspace de frontend puede avisar a uno de backend).
 
 - `co-send <workspace> <mensaje>` — dejar una nota a otro workspace. Usa `all` para broadcast.
 - `co-inbox` — leer las notas dirigidas a **este** workspace (más los broadcasts). Leerlas las
   consume para que no se repitan; `co-inbox --peek` lee sin consumir.
+- `co-connect <workspace>` — vincular dos workspaces en ambos sentidos (persistente). Luego
+  `co-say <mensaje>` envía a **todos** los workspaces conectados sin reteclear nombres;
+  `co-connections` los lista y `co-disconnect <ws>` desconecta. Útil para un par frontend/backend
+  entre repos.
 - **Entrega automática:** las notas pendientes se inyectan en el contexto del workspace tanto
   cuando su sesión **arranca** como **antes de cada uno de tus turnos** (un hook `UserPromptSubmit`),
   bajo un encabezado "📬 messages for this workspace", y luego se marcan como entregadas. Así,
@@ -246,6 +251,20 @@ contexto inicial automáticamente:
 - **from paris:** el endpoint /v2 ya está mergeado, rebasea
 - **from paris:** build roto en master, no hagáis pull
 ```
+
+### Conectar workspaces (p.ej. frontend ↔ backend, incluso entre repos)
+
+Vincula dos workspaces una vez, y luego habla sin reteclear nombres largos:
+
+```sh
+# en el workspace de frontend
+co-connect proyectate-back-main      # 🔗 vínculo bidireccional, persistente
+co-say "el contrato de /users cambió: email ahora es obligatorio"   # → a todos los conectados
+co-connections                       # 🔗 connected to: proyectate-back-main
+```
+
+El workspace de backend lo recibe como cualquier otra nota (al arrancar, en su próximo turno, o con
+`co-inbox`). `co-disconnect proyectate-back-main` desconecta.
 
 (Los comandos nuevos llegan con `carryover update`; hasta entonces un workspace puede usarlos desde
 su checkout: `python3 claude/hooks/co-mem send <ws> "<msg>"`.)

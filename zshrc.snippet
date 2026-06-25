@@ -43,6 +43,27 @@ for m in ms:
     md=m.get("metadata") or {}
     print(f"\U0001F4EC from {md.get(\"from\",\"?\")}: {(m.get(\"content\") or \"\").strip()}")'
 }
+co-connect() {  # co-connect <workspace>: link this workspace with another (two-way, persistent)
+  [ -n "${1:-}" ] || { echo "usage: co-connect <workspace>"; return 1; }
+  python3 "$HOME/.carryover/co-mem" connect "$1" | python3 -c 'import json,sys
+p=json.load(sys.stdin); print("\U0001F517 connected · peers:", ", ".join(p) if p else "(none)")'
+}
+co-disconnect() {  # co-disconnect <workspace>: unlink a connected workspace
+  [ -n "${1:-}" ] || { echo "usage: co-disconnect <workspace>"; return 1; }
+  python3 "$HOME/.carryover/co-mem" disconnect "$1" | python3 -c 'import json,sys
+p=json.load(sys.stdin); print("peers:", ", ".join(p) if p else "(none)")'
+}
+co-connections() {  # co-connections: list workspaces this one is connected to
+  python3 "$HOME/.carryover/co-mem" connections | python3 -c 'import json,sys
+p=json.load(sys.stdin); print("\U0001F517 connected to:", ", ".join(p) if p else "(none)")'
+}
+co-say() {      # co-say <message>: send to ALL connected workspaces (set up with co-connect)
+  local PY="$HOME/.headroom/venv/bin/python"; [ -x "$PY" ] || PY="$(command -v python3)"
+  "$PY" "$HOME/.carryover/co-mem" say "$@" | python3 -c 'import json,sys
+try:
+    d=json.load(sys.stdin); print("\U0001F4E4 sent to:", ", ".join(d.get("to",[])))
+except Exception: pass'
+}
 co-backup() {   # snapshot all memories to a timestamped JSON (carry them to another machine)
   local dir="$HOME/.carryover/backups"; mkdir -p "$dir"
   local f="$dir/memory-$(date +%Y%m%d-%H%M%S).json"
@@ -99,14 +120,22 @@ carryover() {
         "co-dash:open the local dashboard · abrir el panel local"
         "co-recall <q>:recall knowledge by keyword · recordar conocimiento por keyword"
         "co-forget <q>:delete memories by keyword (confirm) · borrar memorias por keyword"
-        "co-send <ws> <msg>:message another workspace · avisar a otro workspace"
-        "co-inbox:read messages for this workspace · leer mensajes de este workspace"
         "hr-prune:prune old memories, e.g. --older-than 30d · purgar memorias viejas"
         "hr-*:headroom CLI (proxy + memory) · CLI de headroom (proxy + memoria)"
       )
       printf '\n  %sShell commands · Comandos de shell%s\n' "$D" "$R"
       local c
       for c in "${cmds[@]}"; do printf '  %s%-18s%s %s\n' "$O" "${c%%:*}" "$R" "${c#*:}"; done
+      local -a conductor=(
+        "co-send <ws> <msg>:message a workspace by name · enviar a un workspace por su nombre"
+        "co-inbox [--peek]:read messages for this workspace · leer mensajes de este workspace"
+        "co-connect <ws>:link this workspace with another (two-way) · conectar con otro workspace"
+        "co-say <msg>:message ALL connected workspaces · enviar a los workspaces conectados"
+        "co-disconnect <ws>:unlink a connected workspace · desconectar un workspace"
+        "co-connections:list connected workspaces · listar workspaces conectados"
+      )
+      printf '\n  %s🔗 Conductor workspaces · workspaces de Conductor%s\n' "$Y" "$R"
+      for c in "${conductor[@]}"; do printf '  %s%-20s%s %s\n' "$O" "${c%%:*}" "$R" "${c#*:}"; done
       local -a inclaude=(
         "/carryover:this command reference · esta referencia de comandos"
         "/recall <q>:recall knowledge by keyword · recordar conocimiento por keyword"

@@ -17,6 +17,7 @@ HR_DB = os.environ.get("HEADROOM_DB", str(HOME / ".headroom" / "memory.db"))
 CO_DB = str(HOME / ".carryover" / "memory.db")
 ACTIVITY = str(HOME / ".carryover" / "activity.jsonl")
 GROUPS = str(HOME / ".carryover" / "groups.conf")  # repo groups: one group per line, repos space/comma-separated
+LINKS = str(HOME / ".carryover" / "links.conf")    # workspace connections: one group per line, workspace names space/comma-separated
 SAVINGS = HOME / ".headroom" / "proxy_savings.json"
 
 
@@ -319,6 +320,72 @@ def inbox(who=None, consume=False):
             if m.get("id"):
                 supersede(m["id"], m["id"])  # self-supersede == 'consumed', no successor needed
     return msgs
+
+
+def _read_links():
+    """Connection groups from ~/.carryover/links.conf — one group per line, workspace names
+    space/comma separated, '#' starts a comment. Same shape as groups.conf."""
+    out = []
+    try:
+        for ln in open(LINKS):
+            ln = ln.split("#", 1)[0].strip()
+            m = set(ln.replace(",", " ").split())
+            if m:
+                out.append(m)
+    except Exception:
+        pass
+    return out
+
+
+def _write_links(groups):
+    os.makedirs(os.path.dirname(LINKS), exist_ok=True)
+    with open(LINKS, "w") as f:
+        for g in groups:
+            if len(g) >= 2:                       # a connection needs at least two workspaces
+                f.write(" ".join(sorted(g)) + "\n")
+
+
+def peers(who=None):
+    """Workspaces connected to `who` (default whoami), i.e. its co-say recipients."""
+    who = (who or whoami()).lstrip("@").lower()
+    out = set()
+    for g in _read_links():
+        if who in g:
+            out |= g
+    out.discard(who)
+    return out
+
+
+def connect(ws, me=None):
+    """Connect this workspace (whoami) with `ws`, two-way and persistent. Merges any groups the
+    two already belong to. Returns me's resulting peer set."""
+    me = (me or whoami()).lstrip("@").lower()
+    ws = ws.lstrip("@").lower()
+    if not ws or ws == me:
+        return peers(me)
+    merged, rest = {me, ws}, []
+    for g in _read_links():
+        if g & merged:
+            merged |= g
+        else:
+            rest.append(g)
+    rest.append(merged)
+    _write_links(rest)
+    return merged - {me}
+
+
+def disconnect(ws, me=None):
+    """Remove `ws` from this workspace's connection group (drops the line if fewer than two remain)."""
+    me = (me or whoami()).lstrip("@").lower()
+    ws = ws.lstrip("@").lower()
+    out = []
+    for g in _read_links():
+        if me in g and ws in g:
+            g = g - {ws}
+        if len(g) >= 2:
+            out.append(g)
+    _write_links(out)
+    return peers(me)
 
 
 def import_(path):

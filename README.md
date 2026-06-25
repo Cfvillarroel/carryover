@@ -195,15 +195,19 @@ Status bar: **🐴** ponytail active, **🧠** headroom active.
 
 ## Messages between workspaces
 
-Running several Conductor workspaces on the same project at once? They share one memory store, so
-they can leave notes for each other — "merged X, rebase", "build's broken, don't pull". A
-workspace addresses another by its **Conductor workspace name** (e.g. `paris`, `surabaya`) — the
-name shown in the app, taken from `CONDUCTOR_WORKSPACE_NAME` and stable regardless of the git
-branch.
+Running several Conductor workspaces at once? They share one memory store, so they can leave notes
+for each other — "merged X, rebase", "build's broken, don't pull". A workspace addresses another by
+its **Conductor workspace name** (e.g. `paris`, `surabaya`) — the name shown in the app, taken from
+`CONDUCTOR_WORKSPACE_NAME` and stable regardless of the git branch. This works **across different
+projects/repos** too: mailboxes are global per workspace name, not scoped to a repo (so a frontend
+workspace can message a backend one).
 
 - `co-send <workspace> <message>` — leave a note for another workspace. Use `all` to broadcast.
 - `co-inbox` — read the notes addressed to **this** workspace (plus broadcasts). Reading consumes
   them so they don't repeat; `co-inbox --peek` reads without consuming.
+- `co-connect <workspace>` — link two workspaces two-way (persistent). Then `co-say <message>`
+  sends to **all** connected workspaces without retyping names; `co-connections` lists them and
+  `co-disconnect <ws>` unlinks. Handy for a frontend/backend pair across repos.
 - **Automatic delivery:** pending notes are injected into a workspace's context both when its
   session **starts** and **before each of your turns** (a `UserPromptSubmit` hook), under a
   "📬 messages for this workspace" heading, then marked delivered. So while you're working in a
@@ -239,6 +243,20 @@ automatically:
 - **from paris:** endpoint /v2 is merged, rebase
 - **from paris:** build broken on master, don't pull
 ```
+
+### Connecting workspaces (e.g. frontend ↔ backend, even across repos)
+
+Link two workspaces once, then talk without retyping long names:
+
+```sh
+# in the frontend workspace
+co-connect proyectate-back-main      # 🔗 two-way, persistent link
+co-say "the /users contract changed: email is now required"   # → every connected workspace
+co-connections                       # 🔗 connected to: proyectate-back-main
+```
+
+The backend workspace receives it like any other note (at session start, on its next turn, or via
+`co-inbox`). `co-disconnect proyectate-back-main` unlinks.
 
 (New commands ship via `carryover update`; until then a workspace can run them straight from its
 checkout: `python3 claude/hooks/co-mem send <ws> "<msg>"`.)
