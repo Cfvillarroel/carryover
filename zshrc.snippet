@@ -33,6 +33,10 @@ co-send() {     # co-send <workspace|all> <message>: leave a note for another Co
   local PY="$HOME/.headroom/venv/bin/python"; [ -x "$PY" ] || PY="$(command -v python3)"  # venv python writes via headroom; system python3 → built-in store
   "$PY" "$HOME/.carryover/co-mem" send "$@"
 }
+co-handover() { # co-handover <workspace> <message>: hand a task OVER — notifies + tells it to execute on arrival
+  local PY="$HOME/.headroom/venv/bin/python"; [ -x "$PY" ] || PY="$(command -v python3)"
+  "$PY" "$HOME/.carryover/co-mem" handover "$@"
+}
 co-inbox() {    # co-inbox [workspace] [--peek]: read messages for this workspace (consumes them unless --peek)
   local PY="$HOME/.headroom/venv/bin/python"; [ -x "$PY" ] || PY="$(command -v python3)"
   "$PY" "$HOME/.carryover/co-mem" inbox "$@" | python3 -c '
@@ -128,6 +132,7 @@ carryover() {
       for c in "${cmds[@]}"; do printf '  %s%-18s%s %s\n' "$O" "${c%%:*}" "$R" "${c#*:}"; done
       local -a conductor=(
         "co-send <ws> <msg>:message a workspace by name · enviar a un workspace por su nombre"
+        "co-handover <ws> <msg>:hand a task OVER — notify + execute on arrival · traspasar y ejecutar (notifica)"
         "co-inbox [--peek]:read messages for this workspace · leer mensajes de este workspace"
         "co-connect <ws>:link this workspace with another (two-way) · conectar con otro workspace"
         "co-say <msg>:message ALL connected workspaces · enviar a los workspaces conectados"
@@ -146,6 +151,7 @@ carryover() {
         "/connect <ws>:link two workspaces (two-way) · conectar dos workspaces"
         "/say <msg>:message all connected workspaces · enviar a los conectados"
         "/handoff <ws>:hand off a task with an LLM summary · traspasar tarea con resumen"
+        "/handover <ws>:hand a task OVER — notify + execute now · traspasar y ejecutar (notifica)"
       )
       printf '\n  %s💬 In Claude — type in the chat, NOT this terminal · escríbelos en el chat%s\n' "$Y" "$R"
       for c in "${inclaude[@]}"; do printf '  %s%-18s%s %s\n' "$O" "${c%%:*}" "$R" "${c#*:}"; done

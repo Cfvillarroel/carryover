@@ -1,0 +1,18 @@
+description = "Hand a task OVER to another workspace — it gets a notification and is told to execute on arrival"
+prompt = """Hand the current task/context OVER to another Conductor workspace. Like `/handoff`, but an
+*active* transfer: the target is pinged (macOS notification) and, when its inbox is delivered, the
+agent is told to **execute the task now**, not just read it. `{{args}}` = the target workspace name
+(optionally followed by a note about what to hand over).
+
+Write a concise handover summary **yourself**, from this session's context — include what was done,
+the current state, what you're asking them to do, and key files, decisions or gotchas they'll need to
+continue. Then send it via Bash (resolve the headroom venv python so the write works):
+
+```bash
+PY="$HOME/.headroom/venv/bin/python"; [ -x "$PY" ] || PY="$(command -v python3)"
+"$PY" "$HOME/.carryover/co-mem" handover <workspace> "<your handover summary>"
+```
+
+Substitute `<workspace>` and your summary, escaping it safely. Confirm what you handed over and to
+whom. Address the target by its **city codename** or **project name** (stable); a renamed title may
+not resolve. If no workspace was given, ask which one."""
