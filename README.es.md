@@ -202,19 +202,23 @@ Barra de estado: **🐴** ponytail activo, **🧠** headroom activo.
 ## Mensajes entre workspaces
 
 ¿Corres varios workspaces de Conductor a la vez? Comparten un único store de memoria, así que
-pueden dejarse notas entre sí — "mergeé X, rebasea", "build roto, no hagas pull". Un workspace se
-dirige a otro por su **nombre de workspace en Conductor** (p.ej. `paris`, `surabaya`) — el nombre
-que ves en la app, tomado de `CONDUCTOR_WORKSPACE_NAME` y estable sin importar el branch de git.
-Esto funciona **entre proyectos/repos distintos** también: los buzones son globales por nombre de
-workspace, no están atados a un repo (así un workspace de frontend puede avisar a uno de backend).
+pueden dejarse notas entre sí — "mergeé X, rebasea", "build roto, no hagas pull". Cada workspace
+responde a **dos nombres**, ambos visibles en Conductor: su **nombre de workspace** (la etiqueta
+por workspace, p.ej. `paris`, `sarajevo`) y su **nombre de proyecto** (el encabezado bajo el que
+vive, p.ej. `proyectate-back`). Manda al **nombre de proyecto** para llegar a cualquier workspace
+de ese proyecto — ideal para un par frontend↔backend entre repos — o al **nombre de workspace**
+para uno específico. Ambos son globales, no atados a un repo. (La identidad sale de
+`CONDUCTOR_WORKSPACE_NAME` + la carpeta del proyecto, estable sin importar el branch de git.)
 
-- `co-send <workspace> <mensaje>` — dejar una nota a otro workspace. Usa `all` para broadcast.
+- `co-send <nombre> <mensaje>` — dejar una nota a otro workspace o proyecto entero. `all` hace broadcast.
 - `co-inbox` — leer las notas dirigidas a **este** workspace (más los broadcasts). Leerlas las
   consume para que no se repitan; `co-inbox --peek` lee sin consumir.
-- `co-connect <workspace>` — vincular dos workspaces en ambos sentidos (persistente). Luego
-  `co-say <mensaje>` envía a **todos** los workspaces conectados sin reteclear nombres;
-  `co-connections` los lista y `co-disconnect <ws>` desconecta. Útil para un par frontend/backend
-  entre repos.
+- `co-connect <nombre>` — vincular dos workspaces/proyectos en ambos sentidos (persistente). Luego
+  `co-say <mensaje>` envía a **todos** los conectados sin reteclear nombres; `co-connections` los
+  lista y `co-disconnect <nombre>` desconecta. Útil para un par frontend/backend entre repos.
+- `/handoff <nombre>` (en el chat) — traspasar una tarea: el agente escribe un resumen (qué se hizo,
+  qué falta, archivos clave) y lo manda a ese workspace/proyecto. También se sugiere solo cuando un
+  turno menciona un workspace conectado.
 - **Entrega automática:** las notas pendientes se inyectan en el contexto del workspace cuando su
   sesión **arranca**, **antes de cada uno de tus turnos** (`UserPromptSubmit`), y **cuando el agente
   termina un turno** (`Stop`) — así una nota que llega mientras trabaja se recoge en cuanto queda

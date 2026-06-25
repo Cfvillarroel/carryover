@@ -145,6 +145,7 @@ carryover() {
         "/send <ws> <msg>:message another workspace · enviar a otro workspace"
         "/connect <ws>:link two workspaces (two-way) · conectar dos workspaces"
         "/say <msg>:message all connected workspaces · enviar a los conectados"
+        "/handoff <ws>:hand off a task with an LLM summary · traspasar tarea con resumen"
       )
       printf '\n  %s💬 In Claude — type in the chat, NOT this terminal · escríbelos en el chat%s\n' "$Y" "$R"
       for c in "${inclaude[@]}"; do printf '  %s%-18s%s %s\n' "$O" "${c%%:*}" "$R" "${c#*:}"; done

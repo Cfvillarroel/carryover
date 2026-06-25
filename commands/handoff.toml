@@ -1,0 +1,16 @@
+description = "Hand off a task to another workspace with an LLM-written summary"
+prompt = """Hand off the current task/context to another Conductor workspace. `{{args}}` = the target
+workspace name (optionally followed by a note about what to hand off).
+
+Write a concise handoff summary **yourself**, from this session's context — include what was done,
+the current state, what remains / what you're asking them to do, and key files, decisions or
+gotchas they'll need to continue. Then send it via Bash (resolve the headroom venv python so the
+write works):
+
+```bash
+PY="$HOME/.headroom/venv/bin/python"; [ -x "$PY" ] || PY="$(command -v python3)"
+"$PY" "$HOME/.carryover/co-mem" send <workspace> "<your handoff summary>"
+```
+
+Substitute `<workspace>` and your summary, escaping it safely. Confirm what you handed off and to
+whom. If no workspace was given, ask which one."""

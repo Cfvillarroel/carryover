@@ -295,13 +295,32 @@ def whoami():
     return os.environ.get("CONDUCTOR_WORKSPACE_NAME") or Path.cwd().name
 
 
+def project():
+    """Conductor project name = the folder ABOVE the workspace (~/conductor/workspaces/<project>/
+    <workspace>) — what you see as the heading in the app. Lets you address a whole project
+    (e.g. 'proyectate-back') instead of the internal workspace/city name. '' outside Conductor."""
+    p = os.environ.get("CONDUCTOR_WORKSPACE_PATH") or os.getcwd()
+    return os.path.basename(os.path.dirname(p)).lower() if "/conductor/workspaces/" in p else ""
+
+
+def identities(who=None):
+    """Every name this workspace answers to as a recipient: its workspace name AND its project
+    name. So `co-send <project>` reaches any workspace of that project and `co-send <workspace>`
+    a specific one."""
+    ids = {(who or whoami()).lstrip("@").lower()}
+    p = project()
+    if p:
+        ids.add(p)
+    return ids
+
+
 async def send_msg(to, body, frm=None, importance=0.0):
     """Drop a message into mailbox '@<to>' as a normal memory. `to` is a workspace name or
     'all' (broadcast). Reuses save() (headroom/builtin dual). Returns the new memory id.
     Lives in mailbox '@<to>' so normal recall (scoped to real repos) never sees it."""
     to = to.lstrip("@").lower()
     md = {"kind": "msg", "repo": "@" + to, "to": to,
-          "from": (frm or whoami()), "source": "co-send"}
+          "from": (frm or project() or whoami()), "source": "co-send"}
     uid = os.environ.get("HEADROOM_USER_ID") or Path.home().name
     return await save(content=body, uid=uid, importance=float(importance), metadata=md)
 
@@ -310,8 +329,7 @@ def inbox(who=None, consume=False):
     """Pending (non-consumed) messages for workspace `who` (default whoami) + '@all'
     broadcasts, newest first. 'Consumed' == superseded, so recall's superseded-drop filters
     delivered ones for free. consume=True marks them delivered in the same call."""
-    who = (who or whoami()).lstrip("@").lower()
-    boxes = {"@" + who, "@all"}
+    boxes = {"@" + i for i in identities(who)} | {"@all"}
     msgs = [m for m in recall(query=None, repos=boxes, k=200)
             if (m.get("metadata") or {}).get("kind") == "msg"]
     msgs.sort(key=lambda m: m.get("created_at") or "", reverse=True)
@@ -346,14 +364,14 @@ def _write_links(groups):
 
 
 def peers(who=None):
-    """Workspaces connected to `who` (default whoami), i.e. its co-say recipients."""
-    who = (who or whoami()).lstrip("@").lower()
+    """Workspaces connected to this one (its co-say recipients). Matches on either the workspace
+    name or the project name, so a connection works whichever you used to make it."""
+    ids = identities(who)
     out = set()
     for g in _read_links():
-        if who in g:
+        if g & ids:
             out |= g
-    out.discard(who)
-    return out
+    return out - ids
 
 
 def connect(ws, me=None):
@@ -375,12 +393,13 @@ def connect(ws, me=None):
 
 
 def disconnect(ws, me=None):
-    """Remove `ws` from this workspace's connection group (drops the line if fewer than two remain)."""
-    me = (me or whoami()).lstrip("@").lower()
+    """Remove `ws` from this workspace's connection group (drops the line if fewer than two remain).
+    Matches this workspace by either its workspace name or project name."""
+    ids = identities(me)
     ws = ws.lstrip("@").lower()
     out = []
     for g in _read_links():
-        if me in g and ws in g:
+        if (g & ids) and ws in g:
             g = g - {ws}
         if len(g) >= 2:
             out.append(g)

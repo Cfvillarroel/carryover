@@ -196,18 +196,23 @@ Status bar: **🐴** ponytail active, **🧠** headroom active.
 ## Messages between workspaces
 
 Running several Conductor workspaces at once? They share one memory store, so they can leave notes
-for each other — "merged X, rebase", "build's broken, don't pull". A workspace addresses another by
-its **Conductor workspace name** (e.g. `paris`, `surabaya`) — the name shown in the app, taken from
-`CONDUCTOR_WORKSPACE_NAME` and stable regardless of the git branch. This works **across different
-projects/repos** too: mailboxes are global per workspace name, not scoped to a repo (so a frontend
-workspace can message a backend one).
+for each other — "merged X, rebase", "build's broken, don't pull". Each workspace answers to **two
+names**, both visible in Conductor: its **workspace name** (the per-workspace label, e.g. `paris`,
+`sarajevo`) and its **project name** (the heading the workspace lives under, e.g. `proyectate-back`).
+Send to a **project name** to reach any workspace of that project — ideal for a frontend↔backend
+pair across repos — or to a **workspace name** for one specific workspace. Both are global, not
+scoped to a repo. (Identity comes from `CONDUCTOR_WORKSPACE_NAME` + the project folder, so it's
+stable regardless of the git branch.)
 
-- `co-send <workspace> <message>` — leave a note for another workspace. Use `all` to broadcast.
+- `co-send <name> <message>` — leave a note for another workspace or whole project. `all` broadcasts.
 - `co-inbox` — read the notes addressed to **this** workspace (plus broadcasts). Reading consumes
   them so they don't repeat; `co-inbox --peek` reads without consuming.
-- `co-connect <workspace>` — link two workspaces two-way (persistent). Then `co-say <message>`
-  sends to **all** connected workspaces without retyping names; `co-connections` lists them and
-  `co-disconnect <ws>` unlinks. Handy for a frontend/backend pair across repos.
+- `co-connect <name>` — link two workspaces/projects two-way (persistent). Then `co-say <message>`
+  sends to **all** connected ones without retyping names; `co-connections` lists them and
+  `co-disconnect <name>` unlinks. Handy for a frontend/backend pair across repos.
+- `/handoff <name>` (in chat) — hand off a task: the agent writes a summary (what's done, what's
+  left, key files) and sends it to that workspace/project. It's also nudged automatically when a
+  turn references a connected workspace.
 - **Automatic delivery:** pending notes are injected into a workspace's context when its session
   **starts**, **before each of your turns** (`UserPromptSubmit`), and **when the agent finishes a
   turn** (`Stop`) — so a note that arrives while it's working gets picked up the moment it's free,
