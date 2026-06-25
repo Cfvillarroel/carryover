@@ -17,7 +17,7 @@ except Exception: print("")' 2>/dev/null)
 [ -n "$cwd" ] || cwd="$PWD"
 repo=$(git -C "$cwd" remote get-url origin 2>/dev/null | sed -E 's#/+$##; s#.*/##; s#\.git$##')
 
-ctx=$(HOOKDIR="$HOOKDIR" REPO="$repo" WS="$(basename "$cwd")" python3 - <<'PY' 2>/dev/null
+ctx=$(HOOKDIR="$HOOKDIR" REPO="$repo" WS="${CONDUCTOR_WORKSPACE_NAME:-$(basename "$cwd")}" python3 - <<'PY' 2>/dev/null
 import datetime, json, os, sys
 sys.path.insert(0, os.environ["HOOKDIR"])
 import co_store

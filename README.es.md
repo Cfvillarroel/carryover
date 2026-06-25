@@ -203,7 +203,9 @@ Barra de estado: **🐴** ponytail activo, **🧠** headroom activo.
 
 ¿Corres varios workspaces de Conductor sobre el mismo proyecto a la vez? Comparten un único store
 de memoria, así que pueden dejarse notas entre sí — "mergeé X, rebasea", "build roto, no hagas
-pull". La identidad de un workspace es el nombre de su carpeta (p.ej. `paris`, `surabaya`).
+pull". Un workspace se dirige a otro por su **nombre de workspace en Conductor** (p.ej. `paris`,
+`surabaya`) — el nombre que ves en la app, tomado de `CONDUCTOR_WORKSPACE_NAME` y estable sin
+importar el branch de git.
 
 - `co-send <workspace> <mensaje>` — dejar una nota a otro workspace. Usa `all` para broadcast.
 - `co-inbox` — leer las notas dirigidas a **este** workspace (más los broadcasts). Leerlas las
@@ -219,19 +221,32 @@ sesión vuelve a arrancar, o cuando ejecutas `co-inbox`. Los mensajes viven en s
 **Pruébalo** — dos workspaces del mismo proyecto, `paris` y `surabaya`:
 
 ```sh
-# en el workspace 'paris'
-co-send surabaya "el endpoint /v2 ya está mergeado, rebasea"
-co-send all       "build roto en master, no hagáis pull"
+# en el workspace 'paris' — dejar notas a otro workspace
+$ co-send surabaya "el endpoint /v2 ya está mergeado, rebasea"
+$ co-send all       "build roto en master, no hagáis pull"
 
-# en el workspace 'surabaya'
-co-inbox --peek   # muestra ambas (la nota directa + el broadcast), sin consumir
-co-inbox          # las lee y las consume
-co-inbox          # vacío — entregadas una sola vez
+# en el workspace 'surabaya' — leerlas
+$ co-inbox --peek                 # mirar sin consumir
+📬 from paris: el endpoint /v2 ya está mergeado, rebasea
+📬 from paris: build roto en master, no hagáis pull
+$ co-inbox                        # leer + consumir (no se repiten)
+📬 from paris: el endpoint /v2 ya está mergeado, rebasea
+📬 from paris: build roto en master, no hagáis pull
+$ co-inbox
+(no messages)
 ```
 
-O simplemente arranca una sesión nueva en `surabaya`: las notas aparecen en el contexto inyectado
-automáticamente. (Los comandos nuevos llegan con `carryover update`; hasta entonces un workspace
-puede usarlos desde su checkout: `python3 claude/hooks/co-mem send <ws> "<msg>"`.)
+O simplemente **arranca una sesión nueva** en `surabaya` — las notas pendientes aparecen en su
+contexto inicial automáticamente:
+
+```
+## 📬 messages for this workspace
+- **from paris:** el endpoint /v2 ya está mergeado, rebasea
+- **from paris:** build roto en master, no hagáis pull
+```
+
+(Los comandos nuevos llegan con `carryover update`; hasta entonces un workspace puede usarlos desde
+su checkout: `python3 claude/hooks/co-mem send <ws> "<msg>"`.)
 
 ## Paneles / dashboards (local)
 

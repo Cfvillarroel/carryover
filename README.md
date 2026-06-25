@@ -197,7 +197,9 @@ Status bar: **🐴** ponytail active, **🧠** headroom active.
 
 Running several Conductor workspaces on the same project at once? They share one memory store, so
 they can leave notes for each other — "merged X, rebase", "build's broken, don't pull". A
-workspace's identity is its folder name (e.g. `paris`, `surabaya`).
+workspace addresses another by its **Conductor workspace name** (e.g. `paris`, `surabaya`) — the
+name shown in the app, taken from `CONDUCTOR_WORKSPACE_NAME` and stable regardless of the git
+branch.
 
 - `co-send <workspace> <message>` — leave a note for another workspace. Use `all` to broadcast.
 - `co-inbox` — read the notes addressed to **this** workspace (plus broadcasts). Reading consumes
@@ -213,19 +215,32 @@ never appear in normal recall or pollute a repo's knowledge.
 **Try it** — two workspaces of the same project, `paris` and `surabaya`:
 
 ```sh
-# in workspace 'paris'
-co-send surabaya "endpoint /v2 is merged, rebase"
-co-send all       "build broken on master, don't pull"
+# in workspace 'paris' — leave notes for another workspace
+$ co-send surabaya "endpoint /v2 is merged, rebase"
+$ co-send all       "build broken on master, don't pull"
 
-# in workspace 'surabaya'
-co-inbox --peek   # shows both (the direct note + the broadcast), without consuming
-co-inbox          # reads and consumes them
-co-inbox          # empty — delivered once
+# in workspace 'surabaya' — read them
+$ co-inbox --peek                 # look without consuming
+📬 from paris: endpoint /v2 is merged, rebase
+📬 from paris: build broken on master, don't pull
+$ co-inbox                        # read + consume (they won't repeat)
+📬 from paris: endpoint /v2 is merged, rebase
+📬 from paris: build broken on master, don't pull
+$ co-inbox
+(no messages)
 ```
 
-Or just start a fresh session in `surabaya`: the notes show up in the injected context
-automatically. (New commands ship via `carryover update`; until then a workspace can run them
-straight from its checkout: `python3 claude/hooks/co-mem send <ws> "<msg>"`.)
+Or just **start a new session** in `surabaya` — the pending notes appear in its opening context
+automatically:
+
+```
+## 📬 messages for this workspace
+- **from paris:** endpoint /v2 is merged, rebase
+- **from paris:** build broken on master, don't pull
+```
+
+(New commands ship via `carryover update`; until then a workspace can run them straight from its
+checkout: `python3 claude/hooks/co-mem send <ws> "<msg>"`.)
 
 ## Dashboards (local)
 

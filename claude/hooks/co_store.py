@@ -288,9 +288,10 @@ def supersede(old_id, new_id):
 
 
 def whoami():
-    """Workspace identity = basename of cwd (the Conductor worktree folder, e.g. 'paris').
-    ponytail: fragile if two worktrees share a basename; fine for this single-user case."""
-    return Path.cwd().name
+    """Workspace identity. Prefer Conductor's own CONDUCTOR_WORKSPACE_NAME — it's the name shown
+    in the app, stable regardless of the git branch and resolvable from any subdir. Fall back to
+    the cwd basename for plain terminals outside Conductor."""
+    return os.environ.get("CONDUCTOR_WORKSPACE_NAME") or Path.cwd().name
 
 
 async def send_msg(to, body, frm=None, importance=0.0):
