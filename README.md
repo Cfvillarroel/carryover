@@ -204,9 +204,10 @@ branch.
 - `co-send <workspace> <message>` — leave a note for another workspace. Use `all` to broadcast.
 - `co-inbox` — read the notes addressed to **this** workspace (plus broadcasts). Reading consumes
   them so they don't repeat; `co-inbox --peek` reads without consuming.
-- **Automatic delivery:** pending notes are injected into a workspace's context when its session
-  **starts** (same hook as auto-recall), under a "📬 messages for this workspace" heading, then
-  marked delivered.
+- **Automatic delivery:** pending notes are injected into a workspace's context both when its
+  session **starts** and **before each of your turns** (a `UserPromptSubmit` hook), under a
+  "📬 messages for this workspace" heading, then marked delivered. So while you're working in a
+  workspace, notes left by others show up on your next turn — no restart needed.
 
 Pull-only by design: a *running* agent isn't interrupted — notes arrive when its session next
 starts, or when you run `co-inbox`. Messages live in their own `@<workspace>` mailbox, so they

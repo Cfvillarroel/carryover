@@ -210,9 +210,11 @@ importar el branch de git.
 - `co-send <workspace> <mensaje>` — dejar una nota a otro workspace. Usa `all` para broadcast.
 - `co-inbox` — leer las notas dirigidas a **este** workspace (más los broadcasts). Leerlas las
   consume para que no se repitan; `co-inbox --peek` lee sin consumir.
-- **Entrega automática:** las notas pendientes se inyectan en el contexto del workspace cuando su
-  sesión **arranca** (mismo hook que el auto-recall), bajo un encabezado "📬 messages for this
-  workspace", y luego se marcan como entregadas.
+- **Entrega automática:** las notas pendientes se inyectan en el contexto del workspace tanto
+  cuando su sesión **arranca** como **antes de cada uno de tus turnos** (un hook `UserPromptSubmit`),
+  bajo un encabezado "📬 messages for this workspace", y luego se marcan como entregadas. Así,
+  mientras trabajas en un workspace, las notas que otros te dejan aparecen en tu siguiente turno,
+  sin reiniciar.
 
 Solo pull, por diseño: a un agente *en marcha* no se le interrumpe — las notas llegan cuando su
 sesión vuelve a arrancar, o cuando ejecutas `co-inbox`. Los mensajes viven en su propio buzón

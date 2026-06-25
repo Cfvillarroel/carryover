@@ -1,0 +1,1 @@
+../claude/hooks/co-inbox-hook.sh
