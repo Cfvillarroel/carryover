@@ -169,7 +169,7 @@ HTML = r"""<!doctype html>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script type="module">
   import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-  window.__mermaid = mermaid; mermaid.initialize({ startOnLoad:false, theme:'neutral' });
+  window.__mermaid = mermaid; mermaid.initialize({ startOnLoad:false, theme:'neutral', suppressErrorRendering:true });
 </script>
 <style>
   :root{--bg:#f6efe4;--panel:#fffaf2;--ink:#3a2f25;--muted:#8a7a68;--line:#e6dac8;
@@ -455,7 +455,11 @@ async function renderGraph(){
   const rels=[]; DATA.memories.forEach(m=>(mdOf(m).relationships||[]).forEach(r=>{ if(r&&r.source&&r.destination)rels.push(r); }));
   if(!rels.length){ $('#graphbody').innerHTML='<div class="empty">No relationships yet.</div>'; return; }
   const id=s=>'n_'+(s+'').replace(/[^a-zA-Z0-9]/g,'_'); const lines=['graph LR'];
-  rels.forEach(r=>lines.push(`  ${id(r.source)}["${(r.source+'').replace(/"/g,"'")}"] -->|${(r.relationship||'').replace(/"/g,"'")}| ${id(r.destination)}["${(r.destination+'').replace(/"/g,"'")}"]`));
+  rels.forEach(r=>{
+    const lbl=(r.relationship||'').replace(/"/g,"'").trim();
+    const edge=lbl?` -->|"${lbl}"| `:' --> ';
+    lines.push(`  ${id(r.source)}["${(r.source+'').replace(/"/g,"'")}"]${edge}${id(r.destination)}["${(r.destination+'').replace(/"/g,"'")}"]`);
+  });
   try{ const {svg}=await window.__mermaid.render('kg'+Date.now(),lines.join('\n')); $('#graphbody').innerHTML=svg; }catch(e){ $('#graphbody').innerHTML='<div class="empty">Could not render graph.</div>'; }
 }
 
