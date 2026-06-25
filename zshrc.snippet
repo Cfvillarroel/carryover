@@ -29,6 +29,20 @@ alias co-forget="bash $HOME/.carryover/forget.sh"          # forget memories by 
 alias hr-recall="bash $HOME/.carryover/recall.sh"          # compat alias of co-recall
 alias hr-forget="bash $HOME/.carryover/forget.sh"          # compat alias of co-forget
 alias co-supersede="python3 $HOME/.carryover/co-mem supersede"  # co-supersede <old-id> <new-id>: hide the stale one from recall
+co-send() {     # co-send <workspace|all> <message>: leave a note for another Conductor workspace
+  local PY="$HOME/.headroom/venv/bin/python"; [ -x "$PY" ] || PY="$(command -v python3)"  # venv python writes via headroom; system python3 → built-in store
+  "$PY" "$HOME/.carryover/co-mem" send "$@"
+}
+co-inbox() {    # co-inbox [workspace] [--peek]: read messages for this workspace (consumes them unless --peek)
+  local PY="$HOME/.headroom/venv/bin/python"; [ -x "$PY" ] || PY="$(command -v python3)"
+  "$PY" "$HOME/.carryover/co-mem" inbox "$@" | python3 -c '
+import json,sys
+ms=json.load(sys.stdin)
+if not ms: print("(no messages)")
+for m in ms:
+    md=m.get("metadata") or {}
+    print(f"\U0001F4EC from {md.get(\"from\",\"?\")}: {(m.get(\"content\") or \"\").strip()}")'
+}
 co-backup() {   # snapshot all memories to a timestamped JSON (carry them to another machine)
   local dir="$HOME/.carryover/backups"; mkdir -p "$dir"
   local f="$dir/memory-$(date +%Y%m%d-%H%M%S).json"
@@ -85,6 +99,8 @@ carryover() {
         "co-dash:open the local dashboard · abrir el panel local"
         "co-recall <q>:recall knowledge by keyword · recordar conocimiento por keyword"
         "co-forget <q>:delete memories by keyword (confirm) · borrar memorias por keyword"
+        "co-send <ws> <msg>:message another workspace · avisar a otro workspace"
+        "co-inbox:read messages for this workspace · leer mensajes de este workspace"
         "hr-prune:prune old memories, e.g. --older-than 30d · purgar memorias viejas"
         "hr-*:headroom CLI (proxy + memory) · CLI de headroom (proxy + memoria)"
       )

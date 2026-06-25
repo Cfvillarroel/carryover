@@ -167,6 +167,8 @@ You still need the headroom proxy for memory/compression:
 | `co-recall [--all] <query>` | recall knowledge **by meaning** (semantic with headroom, keyword otherwise) — this repo's group; `--all` for every repo (alias: `hr-recall`) |
 | `co-forget <query>` | delete memories by keyword, with confirm (alias: `hr-forget`) |
 | `co-supersede <old> <new>` | mark an old memory as replaced by a newer one so recall skips it |
+| `co-send <ws> <msg>` | leave a note for another Conductor workspace (`all` = broadcast) |
+| `co-inbox [--peek]` | read notes addressed to this workspace (reading consumes them; `--peek` doesn't) |
 | `co-wiki-enable` | enable the auto-wiki in the current repo, generates the first one (alias: `wiki-enable`) |
 | `co-wiki-gen` | update the current repo's wiki on demand, incrementally (alias: `wiki-gen`) |
 | `co-wiki-prune` | drop dead entries from the wiki registry (alias: `wiki-prune`) |
@@ -190,6 +192,40 @@ which memories actually get reused (the ♻ badge).
 
 Inside Claude (any workspace): `/headroom` (proxy + memory + savings), `/carryover` (routing on/off/status), `/recall [--all] <query>`, `/wiki-enable`.
 Status bar: **🐴** ponytail active, **🧠** headroom active.
+
+## Messages between workspaces
+
+Running several Conductor workspaces on the same project at once? They share one memory store, so
+they can leave notes for each other — "merged X, rebase", "build's broken, don't pull". A
+workspace's identity is its folder name (e.g. `paris`, `surabaya`).
+
+- `co-send <workspace> <message>` — leave a note for another workspace. Use `all` to broadcast.
+- `co-inbox` — read the notes addressed to **this** workspace (plus broadcasts). Reading consumes
+  them so they don't repeat; `co-inbox --peek` reads without consuming.
+- **Automatic delivery:** pending notes are injected into a workspace's context when its session
+  **starts** (same hook as auto-recall), under a "📬 messages for this workspace" heading, then
+  marked delivered.
+
+Pull-only by design: a *running* agent isn't interrupted — notes arrive when its session next
+starts, or when you run `co-inbox`. Messages live in their own `@<workspace>` mailbox, so they
+never appear in normal recall or pollute a repo's knowledge.
+
+**Try it** — two workspaces of the same project, `paris` and `surabaya`:
+
+```sh
+# in workspace 'paris'
+co-send surabaya "endpoint /v2 is merged, rebase"
+co-send all       "build broken on master, don't pull"
+
+# in workspace 'surabaya'
+co-inbox --peek   # shows both (the direct note + the broadcast), without consuming
+co-inbox          # reads and consumes them
+co-inbox          # empty — delivered once
+```
+
+Or just start a fresh session in `surabaya`: the notes show up in the injected context
+automatically. (New commands ship via `carryover update`; until then a workspace can run them
+straight from its checkout: `python3 claude/hooks/co-mem send <ws> "<msg>"`.)
 
 ## Dashboards (local)
 

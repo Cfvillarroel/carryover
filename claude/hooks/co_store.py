@@ -287,6 +287,39 @@ def supersede(old_id, new_id):
         return False
 
 
+def whoami():
+    """Workspace identity = basename of cwd (the Conductor worktree folder, e.g. 'paris').
+    ponytail: fragile if two worktrees share a basename; fine for this single-user case."""
+    return Path.cwd().name
+
+
+async def send_msg(to, body, frm=None, importance=0.0):
+    """Drop a message into mailbox '@<to>' as a normal memory. `to` is a workspace name or
+    'all' (broadcast). Reuses save() (headroom/builtin dual). Returns the new memory id.
+    Lives in mailbox '@<to>' so normal recall (scoped to real repos) never sees it."""
+    to = to.lstrip("@").lower()
+    md = {"kind": "msg", "repo": "@" + to, "to": to,
+          "from": (frm or whoami()), "source": "co-send"}
+    uid = os.environ.get("HEADROOM_USER_ID") or Path.home().name
+    return await save(content=body, uid=uid, importance=float(importance), metadata=md)
+
+
+def inbox(who=None, consume=False):
+    """Pending (non-consumed) messages for workspace `who` (default whoami) + '@all'
+    broadcasts, newest first. 'Consumed' == superseded, so recall's superseded-drop filters
+    delivered ones for free. consume=True marks them delivered in the same call."""
+    who = (who or whoami()).lstrip("@").lower()
+    boxes = {"@" + who, "@all"}
+    msgs = [m for m in recall(query=None, repos=boxes, k=200)
+            if (m.get("metadata") or {}).get("kind") == "msg"]
+    msgs.sort(key=lambda m: m.get("created_at") or "", reverse=True)
+    if consume:
+        for m in msgs:
+            if m.get("id"):
+                supersede(m["id"], m["id"])  # self-supersede == 'consumed', no successor needed
+    return msgs
+
+
 def import_(path):
     """Import memories from a JSON export (cross-machine portability). headroom → its CLI;
     builtin → insert rows we don't already have (dedup by id). Returns imported count (or -1)."""

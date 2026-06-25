@@ -17,7 +17,7 @@ except Exception: print("")' 2>/dev/null)
 [ -n "$cwd" ] || cwd="$PWD"
 repo=$(git -C "$cwd" remote get-url origin 2>/dev/null | sed -E 's#/+$##; s#.*/##; s#\.git$##')
 
-ctx=$(HOOKDIR="$HOOKDIR" REPO="$repo" python3 - <<'PY' 2>/dev/null
+ctx=$(HOOKDIR="$HOOKDIR" REPO="$repo" WS="$(basename "$cwd")" python3 - <<'PY' 2>/dev/null
 import datetime, json, os, sys
 sys.path.insert(0, os.environ["HOOKDIR"])
 import co_store
@@ -31,17 +31,31 @@ for m in this + gen:
     if i and i not in seen:
         seen.add(i)
         picked.append(m)
-if not picked:
-    sys.exit(0)
 def md(m): return m.get("metadata") or {}
-lines = ["# carryover — what you already know" + (f" about {repo}" if repo else "")]
-for m in picked:
-    c = " ".join((m.get("content") or "").split())
-    if len(c) > 180:
-        c = c[:180].rstrip() + "…"
-    if c:
-        tag = "" if md(m).get("repo", "general") == repo else " (general)"
-        lines.append(f"- {c}{tag}")
+ws = os.environ.get("WS", "")
+msgs = co_store.inbox(who=ws, consume=True) if ws else []  # deliver-once inbox for this workspace
+if not picked and not msgs:
+    sys.exit(0)
+lines = []
+if picked:
+    lines.append("# carryover — what you already know" + (f" about {repo}" if repo else ""))
+    for m in picked:
+        c = " ".join((m.get("content") or "").split())
+        if len(c) > 180:
+            c = c[:180].rstrip() + "…"
+        if c:
+            tag = "" if md(m).get("repo", "general") == repo else " (general)"
+            lines.append(f"- {c}{tag}")
+if msgs:
+    if lines:
+        lines.append("")
+    lines.append("## 📬 messages for this workspace")
+    for m in msgs:
+        b = " ".join((m.get("content") or "").split())
+        if len(b) > 240:
+            b = b[:240].rstrip() + "…"
+        lines.append(f"- **from {md(m).get('from','?')}:** {b}")
+    co_store.log_activity("inbox", repo=repo or "general", n=len(msgs))
 out = "\n".join(lines)
 try:  # instrument: record what context we carried, for the dashboard
     log = os.path.expanduser("~/.carryover/activity.jsonl")
