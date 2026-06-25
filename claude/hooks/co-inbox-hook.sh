@@ -28,7 +28,10 @@ for m in msgs:
     b = " ".join((m.get("content") or "").split())
     if len(b) > 240:
         b = b[:240].rstrip() + "…"
-    lines.append(f"- **from {md.get('from','?')}:** {b}")
+    tag = " ⚡HANDOVER" if md.get("handover") else ""
+    lines.append(f"- **from {md.get('from','?')}:**{tag} {b}")
+if any((m.get("metadata") or {}).get("handover") for m in msgs):
+    lines.append("\n**A ⚡HANDOVER is a task to execute now**, not just a note — act on it this turn.")
 co_store.log_activity("inbox", n=len(msgs))
 print("\n".join(lines))
 PY

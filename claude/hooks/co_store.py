@@ -303,26 +303,55 @@ def project():
     return os.path.basename(os.path.dirname(p)).lower() if "/conductor/workspaces/" in p else ""
 
 
+def codename():
+    """Stable workspace address = the worktree FOLDER name (e.g. 'jerusalem'). Conductor rewrites
+    CONDUCTOR_WORKSPACE_NAME to the branch/task title after the first interaction, but never renames
+    the folder — so this is the durable name to address a workspace by, surviving renames."""
+    p = os.environ.get("CONDUCTOR_WORKSPACE_PATH") or os.getcwd()
+    return os.path.basename(p).lower()
+
+
 def identities(who=None):
-    """Every name this workspace answers to as a recipient: its workspace name AND its project
-    name. So `co-send <project>` reaches any workspace of that project and `co-send <workspace>`
-    a specific one."""
+    """Every name this workspace answers to as a recipient: its workspace name, its stable codename,
+    AND its project name. So `co-send <project>` reaches any workspace of that project and
+    `co-send <workspace>` (city codename) a specific one even after Conductor renames it."""
     ids = {(who or whoami()).lstrip("@").lower()}
+    if who is None:                       # for THIS workspace we also answer to our stable codename
+        ids.add(codename())
     p = project()
     if p:
         ids.add(p)
     return ids
 
 
-async def send_msg(to, body, frm=None, importance=0.0):
+async def send_msg(to, body, frm=None, importance=0.0, handover=False):
     """Drop a message into mailbox '@<to>' as a normal memory. `to` is a workspace name or
     'all' (broadcast). Reuses save() (headroom/builtin dual). Returns the new memory id.
-    Lives in mailbox '@<to>' so normal recall (scoped to real repos) never sees it."""
+    Lives in mailbox '@<to>' so normal recall (scoped to real repos) never sees it.
+    handover=True marks it as a task to execute on arrival (see /handover)."""
     to = to.lstrip("@").lower()
     md = {"kind": "msg", "repo": "@" + to, "to": to,
           "from": (frm or project() or whoami()), "source": "co-send"}
+    if handover:
+        md["handover"] = True
     uid = os.environ.get("HEADROOM_USER_ID") or Path.home().name
     return await save(content=body, uid=uid, importance=float(importance), metadata=md)
+
+
+def notify(to, body):
+    """Best-effort macOS desktop ping so a handover to an IDLE workspace gets noticed (Conductor has
+    no API to wake a sleeping workspace). No-op off macOS / if osascript is missing."""
+    title = "📬 handover → " + to
+    text = " ".join((body or "").split())[:120]
+    # AppleScript string literal: escape \ and " only, keep UTF-8 literal (json.dumps would emit
+    # \uXXXX escapes that osascript rejects as unknown tokens).
+    esc = lambda s: '"' + s.replace("\\", "\\\\").replace('"', '\\"') + '"'
+    try:
+        subprocess.run(["osascript", "-e",
+                        "display notification %s with title %s" % (esc(text), esc(title))],
+                       timeout=5, check=False)
+    except Exception:
+        pass
 
 
 def inbox(who=None, consume=False):
@@ -377,7 +406,7 @@ def peers(who=None):
 def connect(ws, me=None):
     """Connect this workspace (whoami) with `ws`, two-way and persistent. Merges any groups the
     two already belong to. Returns me's resulting peer set."""
-    me = (me or whoami()).lstrip("@").lower()
+    me = (me or codename()).lstrip("@").lower()
     ws = ws.lstrip("@").lower()
     if not ws or ws == me:
         return peers(me)

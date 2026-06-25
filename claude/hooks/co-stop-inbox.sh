@@ -33,8 +33,12 @@ if msgs:
         b = " ".join((m.get("content") or "").split())
         if len(b) > 400:
             b = b[:400].rstrip() + "…"
-        lines.append(f"- from {md.get('from','?')}: {b}")
-    lines.append("Surface these to the user and act on them if they need action (you may reply with co-send/co-say).")
+        tag = " ⚡HANDOVER" if md.get("handover") else ""
+        lines.append(f"- from {md.get('from','?')}:{tag} {b}")
+    if any((m.get("metadata") or {}).get("handover") for m in msgs):
+        lines.append("A ⚡HANDOVER is a task to execute NOW (not just surface to the user). Do it this turn.")
+    else:
+        lines.append("Surface these to the user and act on them if they need action (you may reply with co-send/co-say).")
     co_store.log_activity("inbox", n=len(msgs))
 
 # (2) handoff nudge: did this turn mention a CONNECTED workspace?

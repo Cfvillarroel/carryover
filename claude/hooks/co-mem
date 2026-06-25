@@ -56,6 +56,11 @@ elif cmd == "backend":
 elif cmd == "send" and len(a) > 2:                    # co-mem send <to> <message...>
     import asyncio
     print(asyncio.run(co_store.send_msg(a[1], " ".join(a[2:]))))
+elif cmd == "handover" and len(a) > 2:                # co-mem handover <to> <message...>
+    import asyncio
+    mid = asyncio.run(co_store.send_msg(a[1], " ".join(a[2:]), handover=True))
+    co_store.notify(a[1], " ".join(a[2:]))
+    print(mid)
 elif cmd == "inbox":                                  # co-mem inbox [who] [--peek]
     peek = "--peek" in a[1:]
     who = next((x for x in a[1:] if not x.startswith("-")), None)
