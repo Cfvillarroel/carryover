@@ -141,6 +141,10 @@ carryover() {
         "/recall <q>:recall knowledge by keyword · recordar conocimiento por keyword"
         "/wiki-enable:enable the auto-wiki here · activar la auto-wiki aquí"
         "/headroom:headroom status + memory · estado y memoria de headroom"
+        "/inbox:read messages for this workspace · leer mensajes de este workspace"
+        "/send <ws> <msg>:message another workspace · enviar a otro workspace"
+        "/connect <ws>:link two workspaces (two-way) · conectar dos workspaces"
+        "/say <msg>:message all connected workspaces · enviar a los conectados"
       )
       printf '\n  %s💬 In Claude — type in the chat, NOT this terminal · escríbelos en el chat%s\n' "$Y" "$R"
       for c in "${inclaude[@]}"; do printf '  %s%-18s%s %s\n' "$O" "${c%%:*}" "$R" "${c#*:}"; done
