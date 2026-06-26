@@ -15,6 +15,27 @@ dirs = [os.path.expanduser("~/.carryover/playbooks")]
 pr = os.environ.get("PLUGIN_ROOT")
 if pr:
     dirs.append(os.path.join(pr, "playbooks"))
+# optional `mode:` in YAML frontmatter → a behavioral directive prepended to the playbook. A hook can
+# only inject context, not flip the harness, so "plan" is an instruction, not real plan-mode.
+MODES = {
+    "plan": "▶ MODE: PLAN — do NOT edit files or run mutating commands this turn; investigate and produce a plan/spec only.",
+    "interrogate": "▶ MODE: INTERROGATE — ask ONE question at a time (offer a recommended answer), resolve each decision branch before the next, and do not implement yet.",
+}
+def parse_pb(text):
+    mode, body = "", text.strip()
+    if body.startswith("---"):
+        lines = body.split("\n")
+        for i in range(1, len(lines)):
+            if lines[i].strip() == "---":           # candidate closing fence
+                found = False
+                for ln in lines[1:i]:
+                    k, sep, v = ln.partition(":")
+                    if sep and k.strip().lower() == "mode":
+                        mode, found = v.strip().lower(), True
+                if found:                           # only a real frontmatter block (has mode:) is stripped;
+                    body = "\n".join(lines[i + 1:]).strip()  # a body that merely opens with '---' is kept intact
+                break
+    return mode, body
 # macro = !name at a word boundary; name is letters/digits/_/- (no dots or slashes → no path escape)
 names = []
 for m in re.finditer(r'(?<![\w/!])!([a-zA-Z][\w-]*)', prompt):
@@ -27,11 +48,13 @@ for n in names:
         p = os.path.join(d, n + ".md")
         if os.path.isfile(p):
             try:
-                body = open(p, encoding="utf-8").read().strip()
+                mode, body = parse_pb(open(p, encoding="utf-8").read())
             except Exception:
                 break
-            out.append(f"## ▶ Playbook: !{n}\n"
-                       f"The user invoked the `!{n}` playbook. Follow this procedure for this task:\n\n{body}")
+            hdr = f"## ▶ Playbook: !{n}\n"
+            if mode in MODES:
+                hdr += MODES[mode] + "\n"
+            out.append(f"{hdr}The user invoked the `!{n}` playbook. Follow this procedure for this task:\n\n{body}")
             break
 if not out:
     sys.exit(0)

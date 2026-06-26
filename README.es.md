@@ -303,6 +303,8 @@ contiene `!grill`, un hook `UserPromptSubmit` inyecta ese archivo y el agente si
 - **Listar:** `/playbooks` (en el chat) o `co-playbooks` (shell).
 - **Gestionar:** la pestaña **📓 Playbooks** del dashboard (`co-dash`) — crear, editar, borrar — o soltá
   un `.md` en `~/.carryover/playbooks/`. Las ediciones del dashboard sobreviven a `carryover update`.
+- **Modo (opcional):** una línea `mode:` en el frontmatter del playbook — `plan` (investigar, no
+  implementar) o `interrogate` (una pregunta a la vez) — antepone esa directiva al correr el macro.
 
 Viene con `grill` (un playbook de interrogación de planes). Los playbooks se encadenan — `!grill`
 puede derivar a `!feature`, `!bugfix`, … cuando los agregues.

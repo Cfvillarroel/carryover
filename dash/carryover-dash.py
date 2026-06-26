@@ -112,30 +112,63 @@ def load_wikis():
     return [entry for _, entry in sorted(by_repo.values(), key=lambda kv: -kv[0])]
 
 
-PB_NAME = re.compile(r"^[a-zA-Z][\w-]*$")  # safe playbook name: no dots/slashes → no path escape
+PB_NAME = re.compile(r"^[a-zA-Z][\w-]*$")  # safe playbook name AND mode token: no dots/slashes/newlines
+
+
+def _split_frontmatter(text):
+    """(mode, body): read optional `mode:` from a leading --- frontmatter block. Only a block that
+    actually contains a `mode:` key is treated as frontmatter, so a body that merely opens with '---'
+    (a Markdown thematic break) is preserved intact rather than silently truncated."""
+    mode, body = "", (text or "").strip()
+    if body.startswith("---"):
+        lines = body.split("\n")
+        for i in range(1, len(lines)):
+            if lines[i].strip() == "---":
+                found = False
+                for ln in lines[1:i]:
+                    k, sep, v = ln.partition(":")
+                    if sep and k.strip().lower() == "mode":
+                        mode, found = v.strip().lower(), True
+                if found:
+                    body = "\n".join(lines[i + 1:]).strip()
+                break
+    return mode, body
 
 
 def load_playbooks():
-    """Each .md in ~/.carryover/playbooks is a `!name` macro the agent follows. Returns name+content."""
+    """Each .md in ~/.carryover/playbooks is a `!name` macro. content = body without frontmatter.
+    shipped=True (a symlink) means delete only hides it until the next `carryover update`."""
     out = []
     if PLAYBOOKS.is_dir():
         for p in sorted(PLAYBOOKS.glob("*.md")):
             try:
-                out.append({"name": p.stem, "content": p.read_text(encoding="utf-8")})
+                mode, body = _split_frontmatter(p.read_text(encoding="utf-8"))
+                out.append({"name": p.stem, "content": body, "mode": mode, "shipped": p.is_symlink()})
             except Exception:
                 pass
     return out
 
 
-def save_playbook(name, content):
+def save_playbook(name, content, mode="", old=""):
     name = (name or "").strip().lower()
     if not PB_NAME.match(name):
         return False
+    mode = (mode or "").strip().lower()
+    if mode and not PB_NAME.match(mode):   # mode is a single safe token → can't inject a newline/fence
+        mode = ""
+    body = (content or "").strip()
+    text = f"---\nmode: {mode}\n---\n\n{body}\n" if mode else body + "\n"
     PLAYBOOKS.mkdir(parents=True, exist_ok=True)
     p = PLAYBOOKS / (name + ".md")
     if p.is_symlink():            # break the shipped symlink so the user's edit survives `carryover update`
         p.unlink()
-    p.write_text(content or "", encoding="utf-8")
+    p.write_text(text, encoding="utf-8")
+    old = (old or "").strip().lower()      # rename: remove the previous file so it isn't left orphaned
+    if old and old != name and PB_NAME.match(old):
+        try:
+            (PLAYBOOKS / (old + ".md")).unlink()
+        except FileNotFoundError:
+            pass
     return True
 
 
@@ -186,7 +219,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if self.path == "/api/edit":
             return self._json({"ok": edit_memory(data.get("id"), data.get("content"), data.get("importance"))})
         if self.path == "/api/playbook/save":
-            return self._json({"ok": save_playbook(data.get("name"), data.get("content"))})
+            return self._json({"ok": save_playbook(data.get("name"), data.get("content"), data.get("mode"), data.get("oldName"))})
         if self.path == "/api/playbook/delete":
             return self._json({"ok": delete_playbook(data.get("name"))})
         if self.path == "/api/delete":
@@ -292,7 +325,9 @@ HTML = r"""<!doctype html>
   .wikibody table{border-collapse:collapse}.wikibody td,.wikibody th{border:1px solid var(--line);padding:6px 10px}
   .wikinav .pbadd{display:block;width:100%;margin:0 0 10px;padding:7px 10px;border:1px dashed var(--accent2);border-radius:8px;background:none;color:var(--accent2);font-weight:700;cursor:pointer}
   .pbedit{display:flex;flex-direction:column;gap:10px;max-width:820px}
+  .pbrow{display:flex;gap:8px} .pbrow .pbname{flex:1}
   .pbname{padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);font:600 14px ui-monospace,monospace}
+  .pbmode{padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);font:13px ui-monospace,monospace}
   .pbbody{min-height:420px;padding:12px 14px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);font:13px/1.5 ui-monospace,monospace;resize:vertical}
   .pbactions{display:flex;gap:8px;align-items:center}
   .pbbtn{padding:7px 16px;border:1px solid var(--line);border-radius:8px;background:var(--chip);color:var(--ink);font-weight:600;cursor:pointer}
@@ -337,7 +372,14 @@ HTML = r"""<!doctype html>
       <div class="wikinav" id="pbnav"></div>
       <div class="wikibody">
         <div class="pbedit">
-          <input id="pbname" class="pbname" placeholder="playbook-name (letters, digits, -)" autocomplete="off">
+          <div class="pbrow">
+            <input id="pbname" class="pbname" placeholder="playbook-name (letters, digits, -)" autocomplete="off">
+            <select id="pbmode" class="pbmode" title="behavioral mode injected with this playbook">
+              <option value="">mode: default</option>
+              <option value="plan">mode: plan (don't implement)</option>
+              <option value="interrogate">mode: interrogate (one Q at a time)</option>
+            </select>
+          </div>
           <textarea id="pbbody" class="pbbody" placeholder="# Title&#10;&#10;The procedure the agent follows when you type !name in any prompt…"></textarea>
           <div class="pbactions">
             <button class="pbbtn save" onclick="savePlaybook()">Save</button>
@@ -564,21 +606,27 @@ function selectPlaybook(name){
   const p=(DATA.playbooks||[]).find(x=>x.name===name); if(!p)return;
   PB_SEL=name;
   $$('#pbnav a').forEach(a=>a.classList.toggle('active',a.dataset.pb===name));
-  $('#pbname').value=p.name; $('#pbbody').value=p.content||''; $('#pbhint').textContent='';
+  const sel=$('#pbmode');                       // show a custom/unknown mode so Save won't silently drop it
+  if(p.mode && !Array.from(sel.options).some(o=>o.value===p.mode)) sel.add(new Option('mode: '+p.mode+' (custom)', p.mode));
+  $('#pbname').value=p.name; $('#pbbody').value=p.content||''; sel.value=p.mode||''; $('#pbhint').textContent='';
 }
-function newPlaybook(){ PB_SEL=null; $$('#pbnav a').forEach(a=>a.classList.remove('active')); $('#pbname').value=''; $('#pbbody').value=''; $('#pbhint').textContent='new — pick a name'; $('#pbname').focus(); }
+function newPlaybook(){ PB_SEL=null; $$('#pbnav a').forEach(a=>a.classList.remove('active')); $('#pbname').value=''; $('#pbbody').value=''; $('#pbmode').value=''; $('#pbhint').textContent='new — pick a name'; $('#pbname').focus(); }
 async function savePlaybook(){
-  const name=$('#pbname').value.trim().toLowerCase(), body=$('#pbbody').value;
+  const name=$('#pbname').value.trim().toLowerCase(), body=$('#pbbody').value, mode=$('#pbmode').value, oldName=PB_SEL;
   if(!/^[a-z][\w-]*$/.test(name)){ $('#pbhint').textContent='invalid name — letters/digits/-, start with a letter'; return; }
-  const r=await post('/api/playbook/save',{name,content:body});
+  const r=await post('/api/playbook/save',{name,content:body,mode,oldName});
   if(!r||!r.ok){ $('#pbhint').textContent='save failed'; return; }
-  const list=DATA.playbooks||(DATA.playbooks=[]), e=list.find(x=>x.name===name);
-  if(e) e.content=body; else { list.push({name,content:body}); list.sort((a,b)=>a.name<b.name?-1:1); }
-  PB_SEL=name; renderPlaybooks(); $('#pbhint').textContent='saved ✓';
+  let list=DATA.playbooks||(DATA.playbooks=[]);
+  if(oldName && oldName!==name) list=DATA.playbooks=list.filter(x=>x.name!==oldName);   // rename: drop the old entry
+  const e=list.find(x=>x.name===name);
+  if(e){ e.content=body; e.mode=mode; } else { list.push({name,content:body,mode}); list.sort((a,b)=>a.name<b.name?-1:1); }
+  PB_SEL=name; renderPlaybooks(); $('#pbhint').textContent=oldName&&oldName!==name?'renamed ✓':'saved ✓';
 }
 async function deletePlaybook(){
   const name=$('#pbname').value.trim().toLowerCase(); if(!name)return;
-  if(!confirm('Delete playbook !'+name+'?'))return;
+  const pb=(DATA.playbooks||[]).find(x=>x.name===name);
+  const warn=pb&&pb.shipped?'\n\n(This is a bundled playbook — it returns on the next `carryover update`.)':'';
+  if(!confirm('Delete playbook !'+name+'?'+warn))return;
   const r=await post('/api/playbook/delete',{name});
   if(!r||!r.ok){ $('#pbhint').textContent='delete failed'; return; }
   DATA.playbooks=(DATA.playbooks||[]).filter(x=>x.name!==name); newPlaybook(); renderPlaybooks();

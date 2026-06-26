@@ -293,6 +293,8 @@ playbook is just a markdown file in `~/.carryover/playbooks/`; when your prompt 
 - **List:** `/playbooks` (in chat) or `co-playbooks` (shell).
 - **Manage:** the **📓 Playbooks** tab in the dashboard (`co-dash`) — create, edit, delete — or drop a
   `.md` into `~/.carryover/playbooks/`. Dashboard edits survive `carryover update`.
+- **Mode (optional):** a `mode:` line in the playbook's frontmatter — `plan` (investigate, don't
+  implement) or `interrogate` (one question at a time) — prepends that directive when the macro runs.
 
 Ships with `grill` (a plan-interrogation playbook). Playbooks can chain — `!grill` can hand off to
 `!feature`, `!bugfix`, … once you add them.

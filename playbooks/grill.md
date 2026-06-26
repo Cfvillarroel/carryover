@@ -1,3 +1,6 @@
+---
+mode: interrogate
+---
 # Grill Me — Plan Interrogation
 
 Interrogate the developer's plan before implementation begins. Surface hidden assumptions, unresolved decision branches, and missing requirements.
