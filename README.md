@@ -196,13 +196,14 @@ Status bar: **🐴** ponytail active, **🧠** headroom active.
 ## Messages between workspaces
 
 Running several Conductor workspaces at once? They share one memory store, so they can leave notes
-for each other — "merged X, rebase", "build's broken, don't pull". Each workspace answers to **two
-names**, both visible in Conductor: its **workspace name** (the per-workspace label, e.g. `paris`,
-`sarajevo`) and its **project name** (the heading the workspace lives under, e.g. `proyectate-back`).
-Send to a **project name** to reach any workspace of that project — ideal for a frontend↔backend
-pair across repos — or to a **workspace name** for one specific workspace. Both are global, not
-scoped to a repo. (Identity comes from `CONDUCTOR_WORKSPACE_NAME` + the project folder, so it's
-stable regardless of the git branch.)
+for each other — "merged X, rebase", "build's broken, don't pull". Each workspace answers to several
+names: its **codename** (the worktree folder, e.g. `paris`, `sarajevo`) — the **stable, durable
+address**; its **workspace name** (the label Conductor shows, which it rewrites to the branch/task
+name once you first interact with it); and its **project name** (the heading it lives under, e.g.
+`proyectate-back`). Send to a **project name** to reach any workspace of that project — ideal for a
+frontend↔backend pair across repos — or to a **codename** for one specific workspace. All are global,
+not scoped to a repo. Address by **codename or project name** (both stable across renames); a
+title Conductor already renamed may no longer resolve.
 
 - `co-send <name> <message>` — leave a note for another workspace or whole project. `all` broadcasts.
 - `co-inbox` — read the notes addressed to **this** workspace (plus broadcasts). Reading consumes
@@ -213,6 +214,10 @@ stable regardless of the git branch.)
 - `/handoff <name>` (in chat) — hand off a task: the agent writes a summary (what's done, what's
   left, key files) and sends it to that workspace/project. It's also nudged automatically when a
   turn references a connected workspace.
+- `/handover <name>` (in chat; shell `co-handover`) — like `/handoff`, but an **active transfer**:
+  the target also gets a desktop notification and, when its inbox is delivered, its agent is told to
+  **execute the task now**, not just read it. Conductor can't wake an idle workspace, so the
+  notification is your cue to open it; the task then runs on its first turn.
 - **Automatic delivery:** pending notes are injected into a workspace's context when its session
   **starts**, **before each of your turns** (`UserPromptSubmit`), and **when the agent finishes a
   turn** (`Stop`) — so a note that arrives while it's working gets picked up the moment it's free,
@@ -223,6 +228,12 @@ stable regardless of the git branch.)
 Pull-only by design: a *running* agent isn't interrupted — notes arrive when its session next
 starts, or when you run `co-inbox`. Messages live in their own `@<workspace>` mailbox, so they
 never appear in normal recall or pollute a repo's knowledge.
+
+**Every workspace gets this automatically.** The commands, the delivery hooks and the shared mailbox
+are installed once at the user level (by `install.sh`, or by the Claude plugin), so any new Conductor
+workspace — including a fresh worktree — can send and receive with no per-workspace setup; its
+address is derived from Conductor's environment. The one exception is `co-connect`/`co-say`: a new
+workspace has no links until you connect it once (directed `co-send`/`/handoff`/`/handover` need none).
 
 **Try it** — two workspaces of the same project, `paris` and `surabaya`:
 

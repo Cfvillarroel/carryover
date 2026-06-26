@@ -203,12 +203,14 @@ Barra de estado: **🐴** ponytail activo, **🧠** headroom activo.
 
 ¿Corres varios workspaces de Conductor a la vez? Comparten un único store de memoria, así que
 pueden dejarse notas entre sí — "mergeé X, rebasea", "build roto, no hagas pull". Cada workspace
-responde a **dos nombres**, ambos visibles en Conductor: su **nombre de workspace** (la etiqueta
-por workspace, p.ej. `paris`, `sarajevo`) y su **nombre de proyecto** (el encabezado bajo el que
-vive, p.ej. `proyectate-back`). Manda al **nombre de proyecto** para llegar a cualquier workspace
-de ese proyecto — ideal para un par frontend↔backend entre repos — o al **nombre de workspace**
-para uno específico. Ambos son globales, no atados a un repo. (La identidad sale de
-`CONDUCTOR_WORKSPACE_NAME` + la carpeta del proyecto, estable sin importar el branch de git.)
+responde a varios nombres: su **codename** (la carpeta del worktree, p.ej. `paris`, `sarajevo`) —
+la **dirección estable y duradera**; su **nombre de workspace** (la etiqueta que muestra Conductor,
+que reescribe al nombre del branch/tarea cuando interactúas con él la primera vez); y su **nombre de
+proyecto** (el encabezado bajo el que vive, p.ej. `proyectate-back`). Manda al **nombre de proyecto**
+para llegar a cualquier workspace de ese proyecto — ideal para un par frontend↔backend entre repos —
+o al **codename** para uno específico. Todos son globales, no atados a un repo. Direcciona por
+**codename o nombre de proyecto** (ambos estables ante renombrados); un título que Conductor ya
+renombró puede no resolver.
 
 - `co-send <nombre> <mensaje>` — dejar una nota a otro workspace o proyecto entero. `all` hace broadcast.
 - `co-inbox` — leer las notas dirigidas a **este** workspace (más los broadcasts). Leerlas las
@@ -219,6 +221,11 @@ para uno específico. Ambos son globales, no atados a un repo. (La identidad sal
 - `/handoff <nombre>` (en el chat) — traspasar una tarea: el agente escribe un resumen (qué se hizo,
   qué falta, archivos clave) y lo manda a ese workspace/proyecto. También se sugiere solo cuando un
   turno menciona un workspace conectado.
+- `/handover <nombre>` (en el chat; en shell `co-handover`) — como `/handoff`, pero una **transferencia
+  activa**: el destino además recibe una notificación de escritorio y, cuando se le entrega el inbox,
+  se le dice al agente que **ejecute la tarea ahora**, no que solo la lea. Conductor no puede despertar
+  un workspace inactivo, así que la notificación es tu señal para abrirlo; ahí la tarea corre en su
+  primer turno.
 - **Entrega automática:** las notas pendientes se inyectan en el contexto del workspace cuando su
   sesión **arranca**, **antes de cada uno de tus turnos** (`UserPromptSubmit`), y **cuando el agente
   termina un turno** (`Stop`) — así una nota que llega mientras trabaja se recoge en cuanto queda
@@ -230,6 +237,13 @@ para uno específico. Ambos son globales, no atados a un repo. (La identidad sal
 Solo pull, por diseño: a un agente *en marcha* no se le interrumpe — las notas llegan cuando su
 sesión vuelve a arrancar, o cuando ejecutas `co-inbox`. Los mensajes viven en su propio buzón
 `@<workspace>`, así que nunca aparecen en el recall normal ni ensucian el conocimiento de un repo.
+
+**Cada workspace lo tiene automáticamente.** Los comandos, los hooks de entrega y el buzón compartido
+se instalan una vez a nivel de usuario (con `install.sh`, o con el plugin de Claude), así que cualquier
+workspace nuevo de Conductor — incluido un worktree recién creado — puede enviar y recibir sin
+configuración por workspace; su dirección sale del entorno de Conductor. La única excepción es
+`co-connect`/`co-say`: un workspace nuevo no tiene enlaces hasta que lo conectas una vez (los dirigidos
+`co-send`/`/handoff`/`/handover` no necesitan ninguno).
 
 **Pruébalo** — dos workspaces del mismo proyecto, `paris` y `surabaya`:
 

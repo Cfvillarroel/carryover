@@ -79,6 +79,8 @@ ln -sf "$SETUP_DIR/claude/hooks/mem-save.sh" "$HOME/.claude/hooks/mem-save.sh"
 ln -sf "$SETUP_DIR/claude/hooks/carryover-toggle.sh" "$HOME/.claude/hooks/carryover-toggle.sh"
 ln -sf "$SETUP_DIR/claude/hooks/carryover-recall.sh" "$HOME/.claude/hooks/carryover-recall.sh"
 ln -sf "$SETUP_DIR/claude/hooks/carryover-doctor.sh" "$HOME/.claude/hooks/carryover-doctor.sh"
+ln -sf "$SETUP_DIR/claude/hooks/co-inbox-hook.sh"    "$HOME/.claude/hooks/co-inbox-hook.sh"    # UserPromptSubmit: deliver cross-workspace messages
+ln -sf "$SETUP_DIR/claude/hooks/co-stop-inbox.sh"    "$HOME/.claude/hooks/co-stop-inbox.sh"    # Stop: deliver queued messages + handover "execute now"
 python3 - "$HOME/.claude/settings.json" "$HOME/.claude/hooks/headroom-mem-prompt.sh" <<'PY'
 import json, os, sys
 path, hook = sys.argv[1], sys.argv[2]
@@ -97,6 +99,14 @@ ss = h.setdefault("SessionStart", [])
 recall = os.path.expanduser("~/.claude/hooks/carryover-recall.sh")
 if not has(ss, "carryover-recall.sh"):
     ss.append({"matcher": "startup|resume", "hooks": [{"type": "command", "command": f"bash {recall}"}]})
+# cross-workspace message delivery (so it works standalone, without the Claude plugin)
+ups = h.setdefault("UserPromptSubmit", [])
+coin = os.path.expanduser("~/.claude/hooks/co-inbox-hook.sh")
+if not has(ups, "co-inbox-hook.sh"):
+    ups.append({"hooks": [{"type": "command", "command": f"bash {coin}"}]})
+costop = os.path.expanduser("~/.claude/hooks/co-stop-inbox.sh")
+if not has(stop, "co-stop-inbox.sh"):
+    stop.append({"hooks": [{"type": "command", "command": f"bash {costop}"}]})
 json.dump(d, open(path, "w"), indent=2, ensure_ascii=False)
 PY
 
