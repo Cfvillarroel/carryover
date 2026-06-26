@@ -58,6 +58,12 @@ ln -sf "$SETUP_DIR/claude/hooks/co-mem"          "$CO_DIR/co-mem"              #
 ln -sf "$SETUP_DIR/claude/hooks/co-mcp.py"       "$CO_DIR/co-mcp.py"           # 'co-mcp' alias target: MCP server for any client
 ln -sf "$SETUP_DIR/claude/hooks/wiki-gen.sh"     "$CO_DIR/wiki-gen.sh"         # 'wiki-gen' alias target
 ln -sf "$SETUP_DIR/zshrc.snippet"                "$CO_DIR/carryover.zsh"       # sourced by ~/.zshrc; 'carryover update' re-sources this
+mkdir -p "$CO_DIR/playbooks"                                                   # Devin-style !macro playbooks (manage via dashboard or drop a .md here)
+for p in "$SETUP_DIR"/playbooks/*.md; do
+  [ -e "$p" ] || continue
+  t="$CO_DIR/playbooks/$(basename "$p")"
+  { [ -e "$t" ] && [ ! -L "$t" ]; } || ln -sf "$p" "$t"                        # keep dashboard-edited copies; (re)link shipped ones
+done
 # migrate the old layout (carryover artifacts used to live in ~/.headroom): move data files, drop stale symlinks
 for f in .bypass wikis.list; do
   if [ -f "$HR_DIR/$f" ] && [ ! -e "$CO_DIR/$f" ]; then mv "$HR_DIR/$f" "$CO_DIR/$f"; fi
@@ -81,6 +87,7 @@ ln -sf "$SETUP_DIR/claude/hooks/carryover-recall.sh" "$HOME/.claude/hooks/carryo
 ln -sf "$SETUP_DIR/claude/hooks/carryover-doctor.sh" "$HOME/.claude/hooks/carryover-doctor.sh"
 ln -sf "$SETUP_DIR/claude/hooks/co-inbox-hook.sh"    "$HOME/.claude/hooks/co-inbox-hook.sh"    # UserPromptSubmit: deliver cross-workspace messages
 ln -sf "$SETUP_DIR/claude/hooks/co-stop-inbox.sh"    "$HOME/.claude/hooks/co-stop-inbox.sh"    # Stop: deliver queued messages + handover "execute now"
+ln -sf "$SETUP_DIR/claude/hooks/co-playbook-hook.sh" "$HOME/.claude/hooks/co-playbook-hook.sh" # UserPromptSubmit: expand !macro playbooks
 python3 - "$HOME/.claude/settings.json" "$HOME/.claude/hooks/headroom-mem-prompt.sh" <<'PY'
 import json, os, sys
 path, hook = sys.argv[1], sys.argv[2]
@@ -104,6 +111,9 @@ ups = h.setdefault("UserPromptSubmit", [])
 coin = os.path.expanduser("~/.claude/hooks/co-inbox-hook.sh")
 if not has(ups, "co-inbox-hook.sh"):
     ups.append({"hooks": [{"type": "command", "command": f"bash {coin}"}]})
+copb = os.path.expanduser("~/.claude/hooks/co-playbook-hook.sh")
+if not has(ups, "co-playbook-hook.sh"):
+    ups.append({"hooks": [{"type": "command", "command": f"bash {copb}"}]})
 costop = os.path.expanduser("~/.claude/hooks/co-stop-inbox.sh")
 if not has(stop, "co-stop-inbox.sh"):
     stop.append({"hooks": [{"type": "command", "command": f"bash {costop}"}]})

@@ -14,6 +14,7 @@ Env:
 import http.server
 import json
 import os
+import re
 import socketserver
 import subprocess
 import sys
@@ -22,6 +23,7 @@ from pathlib import Path
 
 HOME = Path.home()
 CARRYOVER = HOME / ".carryover"    # carryover's own files (memory backend, wikis.list, dash export)
+PLAYBOOKS = CARRYOVER / "playbooks"  # Devin-style !macro playbooks (one .md each)
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else int(os.environ.get("CARRYOVER_DASH_PORT", "8788"))
 
 # memory backend (co_store): installed at ~/.carryover, or repo claude/hooks when run in-tree
@@ -110,8 +112,46 @@ def load_wikis():
     return [entry for _, entry in sorted(by_repo.values(), key=lambda kv: -kv[0])]
 
 
+PB_NAME = re.compile(r"^[a-zA-Z][\w-]*$")  # safe playbook name: no dots/slashes → no path escape
+
+
+def load_playbooks():
+    """Each .md in ~/.carryover/playbooks is a `!name` macro the agent follows. Returns name+content."""
+    out = []
+    if PLAYBOOKS.is_dir():
+        for p in sorted(PLAYBOOKS.glob("*.md")):
+            try:
+                out.append({"name": p.stem, "content": p.read_text(encoding="utf-8")})
+            except Exception:
+                pass
+    return out
+
+
+def save_playbook(name, content):
+    name = (name or "").strip().lower()
+    if not PB_NAME.match(name):
+        return False
+    PLAYBOOKS.mkdir(parents=True, exist_ok=True)
+    p = PLAYBOOKS / (name + ".md")
+    if p.is_symlink():            # break the shipped symlink so the user's edit survives `carryover update`
+        p.unlink()
+    p.write_text(content or "", encoding="utf-8")
+    return True
+
+
+def delete_playbook(name):
+    name = (name or "").strip().lower()
+    if not PB_NAME.match(name):
+        return False
+    try:
+        (PLAYBOOKS / (name + ".md")).unlink()
+        return True
+    except FileNotFoundError:
+        return False
+
+
 def build_html():
-    data = json.dumps({"memories": load_memories(), "wikis": load_wikis(),
+    data = json.dumps({"memories": load_memories(), "wikis": load_wikis(), "playbooks": load_playbooks(),
                        "activity": co_store.load_activity(), "savings": co_store.load_savings()}, ensure_ascii=False)
     return HTML.replace("/*__DATA__*/", data)
 
@@ -145,6 +185,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
             data = {}
         if self.path == "/api/edit":
             return self._json({"ok": edit_memory(data.get("id"), data.get("content"), data.get("importance"))})
+        if self.path == "/api/playbook/save":
+            return self._json({"ok": save_playbook(data.get("name"), data.get("content"))})
+        if self.path == "/api/playbook/delete":
+            return self._json({"ok": delete_playbook(data.get("name"))})
         if self.path == "/api/delete":
             ids = [data["id"]] if data.get("id") else []
         elif self.path == "/api/clear":
@@ -246,6 +290,14 @@ HTML = r"""<!doctype html>
   .wikibody pre{background:#f3e8d6;padding:12px;border-radius:8px;overflow:auto}
   .wikibody code{background:#f3e8d6;padding:1px 5px;border-radius:5px}
   .wikibody table{border-collapse:collapse}.wikibody td,.wikibody th{border:1px solid var(--line);padding:6px 10px}
+  .wikinav .pbadd{display:block;width:100%;margin:0 0 10px;padding:7px 10px;border:1px dashed var(--accent2);border-radius:8px;background:none;color:var(--accent2);font-weight:700;cursor:pointer}
+  .pbedit{display:flex;flex-direction:column;gap:10px;max-width:820px}
+  .pbname{padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);font:600 14px ui-monospace,monospace}
+  .pbbody{min-height:420px;padding:12px 14px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);font:13px/1.5 ui-monospace,monospace;resize:vertical}
+  .pbactions{display:flex;gap:8px;align-items:center}
+  .pbbtn{padding:7px 16px;border:1px solid var(--line);border-radius:8px;background:var(--chip);color:var(--ink);font-weight:600;cursor:pointer}
+  .pbbtn.save{background:var(--accent);color:#fff;border-color:var(--accent)} .pbbtn.danger{color:#b3261e}
+  .pbtip{color:var(--muted);font-size:12px} .pbtip code{background:var(--chip);padding:1px 5px;border-radius:5px}
   .hide{display:none}
 </style></head>
 <body>
@@ -260,6 +312,7 @@ HTML = r"""<!doctype html>
   <div class="tab" data-tab="mem">🧠 Knowledge</div>
   <div class="tab" data-tab="graph">🕸 Graph</div>
   <div class="tab" data-tab="wiki">📄 Wikis</div>
+  <div class="tab" data-tab="playbooks">📓 Playbooks</div>
 </div>
 <main>
   <section id="overview"><div id="overviewbody"></div></section>
@@ -277,6 +330,24 @@ HTML = r"""<!doctype html>
     <div class="wikiwrap">
       <div class="wikinav" id="wikinav"></div>
       <div class="wikibody" id="wikibody"><div class="empty">Pick a page</div></div>
+    </div>
+  </section>
+  <section id="playbooks" class="hide">
+    <div class="wikiwrap">
+      <div class="wikinav" id="pbnav"></div>
+      <div class="wikibody">
+        <div class="pbedit">
+          <input id="pbname" class="pbname" placeholder="playbook-name (letters, digits, -)" autocomplete="off">
+          <textarea id="pbbody" class="pbbody" placeholder="# Title&#10;&#10;The procedure the agent follows when you type !name in any prompt…"></textarea>
+          <div class="pbactions">
+            <button class="pbbtn save" onclick="savePlaybook()">Save</button>
+            <button class="pbbtn" onclick="newPlaybook()">New</button>
+            <button class="pbbtn danger" onclick="deletePlaybook()">Delete</button>
+            <span id="pbhint" class="muted"></span>
+          </div>
+          <div class="pbtip">Type <code>!name</code> in any Claude prompt to run it. Files live in <code>~/.carryover/playbooks/</code>.</div>
+        </div>
+      </div>
     </div>
   </section>
 </main>
@@ -479,7 +550,41 @@ function showPage(wi,name,el){
   $$('#wikibody code.language-mermaid').forEach(async(c,i)=>{const pre=c.closest('pre')||c,div=document.createElement('div');try{const {svg}=await window.__mermaid.render('mm'+Date.now()+i,c.textContent);div.innerHTML=svg;pre.replaceWith(div);}catch(e){}});
 }
 
-$$('.tab').forEach(t=>t.onclick=()=>{ $$('.tab').forEach(x=>x.classList.remove('active')); t.classList.add('active'); ['overview','mem','graph','wiki'].forEach(s=>$('#'+s).classList.toggle('hide',t.dataset.tab!==s)); if(t.dataset.tab==='graph')renderGraph(); if(t.dataset.tab==='overview')renderOverview(); });
+let PB_SEL=null;
+function renderPlaybooks(){
+  const list=DATA.playbooks||[];
+  let html='<button class="pbadd" onclick="newPlaybook()">+ New playbook</button>';
+  html+=list.length? list.map(p=>`<a data-pb="${esc(p.name)}">!${esc(p.name)}</a>`).join('')
+                   : '<div class="empty">No playbooks yet.</div>';
+  $('#pbnav').innerHTML=html;
+  $$('#pbnav a').forEach(a=>a.onclick=()=>selectPlaybook(a.dataset.pb));
+  if(PB_SEL && list.some(p=>p.name===PB_SEL)) selectPlaybook(PB_SEL);
+}
+function selectPlaybook(name){
+  const p=(DATA.playbooks||[]).find(x=>x.name===name); if(!p)return;
+  PB_SEL=name;
+  $$('#pbnav a').forEach(a=>a.classList.toggle('active',a.dataset.pb===name));
+  $('#pbname').value=p.name; $('#pbbody').value=p.content||''; $('#pbhint').textContent='';
+}
+function newPlaybook(){ PB_SEL=null; $$('#pbnav a').forEach(a=>a.classList.remove('active')); $('#pbname').value=''; $('#pbbody').value=''; $('#pbhint').textContent='new — pick a name'; $('#pbname').focus(); }
+async function savePlaybook(){
+  const name=$('#pbname').value.trim().toLowerCase(), body=$('#pbbody').value;
+  if(!/^[a-z][\w-]*$/.test(name)){ $('#pbhint').textContent='invalid name — letters/digits/-, start with a letter'; return; }
+  const r=await post('/api/playbook/save',{name,content:body});
+  if(!r||!r.ok){ $('#pbhint').textContent='save failed'; return; }
+  const list=DATA.playbooks||(DATA.playbooks=[]), e=list.find(x=>x.name===name);
+  if(e) e.content=body; else { list.push({name,content:body}); list.sort((a,b)=>a.name<b.name?-1:1); }
+  PB_SEL=name; renderPlaybooks(); $('#pbhint').textContent='saved ✓';
+}
+async function deletePlaybook(){
+  const name=$('#pbname').value.trim().toLowerCase(); if(!name)return;
+  if(!confirm('Delete playbook !'+name+'?'))return;
+  const r=await post('/api/playbook/delete',{name});
+  if(!r||!r.ok){ $('#pbhint').textContent='delete failed'; return; }
+  DATA.playbooks=(DATA.playbooks||[]).filter(x=>x.name!==name); newPlaybook(); renderPlaybooks();
+}
+
+$$('.tab').forEach(t=>t.onclick=()=>{ $$('.tab').forEach(x=>x.classList.remove('active')); t.classList.add('active'); ['overview','mem','graph','wiki','playbooks'].forEach(s=>$('#'+s).classList.toggle('hide',t.dataset.tab!==s)); if(t.dataset.tab==='graph')renderGraph(); if(t.dataset.tab==='overview')renderOverview(); if(t.dataset.tab==='playbooks')renderPlaybooks(); });
 
 renderRepoBar(); renderMems(); renderWikiNav(); renderOverview();
 </script>

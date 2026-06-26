@@ -68,6 +68,14 @@ try:
     d=json.load(sys.stdin); print("\U0001F4E4 sent to:", ", ".join(d.get("to",[])))
 except Exception: pass'
 }
+co-playbooks() { # co-playbooks: list available !macro playbooks (manage them in co-dash)
+  local d="$HOME/.carryover/playbooks"
+  if ls "$d"/*.md >/dev/null 2>&1; then
+    for f in "$d"/*.md; do printf '  !%s\n' "$(basename "$f" .md)"; done
+  else
+    echo "no playbooks yet — add one in co-dash, or drop a .md in $d"
+  fi
+}
 co-backup() {   # snapshot all memories to a timestamped JSON (carry them to another machine)
   local dir="$HOME/.carryover/backups"; mkdir -p "$dir"
   local f="$dir/memory-$(date +%Y%m%d-%H%M%S).json"
@@ -141,6 +149,12 @@ carryover() {
       )
       printf '\n  %s🔗 Conductor workspaces · workspaces de Conductor%s\n' "$Y" "$R"
       for c in "${conductor[@]}"; do printf '  %s%-20s%s %s\n' "$O" "${c%%:*}" "$R" "${c#*:}"; done
+      local -a playbooks=(
+        "!<name>:run a playbook in any prompt, e.g. !grill · correr un playbook en cualquier prompt"
+        "co-playbooks · /playbooks:list available playbooks · listar los playbooks disponibles"
+      )
+      printf '\n  %s📓 Playbooks · macros !nombre (gestiónalos en co-dash)%s\n' "$Y" "$R"
+      for c in "${playbooks[@]}"; do printf '  %s%-22s%s %s\n' "$O" "${c%%:*}" "$R" "${c#*:}"; done
       local -a inclaude=(
         "/carryover:this command reference · esta referencia de comandos"
         "/recall <q>:recall knowledge by keyword · recordar conocimiento por keyword"

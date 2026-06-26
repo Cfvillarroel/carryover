@@ -279,6 +279,24 @@ The backend workspace receives it like any other note (at session start, on its 
 (New commands ship via `carryover update`; until then a workspace can run them straight from its
 checkout: `python3 claude/hooks/co-mem send <ws> "<msg>"`.)
 
+## Playbooks (`!macros`)
+
+Reusable procedures you trigger by typing `!name` in any Claude prompt — like Devin's playbooks. A
+playbook is just a markdown file in `~/.carryover/playbooks/`; when your prompt contains `!grill`, a
+`UserPromptSubmit` hook injects that file so the agent follows the procedure.
+
+```
+!grill add Google login to the checkout flow
+```
+
+- **Run:** type `!<name>` anywhere in a prompt.
+- **List:** `/playbooks` (in chat) or `co-playbooks` (shell).
+- **Manage:** the **📓 Playbooks** tab in the dashboard (`co-dash`) — create, edit, delete — or drop a
+  `.md` into `~/.carryover/playbooks/`. Dashboard edits survive `carryover update`.
+
+Ships with `grill` (a plan-interrogation playbook). Playbooks can chain — `!grill` can hand off to
+`!feature`, `!bugfix`, … once you add them.
+
 ## Dashboards (local)
 
 Two local web dashboards — nothing leaves your machine:

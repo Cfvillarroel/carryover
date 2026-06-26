@@ -19,6 +19,14 @@
             "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/co-inbox-hook.sh\""
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/co-playbook-hook.sh\""
+          }
+        ]
       }
     ],
     "PostToolUse": [

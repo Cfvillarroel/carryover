@@ -1,0 +1,21 @@
+---
+description: List the available !playbook macros and how to run them
+---
+
+Show the Devin-style playbooks the user can invoke. Run via Bash:
+
+```bash
+d="$HOME/.carryover/playbooks"
+if ls "$d"/*.md >/dev/null 2>&1; then
+  for f in "$d"/*.md; do
+    name=$(basename "$f" .md)
+    desc=$(grep -m1 '^# ' "$f" | sed 's/^# //')
+    printf '  !%-14s %s\n' "$name" "$desc"
+  done
+else
+  echo "No playbooks yet. Add one in the carryover dashboard, or drop a .md in $d"
+fi
+```
+
+Present the list clearly. Explain: type `!<name>` in any prompt to run that playbook; manage them in
+the carryover dashboard (`co-dash`) or by dropping a `.md` into `~/.carryover/playbooks/`.

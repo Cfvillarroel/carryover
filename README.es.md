@@ -289,6 +289,24 @@ El workspace de backend lo recibe como cualquier otra nota (al arrancar, en su p
 (Los comandos nuevos llegan con `carryover update`; hasta entonces un workspace puede usarlos desde
 su checkout: `python3 claude/hooks/co-mem send <ws> "<msg>"`.)
 
+## Playbooks (`!macros`)
+
+Procedimientos reusables que disparás escribiendo `!nombre` en cualquier prompt de Claude — como los
+playbooks de Devin. Un playbook es un archivo markdown en `~/.carryover/playbooks/`; cuando tu prompt
+contiene `!grill`, un hook `UserPromptSubmit` inyecta ese archivo y el agente sigue el procedimiento.
+
+```
+!grill agregar login con Google al checkout
+```
+
+- **Correr:** escribí `!<nombre>` en cualquier parte de un prompt.
+- **Listar:** `/playbooks` (en el chat) o `co-playbooks` (shell).
+- **Gestionar:** la pestaña **📓 Playbooks** del dashboard (`co-dash`) — crear, editar, borrar — o soltá
+  un `.md` en `~/.carryover/playbooks/`. Las ediciones del dashboard sobreviven a `carryover update`.
+
+Viene con `grill` (un playbook de interrogación de planes). Los playbooks se encadenan — `!grill`
+puede derivar a `!feature`, `!bugfix`, … cuando los agregues.
+
 ## Paneles / dashboards (local)
 
 Dos dashboards web locales — nada sale de tu máquina:
