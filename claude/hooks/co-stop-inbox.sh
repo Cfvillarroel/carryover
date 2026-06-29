@@ -43,9 +43,10 @@ if msgs:
 
 # (2) handoff nudge: did this turn mention a CONNECTED workspace?
 prs = co_store.peers(ws) if ws else set()
+tm = co_store.teams()
 tpath = os.environ.get("TRANSCRIPT", "")
 text = ""
-if prs and tpath:
+if (prs or tm) and tpath:
     try:
         with open(tpath) as f:
             tail = f.readlines()[-40:]               # roughly the last turn
@@ -69,6 +70,19 @@ if hit:
                  "If something here is their task, hand it off: write a short summary (what's done, "
                  "what's left, key files/decisions) and send it with co-send <ws> \"<summary>\". "
                  "If it isn't a handoff, just ignore this and finish.")
+
+# (3) team dispatch nudge: did this turn mention a TEAM name?
+thit = [t for t in tm
+        if text and re.search(r'(?<![\w-])' + re.escape(t) + r'(?![\w-])', text, re.I)]
+if thit:
+    if lines:
+        lines.append("")
+    for t in sorted(thit):
+        roster = ", ".join(f"{w}={r}" for w, r in (tm.get(t) or {}).items())
+        lines.append(f"👥 This turn referenced team '{t}' ({roster}). If you're delegating, decompose the "
+                     f"goal and dispatch per role: co-team assign {t} @<role> \"<task>\" (or co-team send "
+                     f"for a passive note). assign notifies each member to execute on arrival. "
+                     f"If it isn't a dispatch, ignore this.")
 
 if not lines:
     sys.exit(0)
