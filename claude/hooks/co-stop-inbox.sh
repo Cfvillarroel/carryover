@@ -71,9 +71,13 @@ if hit:
                  "what's left, key files/decisions) and send it with co-send <ws> \"<summary>\". "
                  "If it isn't a handoff, just ignore this and finish.")
 
-# (3) team dispatch nudge: did this turn mention a TEAM name?
-thit = [t for t in tm
-        if text and re.search(r'(?<![\w-])' + re.escape(t) + r'(?![\w-])', text, re.I)]
+# (3) team dispatch nudge: did this turn mention a TEAM name AND a delegation cue?
+# (cue required so a passing mention — e.g. explaining teams — doesn't nudge; EN + ES stems)
+DELEG = re.compile(r'(assign|dispatch|delegat|hand[ -]?(off|over)|fan[ -]?out|split|divide|distribut|'
+                   r'kick[ -]?off|per[ -]?role|asign|repart|deleg|despach|distribu|encarg|arranqu|'
+                   r'que cada|por rol)', re.I)
+thit = ([t for t in tm if re.search(r'(?<![\w-])' + re.escape(t) + r'(?![\w-])', text, re.I)]
+        if text and DELEG.search(text) else [])
 if thit:
     if lines:
         lines.append("")
