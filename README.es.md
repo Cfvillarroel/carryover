@@ -303,7 +303,8 @@ al equipo entero o a un rol.
 | `co-team send <team> [@rol] "<msg>"` | Notificar al equipo (o a un rol) — pasivo |
 | `co-team assign <team> [@rol] "<tarea>"` | **Handover** a cada miembro: notifica + "ejecutá ya" |
 
-Gestionalos visualmente en el dashboard (`co-dash` → **👥 Teams**), o manejalos en el chat con `/team`.
+Gestionalos visualmente en el dashboard (`co-dash` → **👥 Teams**) — elegí los miembros de un desplegable
+con tus workspaces de Conductor en vez de tipear codenames — o manejalos en el chat con `/team`.
 Como lead, descomponé el objetivo y `assign`-á a cada rol su parte. Mismo límite honesto que handover:
 `assign` notifica a los workspaces dormidos pero no los despierta — cada miembro toma su tarea al abrirlo.
 

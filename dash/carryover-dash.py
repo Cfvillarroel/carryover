@@ -24,6 +24,7 @@ from pathlib import Path
 HOME = Path.home()
 CARRYOVER = HOME / ".carryover"    # carryover's own files (memory backend, wikis.list, dash export)
 PLAYBOOKS = CARRYOVER / "playbooks"  # Devin-style !macro playbooks (one .md each)
+WORKSPACES = HOME / "conductor" / "workspaces"  # Conductor workspace roots: <project>/<codename>
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else int(os.environ.get("CARRYOVER_DASH_PORT", "8788"))
 
 # memory backend (co_store): installed at ~/.carryover, or repo claude/hooks when run in-tree
@@ -183,10 +184,25 @@ def delete_playbook(name):
         return False
 
 
+def list_workspaces():
+    """Conductor workspaces on this machine, for the team picker: [{name: codename, project}].
+    The folder name is the stable, addressable codename (Conductor's display title isn't on disk)."""
+    out = []
+    try:
+        for proj in sorted(WORKSPACES.iterdir()):
+            if proj.is_dir() and not proj.name.startswith("."):
+                for ws in sorted(proj.iterdir()):
+                    if ws.is_dir() and not ws.name.startswith("."):
+                        out.append({"name": ws.name, "project": proj.name})
+    except Exception:
+        pass
+    return out
+
+
 def build_html():
     data = json.dumps({"memories": load_memories(), "wikis": load_wikis(), "playbooks": load_playbooks(),
-                       "teams": co_store.teams(), "activity": co_store.load_activity(),
-                       "savings": co_store.load_savings()}, ensure_ascii=False)
+                       "teams": co_store.teams(), "workspaces": list_workspaces(),
+                       "activity": co_store.load_activity(), "savings": co_store.load_savings()}, ensure_ascii=False)
     return HTML.replace("/*__DATA__*/", data)
 
 
@@ -409,6 +425,11 @@ HTML = r"""<!doctype html>
       <div class="wikibody">
         <div class="pbedit">
           <input id="teamname" class="pbname" placeholder="team-name (e.g. checkout-revamp)" autocomplete="off">
+          <div class="pbrow">
+            <select id="wspick" class="pbmode" style="flex:1" title="pick an existing Conductor workspace"></select>
+            <input id="wsrole" class="pbname" style="flex:0 0 180px" placeholder="role (e.g. frontend)" autocomplete="off">
+            <button class="pbbtn" onclick="addMember()">+ add</button>
+          </div>
           <textarea id="teamroster" class="pbbody" placeholder="one member per line:&#10;&#10;doha: lead&#10;paris: frontend&#10;zurich: backend&#10;oslo: reviewer"></textarea>
           <div class="pbactions">
             <button class="pbbtn save" onclick="saveTeam()">Save</button>
@@ -670,7 +691,21 @@ function parseRoster(text){
     const role=((i<0?'':s.slice(i+1)).trim().toLowerCase())||'member'; if(ws) m[ws]=role; });
   return m;
 }
+function fillWsPicker(){
+  const sel=$('#wspick'); if(!sel) return;
+  const ws=DATA.workspaces||[];
+  sel.innerHTML='<option value="">— pick a workspace —</option>'+
+    ws.map(w=>`<option value="${esc(w.name)}">${esc(w.name)} · ${esc(w.project)}</option>`).join('');
+}
+function addMember(){
+  const ws=$('#wspick').value, role=$('#wsrole').value.trim().toLowerCase()||'member';
+  if(!ws){ $('#teamhint').textContent='pick a workspace from the list'; return; }
+  const ta=$('#teamroster'), cur=ta.value.replace(/\s*$/,'');
+  ta.value=(cur?cur+'\n':'')+ws+': '+role;
+  $('#wsrole').value=''; $('#wspick').value=''; $('#teamhint').textContent='';
+}
 function renderTeams(){
+  fillWsPicker();
   const t=DATA.teams||{}, keys=Object.keys(t).sort();
   let html='<button class="pbadd" onclick="newTeam()">+ New team</button>';
   html+=keys.length? keys.map(n=>`<a data-team="${esc(n)}">👥 ${esc(n)}</a>`).join('') : '<div class="empty">No teams yet.</div>';

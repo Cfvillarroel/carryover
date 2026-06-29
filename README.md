@@ -293,7 +293,8 @@ team or to a single role.
 | `co-team send <team> [@role] "<msg>"` | Notify the team (or one role) — passive |
 | `co-team assign <team> [@role] "<task>"` | **Handover** to each member: notify + "execute now" |
 
-Manage teams visually in the dashboard (`co-dash` → **👥 Teams**), or drive them in chat with `/team`.
+Manage teams visually in the dashboard (`co-dash` → **👥 Teams**) — pick members from a dropdown of
+your existing Conductor workspaces instead of typing codenames — or drive them in chat with `/team`.
 As the lead, decompose the goal and `assign` each role its own slice. Same honest limit as handover:
 `assign` notifies idle workspaces but can't wake them — each teammate picks up its task when next opened.
 
