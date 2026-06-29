@@ -11,8 +11,8 @@
  ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝    ╚═════╝   ╚═══╝  ╚══════╝╚═╝  ╚═╝
 </pre>
 
-<strong>Pack your context once — carry it across every AI tool.</strong><br/>
-<sub><em>like a carry-on for your AI's brain 💼</em></sub>
+<strong>The memory your AI takes everywhere.</strong><br/>
+<sub><em>one brain, every tool — packed in a carry-on 💼</em></sub>
 
 <sub>shared persistent memory · 60–95% fewer tokens · leaner agent · auto-wiki · save-to-memory<br/>
 Claude Code · Cursor · Windsurf · Conductor — one install · 100% local</sub>
@@ -332,16 +332,28 @@ puede derivar a `!feature`, `!bugfix`, … cuando los agregues.
 
 Dos dashboards web locales — nada sale de tu máquina:
 
-- **`co-dash`** → el dashboard propio de carryover en `http://127.0.0.1:8788` — explora tu
-  **conocimiento** (facts, entidades tipadas, tags, con búsqueda + filtros), con una
-  **insignia de reúso** (♻ N = veces recordada en contexto) en cada memoria, **agrupado por
-  el repo** del que viene (o *general*), un **grafo de relaciones** auto-generado, y tus
-  **wikis** (Markdown + mermaid). También es **gestor**: borra una memoria o limpia un repo
-  entero con un clic. Lee/escribe tu DB en vivo; Ctrl-C para parar. (Capturas en la versión inglesa.)
+- **`co-dash`** → el dashboard propio de carryover en `http://127.0.0.1:8788`. Abre en un
+  **Overview** — memorias, repos, contexto acarreado por sesión, ahorro de tokens y avisos de
+  limpieza — y luego pestañas para tu **conocimiento** (facts, entidades tipadas, tags, con
+  búsqueda + filtros; cada memoria con una **insignia de reúso** ♻ N = veces recordada,
+  **agrupado por el repo** del que viene), un **grafo de relaciones** auto-generado, tus
+  **wikis** (Markdown + mermaid) y los **playbooks** (el editor de macros `!nombre`). También
+  es **gestor**: borra una memoria o limpia un repo entero con un clic. Lee/escribe tu DB en vivo; Ctrl-C para parar.
 - **`hr-dash`** → el dashboard de **ahorro** de headroom en `http://127.0.0.1:8787/dashboard`
   — tokens ahorrados, compresión, cache.
 
-(Las wikis aparecen en `co-dash` después de correr `co-wiki-enable` en un repo y pushear a master/main.)
+(Las capturas usan datos ficticios. Las wikis aparecen en `co-dash` después de correr
+`co-wiki-enable` en un repo y pushear a master/main.)
+
+La pestaña **Overview** — toda tu memoria de un vistazo:
+
+![Overview](assets/dash-overview.png)
+
+| Conocimiento | Grafo |
+|:---:|:---:|
+| ![Conocimiento](assets/dash-knowledge.png) | ![Grafo](assets/dash-graph.png) |
+| **Wikis** | **Playbooks** |
+| ![Wikis](assets/dash-wikis.png) | ![Playbooks](assets/dash-playbooks.png) |
 
 ## Habilitar / deshabilitar el routing
 
