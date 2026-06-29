@@ -11,8 +11,8 @@
  ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝    ╚═════╝   ╚═══╝  ╚══════╝╚═╝  ╚═╝
 </pre>
 
-<strong>Pack your context once — carry it across every AI tool.</strong><br/>
-<sub><em>like a carry-on for your AI's brain 💼</em></sub>
+<strong>The memory your AI takes everywhere.</strong><br/>
+<sub><em>one brain, every tool — packed in a carry-on 💼</em></sub>
 
 <sub>shared persistent memory · 60–95% fewer tokens · leaner agent · auto-wiki · save-to-memory<br/>
 Claude Code · Cursor · Windsurf · Conductor — one install · 100% local</sub>
@@ -303,11 +303,12 @@ Ships with `grill` (a plan-interrogation playbook). Playbooks can chain — `!gr
 
 Two local web dashboards — nothing leaves your machine:
 
-- **`co-dash`** → carryover's own dashboard at `http://127.0.0.1:8788` — browse your
-  **knowledge** (facts, typed entities, tags, with search + entity/tag filters), each memory
-  showing a **reuse badge** (♻ N = times recalled into context),
-  **grouped by the repo** it came from (or *general*), an auto-built **relationship
-  graph**, and your project **wikis** (Markdown + mermaid). It's also a **manager**:
+- **`co-dash`** → carryover's own dashboard at `http://127.0.0.1:8788`. Opens on an
+  **Overview** — memories, repos, context carried per session, token savings, and cleanup
+  nudges — then tabs for your **knowledge** (facts, typed entities, tags, with search +
+  entity/tag filters; each memory shows a **reuse badge** ♻ N = times recalled, **grouped by
+  the repo** it came from), an auto-built **relationship graph**, your project **wikis**
+  (Markdown + mermaid), and **playbooks** (the `!macro` editor). It's also a **manager**:
   delete a single memory or clear a whole repo with one click. Reads/writes your DB live; Ctrl-C to stop.
 - **`hr-dash`** → headroom's **savings** dashboard at `http://127.0.0.1:8787/dashboard` —
   tokens saved, compression, cache hit rate.
@@ -315,9 +316,15 @@ Two local web dashboards — nothing leaves your machine:
 <sub>(Screenshots below use fictitious data. Wikis appear in `co-dash` after you run
 `co-wiki-enable` in a repo and push to master/main.)</sub>
 
-| Knowledge | Graph | Wikis |
-|---|---|---|
-| ![Knowledge](assets/dash-knowledge.png) | ![Graph](assets/dash-graph.png) | ![Wikis](assets/dash-wikis.png) |
+The **Overview** tab — your whole memory at a glance:
+
+![Overview](assets/dash-overview.png)
+
+| Knowledge | Graph |
+|:---:|:---:|
+| ![Knowledge](assets/dash-knowledge.png) | ![Graph](assets/dash-graph.png) |
+| **Wikis** | **Playbooks** |
+| ![Wikis](assets/dash-wikis.png) | ![Playbooks](assets/dash-playbooks.png) |
 
 ## Enable / disable routing
 
