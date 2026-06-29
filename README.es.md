@@ -11,7 +11,7 @@
 <strong>The memory your AI takes everywhere.</strong><br/>
 <sub><em>one brain, every tool — packed in a carry-on 💼</em></sub>
 
-<sub>shared persistent memory · 60–95% fewer tokens · leaner agent · auto-wiki · save-to-memory<br/>
+<sub>shared persistent memory · 60–95% fewer tokens · auto-wiki · cross-workspace messaging · playbooks · save-to-memory<br/>
 Claude Code · Cursor · Windsurf · Conductor — one install · 100% local</sub>
 
 <p>
@@ -56,6 +56,13 @@ proyectos y sesiones:
 - 📄 **Wiki automática** — un LLM escribe docs + diagramas mermaid (visión general, arquitectura,
   flujos + un catálogo de **Features**) y los actualiza de forma **incremental** (preserva las
   páginas existentes, añade solo lo que cambió) al hacer push a master/main.
+- 🤝 **Coordinación entre workspaces** (Conductor) — dejá notas, `/handoff` o `/handover` de una
+  tarea, y agrupá workspaces en **teams** con roles, todo sobre el store compartido. La entrega es
+  automática en el próximo turno de cada workspace — es *coordinación entre workspaces separados y
+  persistentes*, no un enjambre autónomo (para agentes en paralelo dentro de una sesión, usá los
+  subagentes/Workflows de Claude Code).
+- 📓 **Playbooks** — procedimientos reusables `!macro` (estilo Devin) que disparás en cualquier
+  prompt; se crean y gestionan en el dashboard. Viene con `!grill` (interrogación de planes).
 - 💾 **Pregunta de "guardar lo importante"** al final · 🩺 **`carryover doctor`** ·
   toggle de routing **on/off** · `carryover wrap <tool>` para Cursor/Codex/…
 - Barra de estado **🐴/🧠**, slash commands, aliases de terminal.

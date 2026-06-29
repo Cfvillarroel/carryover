@@ -11,7 +11,7 @@
 <strong>The memory your AI takes everywhere.</strong><br/>
 <sub><em>one brain, every tool — packed in a carry-on 💼</em></sub>
 
-<sub>shared persistent memory · 60–95% fewer tokens · leaner agent · auto-wiki · save-to-memory<br/>
+<sub>shared persistent memory · 60–95% fewer tokens · auto-wiki · cross-workspace messaging · playbooks · save-to-memory<br/>
 Claude Code · Cursor · Windsurf · Conductor — one install · 100% local</sub>
 
 <p>
@@ -55,6 +55,12 @@ A local layer that makes your context **carry over** across tools, projects and 
 - 📄 **Auto‑wiki** — an LLM writes docs + mermaid diagrams (overview, architecture, flows + a
   **Features** catalog) and updates them **incrementally** (preserves existing pages, adds only
   what changed) on push to master/main.
+- 🤝 **Cross‑workspace coordination** (Conductor) — leave notes, `/handoff` or `/handover` a task,
+  and group workspaces into role‑based **teams**, all over the shared store. Delivery is automatic on
+  a workspace's next turn — it's *coordination between separate, persistent workspaces*, not an
+  autonomous swarm (for parallel agents inside one session, use Claude Code subagents/Workflows).
+- 📓 **Playbooks** — reusable `!macro` procedures (Devin‑style) you trigger in any prompt; authored
+  and managed in the dashboard. Ships with `!grill` (plan interrogation).
 - 💾 **Save‑what‑mattered prompt** at session end · 🩺 **`carryover doctor`** health check ·
   routing **on/off** toggle · `carryover wrap <tool>` for Cursor/Codex/…
 - Status bar **🐴/🧠**, slash commands, terminal aliases.
