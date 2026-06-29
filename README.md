@@ -279,6 +279,24 @@ The backend workspace receives it like any other note (at session start, on its 
 (New commands ship via `carryover update`; until then a workspace can run them straight from its
 checkout: `python3 claude/hooks/co-mem send <ws> "<msg>"`.)
 
+## Teams
+
+A **team** is a named roster of workspaces with roles (`lead`, `frontend`, `backend`, `reviewer`, …) —
+a coordination layer on top of the messaging above. Define a team once, then dispatch to the whole
+team or to a single role.
+
+| Command | What it does |
+|---|---|
+| `co-team` · `co-team list` | Show teams and their rosters |
+| `co-team add <team> <ws> <role>` | Add/update a member (creates the team) |
+| `co-team rm <team> [<ws>]` | Remove a member, or the whole team |
+| `co-team send <team> [@role] "<msg>"` | Notify the team (or one role) — passive |
+| `co-team assign <team> [@role] "<task>"` | **Handover** to each member: notify + "execute now" |
+
+Manage teams visually in the dashboard (`co-dash` → **👥 Teams**), or drive them in chat with `/team`.
+As the lead, decompose the goal and `assign` each role its own slice. Same honest limit as handover:
+`assign` notifies idle workspaces but can't wake them — each teammate picks up its task when next opened.
+
 ## Playbooks (`!macros`)
 
 Reusable procedures you trigger by typing `!name` in any Claude prompt — like Devin's playbooks. A

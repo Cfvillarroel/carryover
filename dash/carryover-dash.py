@@ -185,7 +185,8 @@ def delete_playbook(name):
 
 def build_html():
     data = json.dumps({"memories": load_memories(), "wikis": load_wikis(), "playbooks": load_playbooks(),
-                       "activity": co_store.load_activity(), "savings": co_store.load_savings()}, ensure_ascii=False)
+                       "teams": co_store.teams(), "activity": co_store.load_activity(),
+                       "savings": co_store.load_savings()}, ensure_ascii=False)
     return HTML.replace("/*__DATA__*/", data)
 
 
@@ -222,6 +223,15 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return self._json({"ok": save_playbook(data.get("name"), data.get("content"), data.get("mode"), data.get("oldName"))})
         if self.path == "/api/playbook/delete":
             return self._json({"ok": delete_playbook(data.get("name"))})
+        if self.path == "/api/team/save":
+            ok = co_store.team_set(data.get("team"), data.get("members") or {})
+            old = (data.get("oldName") or "").strip().lower()   # rename: write new first, then drop old
+            if ok and old and old != (data.get("team") or "").strip().lower():
+                co_store.team_remove(old)
+            return self._json({"ok": ok})
+        if self.path == "/api/team/delete":
+            co_store.team_remove(data.get("team"))              # idempotent: absent == success
+            return self._json({"ok": True})
         if self.path == "/api/delete":
             ids = [data["id"]] if data.get("id") else []
         elif self.path == "/api/clear":
@@ -348,6 +358,7 @@ HTML = r"""<!doctype html>
   <div class="tab" data-tab="graph">🕸 Graph</div>
   <div class="tab" data-tab="wiki">📄 Wikis</div>
   <div class="tab" data-tab="playbooks">📓 Playbooks</div>
+  <div class="tab" data-tab="teams">👥 Teams</div>
 </div>
 <main>
   <section id="overview"><div id="overviewbody"></div></section>
@@ -388,6 +399,24 @@ HTML = r"""<!doctype html>
             <span id="pbhint" class="muted"></span>
           </div>
           <div class="pbtip">Type <code>!name</code> in any Claude prompt to run it. Files live in <code>~/.carryover/playbooks/</code>.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <section id="teams" class="hide">
+    <div class="wikiwrap">
+      <div class="wikinav" id="teamnav"></div>
+      <div class="wikibody">
+        <div class="pbedit">
+          <input id="teamname" class="pbname" placeholder="team-name (e.g. checkout-revamp)" autocomplete="off">
+          <textarea id="teamroster" class="pbbody" placeholder="one member per line:&#10;&#10;doha: lead&#10;paris: frontend&#10;zurich: backend&#10;oslo: reviewer"></textarea>
+          <div class="pbactions">
+            <button class="pbbtn save" onclick="saveTeam()">Save</button>
+            <button class="pbbtn" onclick="newTeam()">New</button>
+            <button class="pbbtn danger" onclick="deleteTeam()">Delete</button>
+            <span id="teamhint" class="muted"></span>
+          </div>
+          <div class="pbtip">Each line is <code>workspace: role</code>. Dispatch with <code>co-team assign &lt;team&gt; [@role] "&lt;task&gt;"</code> or <code>/team</code>.</div>
         </div>
       </div>
     </div>
@@ -632,7 +661,49 @@ async function deletePlaybook(){
   DATA.playbooks=(DATA.playbooks||[]).filter(x=>x.name!==name); newPlaybook(); renderPlaybooks();
 }
 
-$$('.tab').forEach(t=>t.onclick=()=>{ $$('.tab').forEach(x=>x.classList.remove('active')); t.classList.add('active'); ['overview','mem','graph','wiki','playbooks'].forEach(s=>$('#'+s).classList.toggle('hide',t.dataset.tab!==s)); if(t.dataset.tab==='graph')renderGraph(); if(t.dataset.tab==='overview')renderOverview(); if(t.dataset.tab==='playbooks')renderPlaybooks(); });
+let TEAM_SEL=null;
+function rosterText(m){ return Object.keys(m).map(w=>w+': '+m[w]).join('\n'); }
+function parseRoster(text){
+  const m={};
+  (text||'').split('\n').forEach(line=>{ const s=line.trim(); if(!s)return;
+    const i=s.indexOf(':'); const ws=(i<0?s:s.slice(0,i)).trim().toLowerCase().replace(/^@/,'');
+    const role=((i<0?'':s.slice(i+1)).trim().toLowerCase())||'member'; if(ws) m[ws]=role; });
+  return m;
+}
+function renderTeams(){
+  const t=DATA.teams||{}, keys=Object.keys(t).sort();
+  let html='<button class="pbadd" onclick="newTeam()">+ New team</button>';
+  html+=keys.length? keys.map(n=>`<a data-team="${esc(n)}">👥 ${esc(n)}</a>`).join('') : '<div class="empty">No teams yet.</div>';
+  $('#teamnav').innerHTML=html;
+  $$('#teamnav a').forEach(a=>a.onclick=()=>selectTeam(a.dataset.team));
+  if(TEAM_SEL && t[TEAM_SEL]) selectTeam(TEAM_SEL);
+}
+function selectTeam(name){
+  const m=(DATA.teams||{})[name]; if(!m)return;
+  TEAM_SEL=name;
+  $$('#teamnav a').forEach(a=>a.classList.toggle('active',a.dataset.team===name));
+  $('#teamname').value=name; $('#teamroster').value=rosterText(m); $('#teamhint').textContent='';
+}
+function newTeam(){ TEAM_SEL=null; $$('#teamnav a').forEach(a=>a.classList.remove('active')); $('#teamname').value=''; $('#teamroster').value=''; $('#teamhint').textContent='new — name + members'; $('#teamname').focus(); }
+async function saveTeam(){
+  const name=$('#teamname').value.trim().toLowerCase(), members=parseRoster($('#teamroster').value), oldName=TEAM_SEL;
+  if(!name){ $('#teamhint').textContent='pick a team name'; return; }
+  if(!Object.keys(members).length){ $('#teamhint').textContent='add at least one member (ws: role)'; return; }
+  const r=await post('/api/team/save',{team:name,members,oldName});   // server writes new, then drops old (safe on failure)
+  if(!r||!r.ok){ $('#teamhint').textContent='save failed'; return; }
+  if(oldName && oldName!==name) delete (DATA.teams||{})[oldName];
+  (DATA.teams||(DATA.teams={}))[name]=members;
+  TEAM_SEL=name; renderTeams(); $('#teamhint').textContent=oldName&&oldName!==name?'renamed ✓':'saved ✓';
+}
+async function deleteTeam(){
+  const name=TEAM_SEL; if(!name){ $('#teamhint').textContent='select a team to delete'; return; }
+  if(!confirm('Delete team '+name+'?'))return;
+  const r=await post('/api/team/delete',{team:name});
+  if(!r||!r.ok){ $('#teamhint').textContent='delete failed'; return; }
+  delete (DATA.teams||{})[name]; newTeam(); renderTeams();
+}
+
+$$('.tab').forEach(t=>t.onclick=()=>{ $$('.tab').forEach(x=>x.classList.remove('active')); t.classList.add('active'); ['overview','mem','graph','wiki','playbooks','teams'].forEach(s=>$('#'+s).classList.toggle('hide',t.dataset.tab!==s)); if(t.dataset.tab==='graph')renderGraph(); if(t.dataset.tab==='overview')renderOverview(); if(t.dataset.tab==='playbooks')renderPlaybooks(); if(t.dataset.tab==='teams')renderTeams(); });
 
 renderRepoBar(); renderMems(); renderWikiNav(); renderOverview();
 </script>

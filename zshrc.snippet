@@ -37,6 +37,10 @@ co-handover() { # co-handover <workspace> <message>: hand a task OVER — notifi
   local PY="$HOME/.headroom/venv/bin/python"; [ -x "$PY" ] || PY="$(command -v python3)"
   "$PY" "$HOME/.carryover/co-mem" handover "$@"
 }
+co-team() {     # co-team [list] | add <team> <ws> [role] | rm <team> [ws] | send|assign <team> [@role] <msg>
+  local PY="$HOME/.headroom/venv/bin/python"; [ -x "$PY" ] || PY="$(command -v python3)"
+  "$PY" "$HOME/.carryover/co-mem" team "$@"
+}
 co-inbox() {    # co-inbox [workspace] [--peek]: read messages for this workspace (consumes them unless --peek)
   local PY="$HOME/.headroom/venv/bin/python"; [ -x "$PY" ] || PY="$(command -v python3)"
   "$PY" "$HOME/.carryover/co-mem" inbox "$@" | python3 -c '
@@ -146,6 +150,7 @@ carryover() {
         "co-say <msg>:message ALL connected workspaces · enviar a los workspaces conectados"
         "co-disconnect <ws>:unlink a connected workspace · desconectar un workspace"
         "co-connections:list connected workspaces · listar workspaces conectados"
+        "co-team …:named teams + roles; send/assign to a team · equipos con roles; enviar/asignar"
       )
       printf '\n  %s🔗 Conductor workspaces · workspaces de Conductor%s\n' "$Y" "$R"
       for c in "${conductor[@]}"; do printf '  %s%-20s%s %s\n' "$O" "${c%%:*}" "$R" "${c#*:}"; done
@@ -166,6 +171,7 @@ carryover() {
         "/say <msg>:message all connected workspaces · enviar a los conectados"
         "/handoff <ws>:hand off a task with an LLM summary · traspasar tarea con resumen"
         "/handover <ws>:hand a task OVER — notify + execute now · traspasar y ejecutar (notifica)"
+        "/team:build a team of workspaces with roles, then dispatch · armar equipo y repartir"
       )
       printf '\n  %s💬 In Claude — type in the chat, NOT this terminal · escríbelos en el chat%s\n' "$Y" "$R"
       for c in "${inclaude[@]}"; do printf '  %s%-18s%s %s\n' "$O" "${c%%:*}" "$R" "${c#*:}"; done

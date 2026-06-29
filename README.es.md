@@ -289,6 +289,24 @@ El workspace de backend lo recibe como cualquier otra nota (al arrancar, en su p
 (Los comandos nuevos llegan con `carryover update`; hasta entonces un workspace puede usarlos desde
 su checkout: `python3 claude/hooks/co-mem send <ws> "<msg>"`.)
 
+## Teams
+
+Un **team** es un roster con nombre de workspaces y roles (`lead`, `frontend`, `backend`, `reviewer`, …)
+— una capa de coordinación sobre la mensajería de arriba. Definís el equipo una vez y después repartís
+al equipo entero o a un rol.
+
+| Comando | Qué hace |
+|---|---|
+| `co-team` · `co-team list` | Ver equipos y sus rosters |
+| `co-team add <team> <ws> <rol>` | Agregar/actualizar miembro (crea el equipo) |
+| `co-team rm <team> [<ws>]` | Sacar un miembro, o todo el equipo |
+| `co-team send <team> [@rol] "<msg>"` | Notificar al equipo (o a un rol) — pasivo |
+| `co-team assign <team> [@rol] "<tarea>"` | **Handover** a cada miembro: notifica + "ejecutá ya" |
+
+Gestionalos visualmente en el dashboard (`co-dash` → **👥 Teams**), o manejalos en el chat con `/team`.
+Como lead, descomponé el objetivo y `assign`-á a cada rol su parte. Mismo límite honesto que handover:
+`assign` notifica a los workspaces dormidos pero no los despierta — cada miembro toma su tarea al abrirlo.
+
 ## Playbooks (`!macros`)
 
 Procedimientos reusables que disparás escribiendo `!nombre` en cualquier prompt de Claude — como los

@@ -18,6 +18,7 @@ CO_DB = str(HOME / ".carryover" / "memory.db")
 ACTIVITY = str(HOME / ".carryover" / "activity.jsonl")
 GROUPS = str(HOME / ".carryover" / "groups.conf")  # repo groups: one group per line, repos space/comma-separated
 LINKS = str(HOME / ".carryover" / "links.conf")    # workspace connections: one group per line, workspace names space/comma-separated
+TEAMS = str(HOME / ".carryover" / "teams.json")    # named teams: {team: {workspace: role}} — roster on top of the messaging layer
 SAVINGS = HOME / ".headroom" / "proxy_savings.json"
 
 
@@ -434,6 +435,81 @@ def disconnect(ws, me=None):
             out.append(g)
     _write_links(out)
     return peers(me)
+
+
+# --- teams: a named roster (workspace → role) on top of the messaging layer -------------------------
+def _load_teams():
+    try:
+        with open(TEAMS) as f:
+            d = json.load(f)
+        return d if isinstance(d, dict) else {}
+    except Exception:
+        return {}
+
+
+def _save_teams(t):
+    p = Path(TEAMS)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps(t, indent=2, ensure_ascii=False), encoding="utf-8")
+
+
+def teams():
+    """All teams: {team: {workspace: role}}."""
+    return _load_teams()
+
+
+def team_members(team, role=None):
+    """Workspace names in a team, optionally filtered by role."""
+    m = _load_teams().get((team or "").strip().lower(), {})
+    role = (role or "").strip().lower()
+    return [w for w, r in m.items() if not role or (r or "").lower() == role]
+
+
+def team_add(team, ws, role="member"):
+    """Add/update one member. Creates the team if new. Returns the team's roster (or None)."""
+    team = (team or "").strip().lower()
+    ws = (ws or "").lstrip("@").strip().lower()
+    if not team or not ws or ws == "all":   # 'all' is the broadcast mailbox — never a team member
+        return None
+    t = _load_teams()
+    t.setdefault(team, {})[ws] = (role or "member").strip().lower() or "member"
+    _save_teams(t)
+    return t[team]
+
+
+def team_remove(team, ws=None):
+    """Remove one member, or the whole team if ws is None. Returns the remaining roster."""
+    team = (team or "").strip().lower()
+    t = _load_teams()
+    if team not in t:
+        return None
+    if ws:
+        t[team].pop((ws or "").lstrip("@").strip().lower(), None)
+        if not t[team]:
+            del t[team]
+    else:
+        del t[team]
+    _save_teams(t)
+    return t.get(team, {})
+
+
+def team_set(team, members):
+    """Replace a team's whole roster with {workspace: role}; empty members deletes the team."""
+    team = (team or "").strip().lower()
+    if not team or not isinstance(members, dict):
+        return False
+    clean = {}
+    for w, r in members.items():
+        w = (w or "").lstrip("@").strip().lower()
+        if w and w != "all":            # 'all' is the broadcast mailbox — never a team member
+            clean[w] = (str(r) or "member").strip().lower() or "member"
+    t = _load_teams()
+    if clean:
+        t[team] = clean
+    else:
+        t.pop(team, None)
+    _save_teams(t)
+    return True
 
 
 def import_(path):

@@ -80,8 +80,38 @@ elif cmd == "say" and len(a) > 1:                     # co-mem say <message...>
     msg = " ".join(a[1:])
     ids = [asyncio.run(co_store.send_msg(p, msg)) for p in prs]
     print(json.dumps({"to": prs, "ids": ids}, ensure_ascii=False))
+elif cmd == "team":                                   # co-mem team [list] | add|rm | send|assign
+    sub = a[1] if len(a) > 1 else "list"
+    if sub in ("list", "ls") or len(a) == 1:
+        print(json.dumps(co_store.teams(), ensure_ascii=False))
+    elif sub == "add" and len(a) > 3:                 # team add <team> <ws> [role]
+        role = a[4] if len(a) > 4 else "member"
+        print(json.dumps(co_store.team_add(a[2], a[3], role), ensure_ascii=False))
+    elif sub in ("rm", "remove") and len(a) > 2:      # team rm <team> [ws]
+        print(json.dumps(co_store.team_remove(a[2], a[3] if len(a) > 3 else None), ensure_ascii=False))
+    elif sub in ("send", "assign") and len(a) > 3:    # team send|assign <team> [@role] <msg...>
+        import asyncio
+        rest = a[3:]
+        role = None
+        if rest[0].startswith("@") and len(rest[0]) > 1 and len(rest) > 1 \
+                and co_store.team_members(a[2], rest[0][1:]):   # only consume @role if it matches real members
+            role, rest = rest[0][1:], rest[1:]
+        msg, members, ho = " ".join(rest), co_store.team_members(a[2], role), sub == "assign"
+        if not msg or not members:
+            sys.stderr.write(f"co-team {sub}: no message or no matching members in '{a[2]}'\n")
+            sys.exit(1)
+        ids = []
+        for m in members:
+            ids.append(asyncio.run(co_store.send_msg(m, msg, handover=ho)))
+            if ho:
+                co_store.notify(m, msg)
+        print(json.dumps({"team": a[2], "to": members, "ids": ids, "handover": ho}, ensure_ascii=False))
+    else:
+        sys.stderr.write("usage: co-mem team [list] | add <team> <ws> [role] | rm <team> [ws] | send|assign <team> [@role] <msg>\n")
+        sys.exit(1)
 else:
     sys.stderr.write("usage: co-mem export <file> | delete <id…> | edit <id> [--content X] [--importance Y] "
                      "| touch <id…> | send <to> <msg> | inbox [who] [--peek] "
-                     "| connect <ws> | disconnect <ws> | connections | say <msg> | stats | backend\n")
+                     "| connect <ws> | disconnect <ws> | connections | say <msg> "
+                     "| team [list|add|rm|send|assign] | stats | backend\n")
     sys.exit(1)
