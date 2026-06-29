@@ -49,16 +49,19 @@ text = ""
 if (prs or tm) and tpath:
     try:
         with open(tpath) as f:
-            tail = f.readlines()[-40:]               # roughly the last turn
-        for ln in tail:
-            try:
+            rows = f.readlines()[-200:]              # window to find the last assistant turn (NOT `lines` — that's the output accumulator)
+        for ln in rows:                              # only THIS turn's assistant text — not prior turns,
+            try:                                     # user messages, or our own injected nudge (no re-seeding)
                 o = json.loads(ln)
             except Exception:
                 continue
             msg = o.get("message") or {}
-            for blk in (msg.get("content") or []):
-                if isinstance(blk, dict) and blk.get("type") == "text":
-                    text += " " + (blk.get("text") or "")
+            if (msg.get("role") or o.get("type")) != "assistant":
+                continue
+            parts = [blk.get("text") or "" for blk in (msg.get("content") or [])
+                     if isinstance(blk, dict) and blk.get("type") == "text"]
+            if parts:
+                text = " ".join(parts)               # keep overwriting → ends as the LAST assistant message
     except Exception:
         text = ""
 hit = [p for p in sorted(prs)
