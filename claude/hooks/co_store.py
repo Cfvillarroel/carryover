@@ -355,15 +355,42 @@ def notify(to, body):
         pass
 
 
-def inbox(who=None, consume=False):
-    """Pending (non-consumed) messages for workspace `who` (default whoami) + '@all'
-    broadcasts, newest first. 'Consumed' == superseded, so recall's superseded-drop filters
-    delivered ones for free. consume=True marks them delivered in the same call."""
+MSG_CAP = 4000  # per-message delivery cap; full text always retrievable via `co-mem inbox --all`
+
+
+def render_msg_lines(m, cap=MSG_CAP):
+    """Markdown lines for ONE delivered inbox message. A directed cross-workspace message is a
+    single, intentional payload (unlike auto-recalled memories), so we keep it whole: newlines
+    preserved (indented under the 'from' header when multi-line), only capped at `cap` as a safety
+    valve with a pointer to re-read the rest. Shared by the three delivery hooks so the format,
+    cap and handover tag live in one place."""
+    md = m.get("metadata") or {}
+    b = (m.get("content") or "").strip()
+    if len(b) > cap:
+        b = b[:cap].rstrip() + "… (truncated — run `co-mem inbox --all` for the full message)"
+    tag = " ⚡HANDOVER" if md.get("handover") else ""
+    frm = md.get("from", "?")
+    if "\n" in b:
+        return [f"- **from {frm}:**{tag}"] + ["  " + ln for ln in b.split("\n")]
+    return [f"- **from {frm}:**{tag} {b}"]
+
+
+def inbox(who=None, consume=False, history=False):
+    """Messages for workspace `who` (default whoami) + '@all' broadcasts, newest first.
+    'Consumed' == superseded, so recall's superseded-drop filters delivered ones for free.
+    consume=True marks them delivered in the same call.
+    history=True lists ALSO the already-delivered (superseded) messages — read-only, never
+    consumes — so `co-mem inbox --all` can re-read what auto-delivery already consumed."""
     boxes = {"@" + i for i in identities(who)} | {"@all"}
-    msgs = [m for m in recall(query=None, repos=boxes, k=200)
-            if (m.get("metadata") or {}).get("kind") == "msg"]
+    if history:  # include delivered/superseded: bypass recall's superseded-drop, read from export()
+        msgs = [m for m in export()
+                if (m.get("metadata") or {}).get("kind") == "msg"
+                and (m.get("metadata") or {}).get("repo", "") in boxes]
+    else:
+        msgs = [m for m in recall(query=None, repos=boxes, k=200)
+                if (m.get("metadata") or {}).get("kind") == "msg"]
     msgs.sort(key=lambda m: m.get("created_at") or "", reverse=True)
-    if consume:
+    if consume and not history:  # history mode is read-only
         for m in msgs:
             if m.get("id"):
                 supersede(m["id"], m["id"])  # self-supersede == 'consumed', no successor needed

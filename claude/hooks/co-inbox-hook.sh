@@ -24,12 +24,8 @@ if not msgs:
     sys.exit(0)
 lines = ["## 📬 messages for this workspace (left by other workspaces)"]
 for m in msgs:
-    md = m.get("metadata") or {}
-    b = " ".join((m.get("content") or "").split())
-    if len(b) > 240:
-        b = b[:240].rstrip() + "…"
-    tag = " ⚡HANDOVER" if md.get("handover") else ""
-    lines.append(f"- **from {md.get('from','?')}:**{tag} {b}")
+    lines += co_store.render_msg_lines(m)
+lines.append("_(entregados una vez; corré `co-mem inbox --all` para releerlos)_")
 if any((m.get("metadata") or {}).get("handover") for m in msgs):
     lines.append("\n**A ⚡HANDOVER is a task to execute now**, not just a note — act on it this turn.")
 co_store.log_activity("inbox", n=len(msgs))

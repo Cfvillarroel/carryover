@@ -65,4 +65,18 @@ assert cs.delete([m2, m3]) == 2
 assert cs.delete([mid]) == 1
 assert cs.stats() == 0
 
+# --- inbox: whole message + deliver-once + `--all` history (cross-workspace messages) ---
+WS, body = "perth", "línea 1\n1. item A\n2. item B con texto"
+asyncio.run(cs.send_msg(WS, body, frm="london"))
+pend = cs.inbox(who=WS)                        # peek: pending, not consumed
+assert len(pend) == 1 and pend[0]["content"] == body, "message stored whole, newlines intact"
+lines = cs.render_msg_lines(pend[0])          # multi-line body preserved & indented, not flattened
+assert lines == ["- **from london:**", "  línea 1", "  1. item A", "  2. item B con texto"]
+got = cs.inbox(who=WS, consume=True)           # deliver-once: consume
+assert len(got) == 1
+assert cs.inbox(who=WS) == [], "consumed message must not stay pending"
+hist = cs.inbox(who=WS, history=True)          # `--all`: delivered message still retrievable
+assert len(hist) == 1 and hist[0]["content"] == body
+assert cs.delete([got[0]["id"]]) == 1 and cs.stats() == 0
+
 print("test_store: all passed")

@@ -61,10 +61,11 @@ elif cmd == "handover" and len(a) > 2:                # co-mem handover <to> <me
     mid = asyncio.run(co_store.send_msg(a[1], " ".join(a[2:]), handover=True))
     co_store.notify(a[1], " ".join(a[2:]))
     print(mid)
-elif cmd == "inbox":                                  # co-mem inbox [who] [--peek]
+elif cmd == "inbox":                                  # co-mem inbox [who] [--peek] [--all]
     peek = "--peek" in a[1:]
+    hist = "--all" in a[1:]                            # re-read incl. already-delivered; read-only
     who = next((x for x in a[1:] if not x.startswith("-")), None)
-    print(json.dumps(co_store.inbox(who=who, consume=not peek), ensure_ascii=False))
+    print(json.dumps(co_store.inbox(who=who, consume=not peek and not hist, history=hist), ensure_ascii=False))
 elif cmd == "connect" and len(a) > 1:                 # co-mem connect <ws>
     print(json.dumps(sorted(co_store.connect(a[1])), ensure_ascii=False))
 elif cmd == "disconnect" and len(a) > 1:              # co-mem disconnect <ws>
@@ -111,7 +112,7 @@ elif cmd == "team":                                   # co-mem team [list] | add
         sys.exit(1)
 else:
     sys.stderr.write("usage: co-mem export <file> | delete <id…> | edit <id> [--content X] [--importance Y] "
-                     "| touch <id…> | send <to> <msg> | inbox [who] [--peek] "
+                     "| touch <id…> | send <to> <msg> | inbox [who] [--peek] [--all] "
                      "| connect <ws> | disconnect <ws> | connections | say <msg> "
                      "| team [list|add|rm|send|assign] | stats | backend\n")
     sys.exit(1)

@@ -51,10 +51,8 @@ if msgs:
         lines.append("")
     lines.append("## 📬 messages for this workspace")
     for m in msgs:
-        b = " ".join((m.get("content") or "").split())
-        if len(b) > 240:
-            b = b[:240].rstrip() + "…"
-        lines.append(f"- **from {md(m).get('from','?')}:** {b}")
+        lines += co_store.render_msg_lines(m)
+    lines.append("_(entregados una vez; corré `co-mem inbox --all` para releerlos)_")
     co_store.log_activity("inbox", repo=repo or "general", n=len(msgs))
 out = "\n".join(lines)
 try:  # instrument: record what context we carried, for the dashboard

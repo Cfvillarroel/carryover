@@ -29,12 +29,8 @@ msgs = co_store.inbox(who=ws, consume=True) if ws else []
 if msgs:
     lines.append("📬 New messages from other Conductor workspaces arrived (delivered now that your turn finished):")
     for m in msgs:
-        md = m.get("metadata") or {}
-        b = " ".join((m.get("content") or "").split())
-        if len(b) > 400:
-            b = b[:400].rstrip() + "…"
-        tag = " ⚡HANDOVER" if md.get("handover") else ""
-        lines.append(f"- from {md.get('from','?')}:{tag} {b}")
+        lines += co_store.render_msg_lines(m)
+    lines.append("_(entregados una vez; corré `co-mem inbox --all` para releerlos)_")
     if any((m.get("metadata") or {}).get("handover") for m in msgs):
         lines.append("A ⚡HANDOVER is a task to execute NOW (not just surface to the user). Do it this turn.")
     else:
