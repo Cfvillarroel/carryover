@@ -5,18 +5,19 @@
 # Two-way: edits to a memory note's first paragraph or `importance` are pushed back to the store
 # BEFORE regenerating, so your edits are never clobbered.
 #
-# Usage:  vault-gen [clean|remove|prune] [DIR] [--no-import] [--describe] [--yes]
+# Usage:  vault-gen [clean|remove|prune|merge] [DIR] [--no-import] [--describe] [--yes]
 #   (no subcommand) : build/refresh the vault      (DIR defaults to ~/Documents/carryover-vault)
 #   clean           : save edits, wipe everything generated, rebuild fresh (also refreshes config)
 #   remove          : delete the vault folder and unregister it from Obsidian (asks unless --yes)
 #   prune           : just prune orphaned generated notes (fast; no wiki/register/LLM)
+#   merge           : LLM pass that groups synonymous entities into a hand-editable map, then rebuild
 #   --describe      : also run an LLM pass (claude -p) to write 1-line blurbs for the top entities
 set -uo pipefail
 VAULT="$HOME/Documents/carryover-vault"   # visible folder (next to your other Obsidian vaults); override with an arg
 NOIMPORT=""; DESCRIBE=""; CMD=""; YES=""
 for arg in "$@"; do
   case "$arg" in
-    clean|remove|prune) CMD="$arg" ;;
+    clean|remove|prune|merge) CMD="$arg" ;;
     --no-import) NOIMPORT=1 ;;
     --describe)  DESCRIBE=1 ;;
     --yes|-y)    YES=1 ;;
@@ -97,6 +98,24 @@ fi
 if [ "$CMD" = clean ]; then
   rm -f "$VAULT/.obsidian/graph.json" "$VAULT/knowledge.base" "$VAULT/Home.md"
   rm -rf "$VAULT/indexes"
+fi
+
+# --- merge: LLM groups synonymous entities into ~/.carryover/entity-merges.json, then rebuild -----
+if [ "$CMD" = merge ]; then
+  if command -v claude >/dev/null; then
+    echo "   merging synonymous entities via claude -p… (~30-60s)"
+    "$PY" "$COMEM" vault-merge 2>/dev/null | "$PY" -c 'import json,sys
+try: d=json.load(sys.stdin)
+except Exception: d={}
+g=d.get("groups") or {}
+if g:
+    print("   merged %d name(s) into %d group(s) — review/edit ~/.carryover/entity-merges.json:" % (d.get("merged",0), d.get("count",0)))
+    for c,ms in g.items(): print("     %s  ←  %s" % (c, ", ".join(ms)))
+else:
+    print("   no merges proposed" + ((" ("+d["error"]+")") if d.get("error") else ""))'
+  else
+    echo "   merge needs 'claude' in PATH; skipped."
+  fi
 fi
 
 mkdir -p "$VAULT"/knowledge "$VAULT"/entities "$VAULT"/wikis "$VAULT"/.obsidian

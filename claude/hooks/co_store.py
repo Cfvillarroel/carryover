@@ -21,6 +21,7 @@ ACTIVITY = str(HOME / ".carryover" / "activity.jsonl")
 GROUPS = str(HOME / ".carryover" / "groups.conf")  # repo groups: one group per line, repos space/comma-separated
 LINKS = str(HOME / ".carryover" / "links.conf")    # workspace connections: one group per line, workspace names space/comma-separated
 TEAMS = str(HOME / ".carryover" / "teams.json")    # named teams: {team: {workspace: role}} — roster on top of the messaging layer
+MERGES = str(HOME / ".carryover" / "entity-merges.json")  # semantic entity merges: {canonical: [member names]} — hand-editable
 SAVINGS = HOME / ".headroom" / "proxy_savings.json"
 
 
@@ -782,6 +783,62 @@ def _prune(folder, keep):
     return n
 
 
+def _load_merges():
+    """alias(lower) -> canonical display, from the hand-editable semantic-merge map
+    (~/.carryover/entity-merges.json, shape {canonical: [members]}). Empty/absent → no merges."""
+    out = {}
+    try:
+        for canonical, members in json.loads(Path(MERGES).read_text()).items():
+            for m in list(members) + [canonical]:
+                out[str(m).strip().lower()] = canonical
+    except Exception:
+        pass
+    return out
+
+
+def _syntactic_entities(mems):
+    """Group raw entity names by _ent_key (case / separators / file extension), pick a display per
+    group, drop noise. Returns (syn, gtype): syn maps every raw name to its display (or None if
+    noise); gtype maps a display to its entity type. This is the merge layer that needs no LLM."""
+    raw_count, raw_type = defaultdict(int), {}
+
+    def see(name, etype=""):
+        if name:
+            raw_count[name] += 1
+            if etype and not raw_type.get(name):
+                raw_type[name] = etype
+
+    for m in mems:
+        md = m.get("metadata") or {}
+        for e in (md.get("entities") or []):
+            see(e.get("entity"), e.get("entity_type") or e.get("type", "")) if isinstance(e, dict) else see(e)
+        for e in (m.get("entity_refs") or []):
+            see(e)
+        for r in (md.get("relationships") or []):
+            see(r.get("source")); see(r.get("destination"))
+
+    groups = {}
+    for name, c in raw_count.items():
+        k = _ent_key(name)
+        if not k:
+            continue
+        g = groups.setdefault(k, {"variants": defaultdict(int), "type": ""})
+        g["variants"][name] += c
+        g["type"] = g["type"] or raw_type.get(name, "")
+
+    syn, gtype = {}, {}
+    for g in groups.values():
+        display = max(g["variants"], key=lambda n: (g["variants"][n], len(n)))
+        if _is_noise_entity(display):
+            for n in g["variants"]:
+                syn[n] = None
+            continue
+        for n in g["variants"]:
+            syn[n] = display
+        gtype[display] = g["type"] or "unknown"
+    return syn, gtype
+
+
 def export_vault(out_dir, repos=None):
     """Render export() as an Obsidian vault. Memories → knowledge/<id>.md, entities → entities/<slug>.md
     (variants merged via aliases so the graph is connected, not fragmented), plus Home.md and per-repo
@@ -800,44 +857,23 @@ def export_vault(out_dir, repos=None):
     mems = [m for m in export() if not is_superseded(m) and in_scope(m)
             and (m.get("metadata") or {}).get("kind") != "msg"]  # skip cross-workspace mailbox msgs
 
-    # --- pass 1: canonicalize entities (merge variants, keep a type, drop noise) -------------------
-    raw_count, raw_type = defaultdict(int), {}
-
-    def see(name, etype=""):
-        if name:
-            raw_count[name] += 1
-            if etype and not raw_type.get(name):
-                raw_type[name] = etype
-
-    for m in mems:
-        md = m.get("metadata") or {}
-        for e in (md.get("entities") or []):
-            see(e.get("entity"), e.get("entity_type") or e.get("type", "")) if isinstance(e, dict) else see(e)
-        for e in (m.get("entity_refs") or []):
-            see(e)
-        for r in (md.get("relationships") or []):
-            see(r.get("source")); see(r.get("destination"))
-
-    groups = {}  # key -> {variants:{name:count}, type}
-    for name, c in raw_count.items():
-        k = _ent_key(name)
-        if not k:
+    # --- pass 1: canonicalize entities. Two layers: syntactic (case/sep/extension merge, always on)
+    # then semantic (the hand-editable LLM merge map, off unless you ran `co-vault merge`). ----------
+    syn, gtype = _syntactic_entities(mems)
+    merges = _load_merges()
+    resolver, canon = {}, {}  # raw name -> canonical|None ; canonical -> {type, aliases}
+    for raw, disp in syn.items():
+        if disp is None:
+            resolver[raw] = None
             continue
-        g = groups.setdefault(k, {"variants": defaultdict(int), "type": ""})
-        g["variants"][name] += c
-        g["type"] = g["type"] or raw_type.get(name, "")
-
-    resolver, canon = {}, {}  # raw name -> display|None ; key -> {display, aliases, type}
-    for k, g in groups.items():
-        display = max(g["variants"], key=lambda n: (g["variants"][n], len(n)))
-        if _is_noise_entity(display):
-            for n in g["variants"]:
-                resolver[n] = None
-            continue
-        for n in g["variants"]:
-            resolver[n] = display
-        canon[k] = {"display": display, "type": g["type"] or "unknown",
-                    "aliases": sorted(set(g["variants"]) - {display})}
+        canonical = merges.get(disp.lower(), disp)   # semantic layer folds the syntactic display in
+        resolver[raw] = canonical
+        e = canon.setdefault(canonical, {"type": "", "aliases": set()})
+        if not e["type"]:
+            e["type"] = gtype.get(canonical) or gtype.get(disp) or "unknown"
+        for a in (raw, disp):
+            if a != canonical:
+                e["aliases"].add(a)
 
     # --- pass 2: write memory notes + tally per-entity link counts + per-repo buckets --------------
     ent_links = defaultdict(int)
@@ -854,11 +890,11 @@ def export_vault(out_dir, repos=None):
 
     # --- entity notes (preserve any existing description) -----------------------------------------
     keep_e, taken = set(), set()
-    for k, meta in canon.items():
-        fn = _slug(meta["display"], taken) + ".md"
+    for canonical, meta in canon.items():
+        fn = _slug(canonical, taken) + ".md"
         desc = _existing_entity_desc(edir / fn)
-        (edir / fn).write_text(_entity_md(meta["display"], meta["type"], meta["aliases"], desc,
-                                          ent_links.get(meta["display"], 0)), encoding="utf-8")
+        (edir / fn).write_text(_entity_md(canonical, meta["type"], sorted(meta["aliases"]), desc,
+                                          ent_links.get(canonical, 0)), encoding="utf-8")
         keep_e.add(fn)
 
     # --- hub notes: Home + one index per repo -----------------------------------------------------
@@ -996,6 +1032,60 @@ def describe_entities(vault_dir, limit=60, min_links=3, claude_cmd=None):
             p.write_text(_entity_md(name, etype, aliases, d, links), encoding="utf-8")
             n += 1
     return {"described": n, "targets": len(targets)}
+
+
+def merge_entities(claude_cmd=None):
+    """Opt-in semantic merge: ask `claude -p` to group entity names that mean the SAME thing
+    (synonyms/abbreviations) — beyond the syntactic case/extension merge — and persist the result to
+    ~/.carryover/entity-merges.json ({canonical: [members]}). The map is applied deterministically by
+    export_vault on every run and is hand-editable, so a bad merge is one line to fix. Conservative by
+    design (won't merge merely-related names). Returns {'groups': {...}} or {'error': ...}."""
+    mems = [m for m in export() if not is_superseded(m) and (m.get("metadata") or {}).get("kind") != "msg"]
+    syn, _ = _syntactic_entities(mems)
+    links = defaultdict(int)
+    for m in mems:
+        md = m.get("metadata") or {}
+        raws = [e.get("entity") if isinstance(e, dict) else e for e in (md.get("entities") or [])]
+        raws += list(m.get("entity_refs") or [])
+        for r in (md.get("relationships") or []):
+            raws += [r.get("source"), r.get("destination")]
+        seen = set()
+        for rn in raws:
+            d = syn.get(rn)
+            if d and d not in seen:
+                seen.add(d); links[d] += 1
+    names = sorted(links, key=lambda d: -links[d])
+    if len(names) < 2:
+        return {"error": "not enough entities to merge"}
+
+    listing = "\n".join(f"{d} ({links[d]})" for d in names)
+    prompt = (
+        "Below are entity names from a knowledge graph, with how many notes link each. Group ONLY "
+        "names that refer to the SAME real thing (synonyms, abbreviations, the same file/module/tool/"
+        "person under different names). BE CONSERVATIVE: do NOT merge names that are merely related or "
+        "part of the same system — e.g. 'headroom-memory' and 'headroom-graph' are DIFFERENT and must "
+        "stay separate. Most names belong to no group. Output ONLY groups with 2+ members, one per "
+        "line, as:\nCANONICAL<TAB>member|member|...\nCANONICAL is the clearest, most complete name "
+        "(usually one of the members). Use a literal tab. No other text.\n\n" + listing)
+    try:
+        out = subprocess.run(claude_cmd or ["claude", "-p"], input=prompt,
+                             capture_output=True, text=True, timeout=240).stdout
+    except Exception as e:
+        return {"error": str(e)}
+
+    valid = set(names)
+    groups = {}
+    for ln in out.splitlines():
+        if "\t" not in ln:
+            continue
+        canonical, rest = ln.split("\t", 1)
+        canonical = canonical.strip()
+        members = sorted({x.strip() for x in rest.split("|")
+                          if x.strip() and x.strip() != canonical and x.strip() in valid})
+        if canonical and members:
+            groups[canonical] = members
+    Path(MERGES).write_text(json.dumps(groups, ensure_ascii=False, indent=2), encoding="utf-8")
+    return {"groups": groups, "count": len(groups), "merged": sum(len(v) for v in groups.values())}
 
 
 def _demo():

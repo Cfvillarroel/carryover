@@ -194,6 +194,7 @@ Igual necesitas el proxy de headroom para memoria/compresión:
 | `co-wiki-prune` | podar entradas muertas del registro de wikis (alias: `wiki-prune`) |
 | `co-vault [dir]` | armar/refrescar un **vault de Obsidian** unificado (notas de conocimiento + grafo de entidades + cada wiki de repo), sync de dos vías, y registrarlo en Obsidian. Cae en `~/Documents/carryover-vault` salvo que pases `dir` |
 | `co-vault clean` \| `remove` \| `prune` | **clean** = reconstruir config/hubs en limpio (re-importa primero; tus edits sincronizados y descripciones LLM se mantienen, nunca toca el store) · **remove** = borrar el vault + desregistrarlo de Obsidian (`--yes` salta la confirmación) · **prune** = re-importar edits, luego podar solo notas huérfanas generadas |
+| `co-vault merge` | agrupar entidades **sinónimas** por LLM (`carryover‑dash.py` = `carryover dashboard`) en un mapa editable a mano (`~/.carryover/entity-merges.json`), luego reconstruir. Conservador y reversible |
 | `co-vault-open` | abrir el vault en Obsidian |
 | `co-vault-describe` | refrescar el vault **y** escribir descripciones LLM de 1 línea para las entidades más conectadas |
 | `co-dash` | dashboard local (overview, conocimiento + wikis) |
@@ -454,6 +455,7 @@ co-vault-open       # abrirlo en Obsidian
 co-vault-describe   # refrescar + descripciones LLM de 1 línea para las entidades más conectadas (una llamada claude -p)
 co-vault clean      # reconstruir config/hubs en limpio — mantiene tus edits + descripciones, nunca toca el store
 co-vault prune      # podar notas huérfanas generadas
+co-vault merge      # agrupar entidades sinónimas por LLM en un mapa editable, luego reconstruir
 co-vault remove     # borrar el vault + desregistrarlo de Obsidian (--yes salta la confirmación)
 ```
 
@@ -462,7 +464,7 @@ co-vault remove     # borrar el vault + desregistrarlo de Obsidian (--yes salta 
 | Ruta | Qué |
 |---|---|
 | `knowledge/` | una nota por memoria — contenido, facts, links `[[entidad]]`, relaciones |
-| `entities/` | un nodo por entidad, variantes de nombre **fusionadas** (`HarrySchool` = `harry-school`) para que el grafo quede conectado, no fragmentado |
+| `entities/` | un nodo por entidad, variantes de nombre **fusionadas** (`HarrySchool` = `harry-school`) para que el grafo quede conectado, no fragmentado — y `co-vault merge` además fusiona **sinónimos** (`carryover-dash.py` = `carryover dashboard`) vía un mapa editable a mano |
 | `indexes/` + `Home.md` | una página home y un índice por repo (memorias agrupadas por categoría, top entidades) — cientos de notas planas vueltas navegables |
 | `wikis/<repo>/` | un symlink a la auto-wiki de cada repo registrado, para que los docs vivan al lado del conocimiento |
 | `knowledge.base` | una tabla **Bases** de Obsidian (requiere Obsidian 1.9+) para navegar memorias por repo / importancia / reuso |

@@ -70,4 +70,22 @@ cs.export_vault(V)
 assert not (vp / "entities" / "orphan.md").exists(), "orphan must be pruned"
 assert (vp / "entities" / "mine.md").exists(), "user note must be kept"
 
+# semantic merge map (~/.carryover/entity-merges.json) is applied deterministically — no LLM
+asyncio.run(cs.save(content="the dashboard shows memories", uid="default", importance=0.6,
+    metadata={"repo": "carryover", "entities": [{"entity": "co-dash"}]}))
+asyncio.run(cs.save(content="opens the carryover dashboard", uid="default", importance=0.6,
+    metadata={"repo": "carryover", "entities": [{"entity": "carryover dashboard"}]}))
+V2 = tempfile.mkdtemp()
+cs.export_vault(V2)  # no map yet → two separate entity notes (distinct keys)
+assert (pathlib.Path(V2) / "entities" / "co-dash.md").exists()
+assert (pathlib.Path(V2) / "entities" / "carryover-dashboard.md").exists()
+os.makedirs(os.path.join(os.environ["HOME"], ".carryover"), exist_ok=True)
+open(os.path.join(os.environ["HOME"], ".carryover", "entity-merges.json"), "w").write(
+    __import__("json").dumps({"co-dash": ["carryover dashboard"]}))
+V3 = tempfile.mkdtemp()
+cs.export_vault(V3)  # with the map → the two collapse into one canonical note
+assert (pathlib.Path(V3) / "entities" / "co-dash.md").exists()
+assert not (pathlib.Path(V3) / "entities" / "carryover-dashboard.md").exists(), "semantic merge should fold it"
+assert "carryover dashboard" in (pathlib.Path(V3) / "entities" / "co-dash.md").read_text(), "member kept as alias"
+
 print("test_vault: all passed")
