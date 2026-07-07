@@ -9,6 +9,7 @@ import sqlite3
 import subprocess
 import tempfile
 import uuid
+from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -652,35 +653,113 @@ def _content_before_sections(body):
     return "\n".join(out).strip()
 
 
-def _memory_md(m):
+def _ent_key(name):
+    """Canonical key for merging entity name variants (HarrySchool == harry-school == 'Harry School')."""
+    return re.sub(r"[^a-z0-9]+", "", (name or "").lower())
+
+
+def _is_noise_entity(display):
+    """Drop pure-number / single-char 'entities' (e.g. '3000') — they only fragment the graph."""
+    s = (display or "").strip()
+    return len(s) < 2 or re.fullmatch(r"[\d\W]+", s) is not None
+
+
+def _resolved_entities(m, resolver):
+    """(entities, relationships) for a memory, each name mapped to its canonical display via
+    `resolver` (None → dropped as noise). Endpoints of a relationship both feed the entity list."""
+    md = m.get("metadata") or {}
+    raw = [e.get("entity") if isinstance(e, dict) else e for e in (md.get("entities") or [])]
+    raw += list(m.get("entity_refs") or [])
+    ents = []
+    for n in raw:
+        d = resolver.get(n, n)
+        if d and d not in ents:
+            ents.append(d)
+    rels = []
+    for r in (md.get("relationships") or []):
+        s = resolver.get(r.get("source"), r.get("source"))
+        t = resolver.get(r.get("destination"), r.get("destination"))
+        if s and t:
+            rels.append((s, r.get("relationship", "→"), t))
+            for d in (s, t):
+                if d not in ents:
+                    ents.append(d)
+    return ents, rels
+
+
+def _memory_md(m, resolver):
     md = m.get("metadata") or {}
     tags = [t for t in (md.get("tags") or []) if t]
-    fm = {"id": m.get("id", ""), "source": "carryover", "repo": md.get("repo", "general"),
+    repo = md.get("repo", "general")
+    ents, rels = _resolved_entities(m, resolver)
+    fm = {"id": m.get("id", ""), "source": "carryover", "repo": repo,
           "category": md.get("category", ""), "importance": round(float(m.get("importance") or 0.5), 3),
-          "access_count": int(m.get("access_count") or 0), "created_at": m.get("created_at", ""), "tags": tags}
-    ents = [e.get("entity") if isinstance(e, dict) else e for e in (md.get("entities") or [])]
-    ents += list(m.get("entity_refs") or [])
+          "access_count": int(m.get("access_count") or 0), "created_at": m.get("created_at", ""),
+          "tags": tags, "entities": [f"[[{e}]]" for e in ents]}  # links as a property → Bases + graph
     body = [_frontmatter(fm), "", (m.get("content") or "").strip()]
     facts = [f for f in (md.get("facts") or []) if f]
     if facts:
         body += ["", "## Facts"] + [f"- {f}" for f in facts]
-    ents = [e for e in dict.fromkeys(ents) if e]
     if ents:
         body += ["", "## Entities", " · ".join(f"[[{e}]]" for e in ents)]
-    rels = [r for r in (md.get("relationships") or []) if r.get("source") and r.get("destination")]
     if rels:
         body += ["", "## Relationships"]
-        body += [f"- [[{r['source']}]] — {r.get('relationship', '→')} → [[{r['destination']}]]" for r in rels]
-    if tags:
-        body += ["", " ".join(_tag(t) for t in tags)]
+        body += [f"- [[{s}]] — {v} → [[{t}]]" for s, v, t in rels]
+    trailing = [_tag(t) for t in tags] + [f"#repo/{_slug(repo)}"]   # #repo/<name> → colour the graph by repo
+    body += ["", " ".join(trailing)]
     return "\n".join(body) + "\n"
 
 
-def _entity_md(name, etype="", desc=""):
-    body = [_frontmatter({"source": "carryover", "entity_type": etype or "unknown"}),
-            "", f"# {name}", "", f"> {etype or 'entity'}"]
+def _existing_entity_desc(path):
+    """Pull the human/LLM description out of an entity note (the text after the '> type' line) so a
+    regenerate preserves it. Returns '' if none."""
+    try:
+        _, b = _parse_frontmatter(Path(path).read_text(encoding="utf-8"))
+    except Exception:
+        return ""
+    lines, out, seen = b.split("\n"), [], False
+    for ln in lines:
+        if seen:
+            out.append(ln)
+        elif ln.lstrip().startswith(">"):
+            seen = True
+    return "\n".join(out).strip()
+
+
+def _entity_md(name, etype="", aliases=None, desc="", links=0):
+    fm = {"source": "carryover", "entity_type": etype or "unknown", "links": links}
+    if aliases:
+        fm["aliases"] = aliases
+    head = f"> {etype or 'entity'}" + (f" · {links} links" if links else "")
+    body = [_frontmatter(fm), "", f"# {name}", "", head]
     if desc:
         body += ["", desc.strip()]
+    return "\n".join(body) + "\n"
+
+
+def _home_md(counts, repo_rows, top_ents):
+    body = [_frontmatter({"source": "carryover"}), "", "# carryover knowledge", "",
+            f"> {counts['memories']} memories · {counts['entities']} entities · {len(repo_rows)} repos",
+            "", "## Repos"]
+    body += [f"- [[repo-{_slug(r)}|{r}]] — {n} memories" for r, n in repo_rows]
+    body += ["", "## Most-connected entities"]
+    body += [f"- [[{name}]] — {c}" for name, c in top_ents]
+    return "\n".join(body) + "\n"
+
+
+def _repo_index_md(repo, mems, top_ents):
+    by_cat = defaultdict(list)
+    for m in mems:
+        by_cat[(m.get("metadata") or {}).get("category") or "general"].append(m)
+    body = [_frontmatter({"source": "carryover", "repo": repo}), "", f"# {repo}", "",
+            f"> {len(mems)} memories"]
+    for cat in sorted(by_cat):
+        body += ["", f"## {cat}"]
+        for m in by_cat[cat]:
+            label = (m.get("content") or "").strip().split("\n")[0][:80] or m.get("id", "")
+            body.append(f"- [[{m.get('id')}|{label}]]")
+    if top_ents:
+        body += ["", "## Top entities"] + [f"- [[{name}]] — {c}" for name, c in top_ents]
     return "\n".join(body) + "\n"
 
 
@@ -692,7 +771,8 @@ def _prune(folder, keep):
         if p.name in keep:
             continue
         try:
-            if "source: carryover" in p.read_text(encoding="utf-8")[:200]:
+            head = p.read_text(encoding="utf-8")[:200].replace('"', '')  # frontmatter quotes the value
+            if "source: carryover" in head:
                 p.unlink(); n += 1
         except Exception:
             pass
@@ -700,14 +780,15 @@ def _prune(folder, keep):
 
 
 def export_vault(out_dir, repos=None):
-    """Render export() as an Obsidian vault: one note per memory under knowledge/, one stub per
-    entity under entities/. `[[Entity]]` links + relationship lines make Obsidian's graph view
-    reproduce the knowledge graph. Backend-agnostic. Idempotent (clean overwrite + orphan prune).
+    """Render export() as an Obsidian vault. Memories → knowledge/<id>.md, entities → entities/<slug>.md
+    (variants merged via aliases so the graph is connected, not fragmented), plus Home.md and per-repo
+    index notes. `[[Entity]]` links reproduce the knowledge graph in Obsidian's graph view. Existing
+    entity descriptions (from --describe) are preserved across runs. Backend-agnostic, idempotent.
     Returns {'memories', 'entities', 'pruned'}."""
     out = Path(out_dir).expanduser()
-    kdir, edir = out / "knowledge", out / "entities"
-    kdir.mkdir(parents=True, exist_ok=True)
-    edir.mkdir(parents=True, exist_ok=True)
+    kdir, edir, idir = out / "knowledge", out / "entities", out / "indexes"
+    for d in (kdir, edir, idir):
+        d.mkdir(parents=True, exist_ok=True)
     scope = set(repos) if repos else None
 
     def in_scope(m):
@@ -716,40 +797,82 @@ def export_vault(out_dir, repos=None):
     mems = [m for m in export() if not is_superseded(m) and in_scope(m)
             and (m.get("metadata") or {}).get("kind") != "msg"]  # skip cross-workspace mailbox msgs
 
-    ents = {}  # name -> {"type", "desc"}; harvested from entities[] AND relationship endpoints
+    # --- pass 1: canonicalize entities (merge variants, keep a type, drop noise) -------------------
+    raw_count, raw_type = defaultdict(int), {}
 
-    def note_ent(name, etype="", desc=""):
-        if not name:
-            return
-        cur = ents.setdefault(name, {"type": "", "desc": ""})
-        cur["type"] = cur["type"] or etype
-        cur["desc"] = cur["desc"] or desc
+    def see(name, etype=""):
+        if name:
+            raw_count[name] += 1
+            if etype and not raw_type.get(name):
+                raw_type[name] = etype
 
     for m in mems:
         md = m.get("metadata") or {}
         for e in (md.get("entities") or []):
-            if isinstance(e, dict):
-                note_ent(e.get("entity"), e.get("entity_type") or e.get("type", ""), e.get("description", ""))
-            else:
-                note_ent(e)
+            see(e.get("entity"), e.get("entity_type") or e.get("type", "")) if isinstance(e, dict) else see(e)
         for e in (m.get("entity_refs") or []):
-            note_ent(e)
+            see(e)
         for r in (md.get("relationships") or []):
-            note_ent(r.get("source")); note_ent(r.get("destination"))
+            see(r.get("source")); see(r.get("destination"))
 
+    groups = {}  # key -> {variants:{name:count}, type}
+    for name, c in raw_count.items():
+        k = _ent_key(name)
+        if not k:
+            continue
+        g = groups.setdefault(k, {"variants": defaultdict(int), "type": ""})
+        g["variants"][name] += c
+        g["type"] = g["type"] or raw_type.get(name, "")
+
+    resolver, canon = {}, {}  # raw name -> display|None ; key -> {display, aliases, type}
+    for k, g in groups.items():
+        display = max(g["variants"], key=lambda n: (g["variants"][n], len(n)))
+        if _is_noise_entity(display):
+            for n in g["variants"]:
+                resolver[n] = None
+            continue
+        for n in g["variants"]:
+            resolver[n] = display
+        canon[k] = {"display": display, "type": g["type"] or "unknown",
+                    "aliases": sorted(set(g["variants"]) - {display})}
+
+    # --- pass 2: write memory notes + tally per-entity link counts + per-repo buckets --------------
+    ent_links = defaultdict(int)
+    by_repo = defaultdict(list)
     keep_k = set()
     for m in mems:
+        ents, _ = _resolved_entities(m, resolver)
+        for d in ents:
+            ent_links[d] += 1
+        by_repo[(m.get("metadata") or {}).get("repo", "general")].append(m)
         fn = _slug(m.get("id") or uuid.uuid4().hex) + ".md"
-        (kdir / fn).write_text(_memory_md(m), encoding="utf-8")
+        (kdir / fn).write_text(_memory_md(m, resolver), encoding="utf-8")
         keep_k.add(fn)
+
+    # --- entity notes (preserve any existing description) -----------------------------------------
     keep_e, taken = set(), set()
-    for name, meta in ents.items():
-        fn = _slug(name, taken) + ".md"
-        (edir / fn).write_text(_entity_md(name, meta["type"], meta["desc"]), encoding="utf-8")
+    for k, meta in canon.items():
+        fn = _slug(meta["display"], taken) + ".md"
+        desc = _existing_entity_desc(edir / fn)
+        (edir / fn).write_text(_entity_md(meta["display"], meta["type"], meta["aliases"], desc,
+                                          ent_links.get(meta["display"], 0)), encoding="utf-8")
         keep_e.add(fn)
 
-    pruned = _prune(kdir, keep_k) + _prune(edir, keep_e)
-    return {"memories": len(mems), "entities": len(ents), "pruned": pruned}
+    # --- hub notes: Home + one index per repo -----------------------------------------------------
+    top = lambda names, n: sorted(((d, ent_links[d]) for d in names), key=lambda x: -x[1])[:n]
+    repo_rows = sorted(((r, len(ms)) for r, ms in by_repo.items()), key=lambda x: -x[1])
+    keep_i = set()
+    for repo, ms in by_repo.items():
+        seen = {d for m in ms for d in _resolved_entities(m, resolver)[0]}
+        fn = f"repo-{_slug(repo)}.md"
+        (idir / fn).write_text(_repo_index_md(repo, ms, top(seen, 10)), encoding="utf-8")
+        keep_i.add(fn)
+    (out / "Home.md").write_text(
+        _home_md({"memories": len(mems), "entities": len(canon)}, repo_rows, top(ent_links, 20)),
+        encoding="utf-8")
+
+    pruned = _prune(kdir, keep_k) + _prune(edir, keep_e) + _prune(idir, keep_i)
+    return {"memories": len(mems), "entities": len(canon), "pruned": pruned}
 
 
 def _num(v):
@@ -801,6 +924,77 @@ def import_vault(vault_dir, apply=False):
     return {"changed": changed, "applied": applied, "skipped": skipped}
 
 
+def _parse_list(s):
+    """Parse a frontmatter list value we wrote (e.g. '["a", "b"]') back to a Python list."""
+    try:
+        v = json.loads(s) if s and s.strip().startswith("[") else []
+        return v if isinstance(v, list) else []
+    except Exception:
+        return []
+
+
+def describe_entities(vault_dir, limit=60, min_links=3, claude_cmd=None):
+    """One `claude -p` call writes a 1-line description for the most-connected entities, grounded in
+    the memories that mention them. Only touches target entity notes; export_vault preserves the text
+    on later runs. Opt-in (it costs an LLM call). Returns {'described': n} or {'error': ...}."""
+    root = Path(vault_dir).expanduser()
+    edir, kdir = root / "entities", root / "knowledge"
+    if not edir.is_dir():
+        return {"error": "no vault at " + str(root)}
+    ev = defaultdict(list)  # entity display -> [memory contents that mention it]
+    for p in kdir.glob("*.md"):
+        try:
+            _, body = _parse_frontmatter(p.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        content = _content_before_sections(body)
+        for name in set(re.findall(r"\[\[([^\]|]+)\]\]", body)):
+            if content:
+                ev[name].append(content)
+
+    targets = []  # (links, name, path, type, aliases)
+    for p in edir.glob("*.md"):
+        try:
+            fm, body = _parse_frontmatter(p.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        if fm.get("source") != "carryover":
+            continue
+        links = int(fm.get("links") or 0)
+        if links < min_links:
+            continue
+        name = next((ln[2:].strip() for ln in body.split("\n") if ln.startswith("# ")), p.stem)
+        targets.append((links, name, p, fm.get("entity_type", ""), _parse_list(fm.get("aliases"))))
+    targets.sort(key=lambda x: -x[0])
+    targets = targets[:limit]
+    if not targets:
+        return {"described": 0}
+
+    blocks = [f"### {name}\n{' | '.join(ev.get(name, [])[:6])[:600]}" for _, name, _, _, _ in targets]
+    prompt = ("For each entity below, write ONE concise sentence (max ~20 words) describing what it "
+              "is, based only on the evidence. Output exactly one line per entity as:\n"
+              "ENTITY<TAB>description\n(a literal tab between the exact entity name and the sentence; "
+              "no bullets, no extra text.)\n\n" + "\n\n".join(blocks))
+    try:
+        out = subprocess.run(claude_cmd or ["claude", "-p"], input=prompt,
+                             capture_output=True, text=True, timeout=240).stdout
+    except Exception as e:
+        return {"error": str(e)}
+
+    desc = {}
+    for ln in out.splitlines():
+        if "\t" in ln:
+            k, v = ln.split("\t", 1)
+            desc[k.strip()] = v.strip()
+    n = 0
+    for links, name, p, etype, aliases in targets:
+        d = desc.get(name)
+        if d:
+            p.write_text(_entity_md(name, etype, aliases, d, links), encoding="utf-8")
+            n += 1
+    return {"described": n, "targets": len(targets)}
+
+
 def _demo():
     """Self-check: round-trip a fake memory through _memory_md → parse content back; slug dedups."""
     m = {"id": "abc-123", "content": "hello world", "importance": 0.8, "access_count": 2,
@@ -808,18 +1002,31 @@ def _demo():
          "metadata": {"repo": "carryover", "tags": ["a", "b c"], "facts": ["f1"],
                       "entities": [{"entity": "X", "entity_type": "tech"}],
                       "relationships": [{"source": "X", "relationship": "uses", "destination": "Y"}]}}
-    md = _memory_md(m)
+    md = _memory_md(m, {})
     fm, body = _parse_frontmatter(md)
     assert fm["id"] == "abc-123" and fm["source"] == "carryover", fm
     assert _content_before_sections(body) == "hello world", repr(_content_before_sections(body))
-    assert "[[X]]" in md and "[[Y]]" in md and "#b-c" in md, md
+    assert "[[X]]" in md and "[[Y]]" in md and "#b-c" in md and "#repo/carryover" in md, md
     # a memory with tags but no sections must not swallow the #tags line into content
     m2 = {"id": "z", "content": "just this", "metadata": {"tags": ["t1"]}}
-    _, b2 = _parse_frontmatter(_memory_md(m2))
+    _, b2 = _parse_frontmatter(_memory_md(m2, {}))
     assert _content_before_sections(b2) == "just this", repr(_content_before_sections(b2))
     taken = set()
     assert _slug("Ada Lovelace", taken) == "ada-lovelace"
     assert _slug("Ada Lovelace", taken) == "ada-lovelace-2"  # dedup
+    # entity hygiene: variants share a canonical key; pure numbers are noise
+    assert _ent_key("HarrySchool") == _ent_key("harry-school") == _ent_key("Harry School")
+    assert _is_noise_entity("3000") and _is_noise_entity("x") and not _is_noise_entity("co-dash")
+    # resolver rewrites a memory's links to the canonical display and drops noise
+    r = {"X": "Xavier", "N": None}
+    md3 = _memory_md({"id": "q", "content": "c", "metadata": {"entities": [{"entity": "X"}, {"entity": "N"}]}}, r)
+    assert "[[Xavier]]" in md3 and "[[N]]" not in md3, md3
+    # prune must recognise the QUOTED frontmatter we actually write (regression: it looked for unquoted)
+    d = Path(tempfile.mkdtemp())
+    (d / "gen.md").write_text(_entity_md("Gen", "tech"), encoding="utf-8")   # source: "carryover"
+    (d / "mine.md").write_text("# my own note\n", encoding="utf-8")
+    assert _prune(d, set()) == 1, "prune should drop the generated note only"
+    assert not (d / "gen.md").exists() and (d / "mine.md").exists()
     print("co_store vault self-check: OK")
 
 

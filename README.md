@@ -56,10 +56,12 @@ A local layer that makes your context **carry over** across tools, projects and 
   **Features** catalog) and updates them **incrementally** (preserves existing pages, adds only
   what changed) on push to master/main.
 - 📖 **Obsidian vault** (`co-vault`) — one command materializes your whole knowledge base **and**
-  every repo wiki into a single Obsidian vault: memories become notes, entities become nodes so
-  Obsidian's native **graph view** reproduces your knowledge graph, and wikis are symlinked in —
-  no plugins. It's **two‑way**: edit a note's text or importance in Obsidian and it syncs back to
-  the store on the next `co-vault`.
+  every repo wiki into a single Obsidian vault, no plugins: memories become notes, entities become
+  nodes (name variants **merged** so the graph is connected, not fragmented) so Obsidian's native
+  **graph view** — colour‑coded by folder — reproduces your knowledge graph. Ships a **Home** page +
+  per‑repo indexes and a **Bases** table. It's **two‑way**: edit a note's text or importance in
+  Obsidian and it syncs back on the next `co-vault`. `co-vault-describe` adds one‑line LLM blurbs to
+  the top entities.
 - 🤝 **Cross‑workspace coordination** (Conductor) — leave notes, `/handoff` or `/handover` a task,
   and group workspaces into role‑based **teams**, all over the shared store. Delivery is automatic on
   a workspace's next turn — it's *coordination between separate, persistent workspaces*, not an
@@ -182,6 +184,7 @@ You still need the headroom proxy for memory/compression:
 | `co-wiki-prune` | drop dead entries from the wiki registry (alias: `wiki-prune`) |
 | `co-vault [dir]` | build/refresh a unified **Obsidian vault** (knowledge notes + entity graph + every repo wiki), two‑way sync, and register it with Obsidian |
 | `co-vault-open` | open the vault in Obsidian |
+| `co-vault-describe` | refresh the vault **and** write 1‑line LLM blurbs for the most‑connected entities |
 | `co-dash` | local dashboard (overview, knowledge + wikis) |
 | `co-backup` / `co-restore <file>` | snapshot / restore all memories (carry them to another machine) |
 | `co-mcp` | run carryover's MCP server (use the memory from Cursor, Claude Desktop, any MCP client) |
@@ -189,7 +192,7 @@ You still need the headroom proxy for memory/compression:
 | `carryover status` | is routing on? |
 | `carryover on` / `off` | turn proxy routing on / off (`--session` = this shell only) |
 | `carryover doctor [--fix]` | health-check the whole setup (and auto-repair with `--fix`) |
-| `carryover update` | pull the latest carryover + re-sync this machine (no manual copies) |
+| `carryover update` | pull the latest carryover + re-sync this machine (and upgrade headroom if installed) |
 | `carryover version` | show installed version + whether updates are pending |
 | `carryover persist` | make the proxy survive reboot (bootstrap its launchd service) |
 | `carryover wrap <tool>` | route another tool (Cursor, Codex…) through the proxy |

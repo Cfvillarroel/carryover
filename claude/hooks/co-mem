@@ -46,6 +46,9 @@ elif cmd == "vault":                                  # co-mem vault [dir] [--re
 elif cmd == "vault-import":                            # co-mem vault-import [dir] [--apply]  ← edits back
     out = next((x for x in a[1:] if not x.startswith("-")), os.path.expanduser("~/Documents/carryover-vault"))
     print(json.dumps(co_store.import_vault(out, apply="--apply" in a), ensure_ascii=False))
+elif cmd == "vault-describe":                          # co-mem vault-describe [dir]  → LLM entity blurbs
+    out = next((x for x in a[1:] if not x.startswith("-")), os.path.expanduser("~/Documents/carryover-vault"))
+    print(json.dumps(co_store.describe_entities(out), ensure_ascii=False))
 elif cmd == "supersede":
     print(co_store.supersede(a[1], a[2]))
 elif cmd == "search":

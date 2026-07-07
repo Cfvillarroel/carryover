@@ -26,6 +26,7 @@ co-wiki-prune() {   # drop dead entries (gone worktrees) from carryover's wiki r
 alias wiki-prune="co-wiki-prune"                            # compat alias of co-wiki-prune
 alias co-vault="bash $HOME/.carryover/vault-gen.sh"        # build/refresh the Obsidian vault (knowledge + all wikis)
 alias co-vault-open="open 'obsidian://open?path=$HOME/Documents/carryover-vault/README.md'"  # open the vault in Obsidian
+alias co-vault-describe="bash $HOME/.carryover/vault-gen.sh --describe"  # refresh + LLM 1-line blurbs for top entities
 alias co-recall="bash $HOME/.carryover/recall.sh"          # recall knowledge (semantic w/ headroom; this repo's group, --all for every repo)
 alias co-forget="bash $HOME/.carryover/forget.sh"          # forget memories by keyword (with confirm)
 alias hr-recall="bash $HOME/.carryover/recall.sh"          # compat alias of co-recall
@@ -215,6 +216,12 @@ carryover() {
       [ -d "$SRC/.git" ] || { echo "$tag ${E}✗${R} no checkout at $SRC (set CARRYOVER_SRC)"; return 1; }
       git -C "$SRC" -c http.lowSpeedLimit=1000 -c http.lowSpeedTime=20 pull --ff-only || { echo "$tag ${E}✗${R} 'git pull' failed/timed out in $SRC (network down, or repo dirty/diverged?)"; return 1; }
       bash "$SRC/install.sh" --files-only || return 1
+      if [ -x "$HOME/.headroom/venv/bin/pip" ]; then   # also pull the latest headroom (skipped if not installed)
+        echo "$tag ${D}updating headroom…${R}"
+        "$HOME/.headroom/venv/bin/pip" install -q --upgrade "headroom-ai[all]" \
+          && echo "$tag ${G}✓ headroom updated${R}" \
+          || echo "$tag ${Y}⚠ headroom update skipped${R}${D} (offline? re-run later)${R}"
+      fi
       if pgrep -f "carryover/carryover-dash.py" >/dev/null; then
         pkill -f "carryover/carryover-dash.py"
         (nohup python3 "$HOME/.carryover/carryover-dash.py" >>"$HOME/.carryover/dash.log" 2>&1 &)
