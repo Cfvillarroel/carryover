@@ -38,5 +38,7 @@ jobs:
         run: python3 tests/test_dedup.py
       - name: memory backend (builtin) test
         run: python3 tests/test_store.py
+      - name: Obsidian vault export/import test
+        run: python3 tests/test_vault.py
       - name: install/uninstall sandbox test
         run: bash tests/sandbox-test.sh

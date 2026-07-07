@@ -11,7 +11,7 @@
 <strong>The memory your AI takes everywhere.</strong><br/>
 <sub><em>one brain, every tool — packed in a carry-on 💼</em></sub>
 
-<sub>shared persistent memory · 60–95% fewer tokens · auto-wiki · cross-workspace messaging · playbooks · save-to-memory<br/>
+<sub>shared persistent memory · 60–95% fewer tokens · auto-wiki · Obsidian vault · cross-workspace messaging · playbooks · save-to-memory<br/>
 Claude Code · Cursor · Windsurf · Conductor — one install · 100% local</sub>
 
 <p>
@@ -56,6 +56,16 @@ proyectos y sesiones:
 - 📄 **Wiki automática** — un LLM escribe docs + diagramas mermaid (visión general, arquitectura,
   flujos + un catálogo de **Features**) y los actualiza de forma **incremental** (preserva las
   páginas existentes, añade solo lo que cambió) al hacer push a master/main.
+- 📖 **Vault de Obsidian** (`co-vault`) — un comando materializa todo tu conocimiento **y** cada
+  wiki de repo en un solo vault de Obsidian, sin plugins: las memorias se vuelven notas, las
+  entidades nodos (variantes de nombre **fusionadas**, y tags/adjuntos/ruido ocultos, así el grafo
+  queda **conectado, no fragmentado**) y el **graph view** nativo de Obsidian —coloreado por
+  carpeta— reproduce tu grafo de conocimiento. Trae una página **Home** + índices por repo y una
+  tabla **Bases** (requiere Obsidian 1.9+). Es **de dos vías y ese es el punto**: editás el texto de
+  una nota o le subís el **`importance`** en Obsidian y vuelve al store en el próximo `co-vault` —
+  así **las próximas sesiones lo recuerdan, mejor rankeado**. (Solo el primer párrafo y el importance
+  hacen round-trip; facts, entidades y relaciones son derivados y read-only.) `co-vault-describe`
+  agrega descripciones de 1 línea (LLM) a las entidades **más conectadas**.
 - 🤝 **Coordinación entre workspaces** (Conductor) — dejá notas, `/handoff` o `/handover` de una
   tarea, y agrupá workspaces en **teams** con roles, todo sobre el store compartido. La entrega es
   automática en el próximo turno de cada workspace — es *coordinación entre workspaces separados y
@@ -103,7 +113,7 @@ Dos cosas a tener en cuenta:
 
 - Los **comandos de terminal** (`co-dash`, `mem-save`, `co-recall`, `carryover …`) funcionan en
   la terminal integrada de **cualquier** herramienta — viven en tu shell (`~/.zshrc`), no en una app.
-- Los **slash commands** (`/headroom`, `/recall`, `/carryover`, `/wiki-enable`) y la barra 🐴/🧠
+- Los **slash commands** (`/headroom`, `/recall`, `/carryover`, `/wiki-enable`, `/vault`) y la barra 🐴/🧠
   son **solo de Claude Code**. Las demás herramientas reciben la memoria + compresión, no el slash UI.
 - Una herramienta **no** se auto-detecta — comparte todo solo después de apuntarla al proxy una vez.
 
@@ -182,6 +192,10 @@ Igual necesitas el proxy de headroom para memoria/compresión:
 | `co-wiki-enable` | activar la auto-wiki en el repo actual, genera la primera (alias: `wiki-enable`) |
 | `co-wiki-gen` | actualizar la wiki del repo actual a demanda, incrementalmente (alias: `wiki-gen`) |
 | `co-wiki-prune` | podar entradas muertas del registro de wikis (alias: `wiki-prune`) |
+| `co-vault [dir]` | armar/refrescar un **vault de Obsidian** unificado (notas de conocimiento + grafo de entidades + cada wiki de repo), sync de dos vías, y registrarlo en Obsidian. Cae en `~/Documents/carryover-vault` salvo que pases `dir` |
+| `co-vault clean` \| `remove` \| `prune` | **clean** = reconstruir config/hubs en limpio (re-importa primero; tus edits sincronizados y descripciones LLM se mantienen, nunca toca el store) · **remove** = borrar el vault + desregistrarlo de Obsidian (`--yes` salta la confirmación) · **prune** = re-importar edits, luego podar solo notas huérfanas generadas |
+| `co-vault-open` | abrir el vault en Obsidian |
+| `co-vault-describe` | refrescar el vault **y** escribir descripciones LLM de 1 línea para las entidades más conectadas |
 | `co-dash` | dashboard local (overview, conocimiento + wikis) |
 | `co-backup` / `co-restore <file>` | respaldar / restaurar todas las memorias (llevarlas a otra máquina) |
 | `co-mcp` | correr el MCP server de carryover (usar la memoria desde Cursor, Claude Desktop, cualquier cliente MCP) |
@@ -200,7 +214,7 @@ repo* como contexto — así el conocimiento vuelve solo, no solo se guarda. Cad
 (automático al iniciar sesión o con `/recall`) se cuenta por memoria, así `co-dash` muestra
 qué memorias se reutilizan de verdad (la insignia ♻).
 
-Dentro de Claude (cualquier workspace): `/headroom`, `/carryover` (on/off/status), `/recall [--all] <consulta>`, `/wiki-enable`.
+Dentro de Claude (cualquier workspace): `/headroom`, `/carryover` (on/off/status), `/recall [--all] <consulta>`, `/wiki-enable`, `/vault` (vault de Obsidian).
 Barra de estado: **🐴** ponytail activo, **🧠** headroom activo.
 
 ## Mensajes entre workspaces
@@ -427,6 +441,44 @@ cd /ruta/a/tu/repo && co-wiki-enable     # activa + genera la primera wiki ahora
 co-wiki-gen                               # actualizar la wiki incrementalmente a demanda (sin push)
 WIKI_PUBLISH=1 co-wiki-gen                # además publicar al wiki de GitHub
 ```
+
+## Vault de Obsidian (conocimiento + wikis, dos vías)
+
+`co-vault` materializa todo tu conocimiento **y** cada wiki de repo en un solo vault de
+[Obsidian](https://obsidian.md) — sin plugins. Las memorias se vuelven notas, las entidades nodos, y
+el **graph view** nativo de Obsidian (coloreado por carpeta) reproduce tu grafo de conocimiento.
+
+```bash
+co-vault            # armar/refrescar → ~/Documents/carryover-vault (y registrarlo en Obsidian)
+co-vault-open       # abrirlo en Obsidian
+co-vault-describe   # refrescar + descripciones LLM de 1 línea para las entidades más conectadas (una llamada claude -p)
+co-vault clean      # reconstruir config/hubs en limpio — mantiene tus edits + descripciones, nunca toca el store
+co-vault prune      # podar notas huérfanas generadas
+co-vault remove     # borrar el vault + desregistrarlo de Obsidian (--yes salta la confirmación)
+```
+
+**Qué contiene**
+
+| Ruta | Qué |
+|---|---|
+| `knowledge/` | una nota por memoria — contenido, facts, links `[[entidad]]`, relaciones |
+| `entities/` | un nodo por entidad, variantes de nombre **fusionadas** (`HarrySchool` = `harry-school`) para que el grafo quede conectado, no fragmentado |
+| `indexes/` + `Home.md` | una página home y un índice por repo (memorias agrupadas por categoría, top entidades) — cientos de notas planas vueltas navegables |
+| `wikis/<repo>/` | un symlink a la auto-wiki de cada repo registrado, para que los docs vivan al lado del conocimiento |
+| `knowledge.base` | una tabla **Bases** de Obsidian (requiere Obsidian 1.9+) para navegar memorias por repo / importancia / reuso |
+
+**Por qué es de dos vías — y por qué ese es el punto.** Una sesión de Claude no lee el vault
+directamente; recuerda del store. El vault es donde **vos** curás ese store: corregís el texto de una
+memoria, o le subís el **`importance`**, y vuelve en el próximo `co-vault` — así **las próximas
+sesiones lo recuerdan, mejor rankeado**. (Solo el primer párrafo + importance hacen round-trip;
+facts, entidades y relaciones son derivados y read-only.) El ciclo:
+
+> una sesión **escribe** memorias → vos las **curás** en Obsidian (corregís, priorizás, explorás el
+> grafo) → **vuelven** al store → la próxima sesión **recuerda** conocimiento mejor y mejor rankeado.
+
+Todo bajo `knowledge/`, `entities/`, `indexes/` y `Home.md` se regenera en cada corrida (poda las
+notas huérfanas); tus symlinks de `wikis/` y cualquier nota que agregues vos quedan intactos. El
+vault vive en una carpeta visible y está registrado en Obsidian, así aparece en el selector de vaults.
 
 <details>
 <summary><b>Gestionar / desinstalar headroom</b></summary>
