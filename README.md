@@ -430,6 +430,44 @@ co-wiki-gen                               # update the wiki incrementally on dem
 WIKI_PUBLISH=1 co-wiki-gen                # also push to the GitHub wiki
 ```
 
+## Obsidian vault (knowledge + wikis, two‑way)
+
+`co-vault` materializes your whole knowledge base **and** every repo wiki into a single
+[Obsidian](https://obsidian.md) vault — no plugins. Memories become notes, entities become nodes,
+and Obsidian's native **graph view** (colour‑coded by folder) reproduces your knowledge graph.
+
+```bash
+co-vault            # build/refresh → ~/Documents/carryover-vault (and register it with Obsidian)
+co-vault-open       # open it in Obsidian
+co-vault-describe   # refresh + 1‑line LLM blurbs for the most‑connected entities (one claude -p call)
+co-vault clean      # rebuild config/hubs fresh — keeps your edits + blurbs, never touches the store
+co-vault prune      # drop orphaned generated notes
+co-vault remove     # delete the vault + unregister it from Obsidian (--yes skips the prompt)
+```
+
+**What's in it**
+
+| Path | What |
+|---|---|
+| `knowledge/` | one note per memory — content, facts, `[[entity]]` links, relationships |
+| `entities/` | one node per entity, name variants **merged** (`HarrySchool` = `harry-school`) so the graph is connected, not fragmented |
+| `indexes/` + `Home.md` | a home page and a per‑repo index (memories grouped by category, top entities) — hundreds of flat notes made navigable |
+| `wikis/<repo>/` | a symlink to each registered repo's auto‑wiki, so docs sit beside the knowledge |
+| `knowledge.base` | an Obsidian **Bases** table (needs Obsidian 1.9+) to browse memories by repo / importance / reuse |
+
+**Why it's two‑way — and why that's the point.** A Claude session doesn't read the vault directly;
+it recalls from the store. The vault is where **you** curate that store: fix a memory's wording, or
+raise its **`importance`**, and it syncs back on the next `co-vault` — so **future sessions recall it,
+ranked higher**. (Only the first paragraph + importance round‑trip; facts, entities and relationships
+are derived and read‑only.) The loop:
+
+> a session **writes** memories → you **curate** them in Obsidian (correct, prioritize, explore the
+> graph) → they **sync back** → the next session **recalls** better, better‑ranked knowledge.
+
+Everything under `knowledge/`, `entities/`, `indexes/` and `Home.md` is regenerated on each run
+(stale notes pruned); your `wikis/` symlinks and any notes you add yourself are left untouched. The
+vault lives in a visible folder and is registered with Obsidian, so it shows up in the vault switcher.
+
 <details>
 <summary><b>Manage / uninstall headroom</b></summary>
 
