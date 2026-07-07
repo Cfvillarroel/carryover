@@ -654,8 +654,11 @@ def _content_before_sections(body):
 
 
 def _ent_key(name):
-    """Canonical key for merging entity name variants (HarrySchool == harry-school == 'Harry School')."""
-    return re.sub(r"[^a-z0-9]+", "", (name or "").lower())
+    """Canonical key for merging entity name variants: case/separators (HarrySchool == harry-school ==
+    'Harry School') and a trailing file extension (carryover-doctor == carryover-doctor.sh)."""
+    s = re.sub(r"\.(sh|py|ts|tsx|js|jsx|mjs|json|md|txt|ya?ml|sql|css|scss|html|toml|cfg|ini)$",
+               "", (name or "").strip().lower())
+    return re.sub(r"[^a-z0-9]+", "", s)
 
 
 def _is_noise_entity(display):
@@ -705,8 +708,8 @@ def _memory_md(m, resolver):
     if rels:
         body += ["", "## Relationships"]
         body += [f"- [[{s}]] — {v} → [[{t}]]" for s, v, t in rels]
-    trailing = [_tag(t) for t in tags] + [f"#repo/{_slug(repo)}"]   # #repo/<name> → colour the graph by repo
-    body += ["", " ".join(trailing)]
+    if tags:
+        body += ["", " ".join(_tag(t) for t in tags)]   # graph colours by folder (graph.json), not repo tags
     return "\n".join(body) + "\n"
 
 
@@ -1006,7 +1009,7 @@ def _demo():
     fm, body = _parse_frontmatter(md)
     assert fm["id"] == "abc-123" and fm["source"] == "carryover", fm
     assert _content_before_sections(body) == "hello world", repr(_content_before_sections(body))
-    assert "[[X]]" in md and "[[Y]]" in md and "#b-c" in md and "#repo/carryover" in md, md
+    assert "[[X]]" in md and "[[Y]]" in md and "#b-c" in md and "#repo/" not in md, md
     # a memory with tags but no sections must not swallow the #tags line into content
     m2 = {"id": "z", "content": "just this", "metadata": {"tags": ["t1"]}}
     _, b2 = _parse_frontmatter(_memory_md(m2, {}))
@@ -1016,6 +1019,7 @@ def _demo():
     assert _slug("Ada Lovelace", taken) == "ada-lovelace-2"  # dedup
     # entity hygiene: variants share a canonical key; pure numbers are noise
     assert _ent_key("HarrySchool") == _ent_key("harry-school") == _ent_key("Harry School")
+    assert _ent_key("carryover-doctor") == _ent_key("carryover-doctor.sh")  # extension merge
     assert _is_noise_entity("3000") and _is_noise_entity("x") and not _is_noise_entity("co-dash")
     # resolver rewrites a memory's links to the canonical display and drops noise
     r = {"X": "Xavier", "N": None}

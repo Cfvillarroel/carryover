@@ -183,6 +183,7 @@ You still need the headroom proxy for memory/compression:
 | `co-wiki-gen` | update the current repo's wiki on demand, incrementally (alias: `wiki-gen`) |
 | `co-wiki-prune` | drop dead entries from the wiki registry (alias: `wiki-prune`) |
 | `co-vault [dir]` | build/refresh a unified **Obsidian vault** (knowledge notes + entity graph + every repo wiki), two‑way sync, and register it with Obsidian |
+| `co-vault clean` \| `remove` \| `prune` | rebuild fresh (refresh config/hubs) · delete the vault + unregister · just prune orphaned notes |
 | `co-vault-open` | open the vault in Obsidian |
 | `co-vault-describe` | refresh the vault **and** write 1‑line LLM blurbs for the most‑connected entities |
 | `co-dash` | local dashboard (overview, knowledge + wikis) |
