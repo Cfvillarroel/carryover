@@ -3,7 +3,7 @@
 doctor) and the dashboard. Routes to headroom or the built-in SQLite store transparently.
 Usage: co-mem export <file> | import <file> | delete <id…> | edit <id> [--content X] [--importance Y]
        | touch <id…> | supersede <old> <new> | recall [--repo R] [--all] <query…> | search <query…>
-       | stats | backend"""
+       | vault [dir] [--repo R] | vault-import [dir] [--apply] | stats | backend"""
 import json
 import os
 import sys
@@ -33,6 +33,19 @@ elif cmd == "touch":
     print(co_store.touch(a[1:]))
 elif cmd == "import":
     print(co_store.import_(a[1]))
+elif cmd == "vault":                                  # co-mem vault [dir] [--repo R]  → Obsidian vault
+    out, repo, i = os.path.expanduser("~/Documents/carryover-vault"), None, 1
+    while i < len(a):
+        if a[i] == "--repo" and i + 1 < len(a):
+            repo = a[i + 1]; i += 2
+        elif not a[i].startswith("-"):
+            out = a[i]; i += 1
+        else:
+            i += 1
+    print(json.dumps(co_store.export_vault(out, repos=co_store.group_for(repo) if repo else None), ensure_ascii=False))
+elif cmd == "vault-import":                            # co-mem vault-import [dir] [--apply]  ← edits back
+    out = next((x for x in a[1:] if not x.startswith("-")), os.path.expanduser("~/Documents/carryover-vault"))
+    print(json.dumps(co_store.import_vault(out, apply="--apply" in a), ensure_ascii=False))
 elif cmd == "supersede":
     print(co_store.supersede(a[1], a[2]))
 elif cmd == "search":
@@ -112,7 +125,8 @@ elif cmd == "team":                                   # co-mem team [list] | add
         sys.exit(1)
 else:
     sys.stderr.write("usage: co-mem export <file> | delete <id…> | edit <id> [--content X] [--importance Y] "
-                     "| touch <id…> | send <to> <msg> | inbox [who] [--peek] [--all] "
+                     "| touch <id…> | vault [dir] [--repo R] | vault-import [dir] [--apply] "
+                     "| send <to> <msg> | inbox [who] [--peek] [--all] "
                      "| connect <ws> | disconnect <ws> | connections | say <msg> "
                      "| team [list|add|rm|send|assign] | stats | backend\n")
     sys.exit(1)

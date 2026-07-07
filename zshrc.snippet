@@ -24,6 +24,8 @@ co-wiki-prune() {   # drop dead entries (gone worktrees) from carryover's wiki r
   echo "wiki-prune: removed $((before - after)) dead, $after remain"
 }
 alias wiki-prune="co-wiki-prune"                            # compat alias of co-wiki-prune
+alias co-vault="bash $HOME/.carryover/vault-gen.sh"        # build/refresh the Obsidian vault (knowledge + all wikis)
+alias co-vault-open="open 'obsidian://open?path=$HOME/Documents/carryover-vault/README.md'"  # open the vault in Obsidian
 alias co-recall="bash $HOME/.carryover/recall.sh"          # recall knowledge (semantic w/ headroom; this repo's group, --all for every repo)
 alias co-forget="bash $HOME/.carryover/forget.sh"          # forget memories by keyword (with confirm)
 alias hr-recall="bash $HOME/.carryover/recall.sh"          # compat alias of co-recall
@@ -133,6 +135,7 @@ carryover() {
         "co-wiki-enable:enable the auto-wiki in this repo · activar la auto-wiki en este repo"
         "co-wiki-gen:regenerate the repo wiki · regenerar la wiki del repo"
         "co-wiki-prune:drop dead entries from the wiki registry · podar wikis muertas del registro"
+        "co-vault:build/refresh the Obsidian vault (knowledge + wikis) · armar/refrescar el vault de Obsidian"
         "co-dash:open the local dashboard · abrir el panel local"
         "co-recall <q>:recall knowledge by keyword · recordar conocimiento por keyword"
         "co-forget <q>:delete memories by keyword (confirm) · borrar memorias por keyword"
@@ -164,6 +167,7 @@ carryover() {
         "/carryover:this command reference · esta referencia de comandos"
         "/recall <q>:recall knowledge by keyword · recordar conocimiento por keyword"
         "/wiki-enable:enable the auto-wiki here · activar la auto-wiki aquí"
+        "/vault:Obsidian vault (knowledge + wikis) · vault de Obsidian (conocimiento + wikis)"
         "/headroom:headroom status + memory · estado y memoria de headroom"
         "/inbox:read messages for this workspace · leer mensajes de este workspace"
         "/send <ws> <msg>:message another workspace · enviar a otro workspace"

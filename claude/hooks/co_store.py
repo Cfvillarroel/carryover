@@ -4,6 +4,7 @@ built-in SQLite store at ~/.carryover/memory.db. export() emits the SAME shape a
 headroom's `memory export`, so recall/forget/dashboard work unchanged either way."""
 import json
 import os
+import re
 import sqlite3
 import subprocess
 import tempfile
@@ -575,6 +576,253 @@ def import_(path):
         return 0
 
 
+# --- Obsidian vault: materialize export() as .md so the wiki + knowledge open together -----------
+# The wiki is already .md; this renders the SQLite knowledge as notes + entity stubs so Obsidian's
+# native graph view reproduces carryover's knowledge graph (no plugins). Two-way: content + importance
+# of a memory note round-trip back via edit(); facts/entities/relationships are derived (read-only).
+
+def _slug(name, taken=None):
+    """Filesystem-safe, deduped slug for a note filename. The entity note's H1 keeps the exact name,
+    so `[[Name]]` resolves regardless of the slug."""
+    s = re.sub(r"[^\w.-]+", "-", (name or "").strip().lower()).strip("-")[:120] or "unnamed"
+    if taken is not None:
+        base, i = s, 2
+        while s in taken:
+            s = f"{base}-{i}"; i += 1
+        taken.add(s)
+    return s
+
+
+def _tag(s):
+    """Inline #tag form — Obsidian tags can't hold spaces or most punctuation."""
+    return "#" + re.sub(r"[^\w/-]+", "-", str(s).strip()).strip("-")
+
+
+def _yaml_val(v):
+    """Value for our own flat frontmatter (str/number/flat string-list). We generate AND parse this,
+    so it needn't cover general YAML."""
+    if isinstance(v, list):
+        return "[" + ", ".join(_yaml_val(x) for x in v) + "]"
+    if isinstance(v, bool):
+        return "true" if v else "false"
+    if isinstance(v, (int, float)):
+        return str(v)
+    return '"' + str(v).replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
+def _frontmatter(d):
+    lines = ["---"]
+    for k, v in d.items():
+        if v is None or v == "" or v == []:
+            continue
+        lines.append(f"{k}: {_yaml_val(v)}")
+    lines.append("---")
+    return "\n".join(lines)
+
+
+def _parse_frontmatter(text):
+    """(dict, body) from a leading --- block. Parses only the flat scalars we write (id, importance…);
+    body is everything after the closing ---."""
+    d, body = {}, text
+    if text.startswith("---"):
+        lines = text.split("\n")
+        for i in range(1, len(lines)):
+            if lines[i].strip() == "---":
+                for ln in lines[1:i]:
+                    k, sep, v = ln.partition(":")
+                    if sep:
+                        d[k.strip()] = v.strip().strip('"')
+                body = "\n".join(lines[i + 1:])
+                break
+    return d, body
+
+
+def _content_before_sections(body):
+    """The human-editable region of a memory note = text after the frontmatter up to the first
+    '## ' heading or a trailing inline-#tags line (Facts/Entities/Relationships/tags are generated).
+    # ponytail: memory contents are 1-liners, so a literal '## ' inside content is a non-issue."""
+    out = []
+    for ln in body.split("\n"):
+        s = ln.strip()
+        if s.startswith("## "):
+            break
+        if s and all(t.startswith("#") for t in s.split()):  # inline #tags line → not content
+            break
+        out.append(ln)
+    return "\n".join(out).strip()
+
+
+def _memory_md(m):
+    md = m.get("metadata") or {}
+    tags = [t for t in (md.get("tags") or []) if t]
+    fm = {"id": m.get("id", ""), "source": "carryover", "repo": md.get("repo", "general"),
+          "category": md.get("category", ""), "importance": round(float(m.get("importance") or 0.5), 3),
+          "access_count": int(m.get("access_count") or 0), "created_at": m.get("created_at", ""), "tags": tags}
+    ents = [e.get("entity") if isinstance(e, dict) else e for e in (md.get("entities") or [])]
+    ents += list(m.get("entity_refs") or [])
+    body = [_frontmatter(fm), "", (m.get("content") or "").strip()]
+    facts = [f for f in (md.get("facts") or []) if f]
+    if facts:
+        body += ["", "## Facts"] + [f"- {f}" for f in facts]
+    ents = [e for e in dict.fromkeys(ents) if e]
+    if ents:
+        body += ["", "## Entities", " · ".join(f"[[{e}]]" for e in ents)]
+    rels = [r for r in (md.get("relationships") or []) if r.get("source") and r.get("destination")]
+    if rels:
+        body += ["", "## Relationships"]
+        body += [f"- [[{r['source']}]] — {r.get('relationship', '→')} → [[{r['destination']}]]" for r in rels]
+    if tags:
+        body += ["", " ".join(_tag(t) for t in tags)]
+    return "\n".join(body) + "\n"
+
+
+def _entity_md(name, etype="", desc=""):
+    body = [_frontmatter({"source": "carryover", "entity_type": etype or "unknown"}),
+            "", f"# {name}", "", f"> {etype or 'entity'}"]
+    if desc:
+        body += ["", desc.strip()]
+    return "\n".join(body) + "\n"
+
+
+def _prune(folder, keep):
+    """Delete generated *.md in `folder` not in `keep` — only files carrying our own
+    `source: carryover` marker, so a user's stray note is never removed."""
+    n = 0
+    for p in Path(folder).glob("*.md"):
+        if p.name in keep:
+            continue
+        try:
+            if "source: carryover" in p.read_text(encoding="utf-8")[:200]:
+                p.unlink(); n += 1
+        except Exception:
+            pass
+    return n
+
+
+def export_vault(out_dir, repos=None):
+    """Render export() as an Obsidian vault: one note per memory under knowledge/, one stub per
+    entity under entities/. `[[Entity]]` links + relationship lines make Obsidian's graph view
+    reproduce the knowledge graph. Backend-agnostic. Idempotent (clean overwrite + orphan prune).
+    Returns {'memories', 'entities', 'pruned'}."""
+    out = Path(out_dir).expanduser()
+    kdir, edir = out / "knowledge", out / "entities"
+    kdir.mkdir(parents=True, exist_ok=True)
+    edir.mkdir(parents=True, exist_ok=True)
+    scope = set(repos) if repos else None
+
+    def in_scope(m):
+        return scope is None or (m.get("metadata") or {}).get("repo", "general") in scope
+
+    mems = [m for m in export() if not is_superseded(m) and in_scope(m)
+            and (m.get("metadata") or {}).get("kind") != "msg"]  # skip cross-workspace mailbox msgs
+
+    ents = {}  # name -> {"type", "desc"}; harvested from entities[] AND relationship endpoints
+
+    def note_ent(name, etype="", desc=""):
+        if not name:
+            return
+        cur = ents.setdefault(name, {"type": "", "desc": ""})
+        cur["type"] = cur["type"] or etype
+        cur["desc"] = cur["desc"] or desc
+
+    for m in mems:
+        md = m.get("metadata") or {}
+        for e in (md.get("entities") or []):
+            if isinstance(e, dict):
+                note_ent(e.get("entity"), e.get("entity_type") or e.get("type", ""), e.get("description", ""))
+            else:
+                note_ent(e)
+        for e in (m.get("entity_refs") or []):
+            note_ent(e)
+        for r in (md.get("relationships") or []):
+            note_ent(r.get("source")); note_ent(r.get("destination"))
+
+    keep_k = set()
+    for m in mems:
+        fn = _slug(m.get("id") or uuid.uuid4().hex) + ".md"
+        (kdir / fn).write_text(_memory_md(m), encoding="utf-8")
+        keep_k.add(fn)
+    keep_e, taken = set(), set()
+    for name, meta in ents.items():
+        fn = _slug(name, taken) + ".md"
+        (edir / fn).write_text(_entity_md(name, meta["type"], meta["desc"]), encoding="utf-8")
+        keep_e.add(fn)
+
+    pruned = _prune(kdir, keep_k) + _prune(edir, keep_e)
+    return {"memories": len(mems), "entities": len(ents), "pruned": pruned}
+
+
+def _num(v):
+    try:
+        return round(float(v), 3)
+    except Exception:
+        return None
+
+
+def import_vault(vault_dir, apply=False):
+    """The way back: read edits from knowledge/*.md and push content + importance to the store via
+    edit() (only those two round-trip safely). Deleting a note never deletes a memory; duplicate ids
+    are skipped. apply=False → dry-run. Returns {'changed', 'applied', 'skipped'}."""
+    kdir = Path(vault_dir).expanduser() / "knowledge"
+    by_id = {m.get("id"): m for m in export() if m.get("id")}
+    seen, dup = {}, set()
+    for p in sorted(kdir.glob("*.md")):
+        try:
+            fm, body = _parse_frontmatter(p.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        if fm.get("source") != "carryover" or not fm.get("id"):
+            continue
+        mid = fm["id"]
+        if mid in seen:
+            dup.add(mid)
+        seen.setdefault(mid, []).append((fm, body))
+
+    changed, skipped = [], []
+    for mid, notes in seen.items():
+        if mid in dup:
+            skipped.append({"id": mid, "why": "duplicate id in vault"}); continue
+        if mid not in by_id:
+            skipped.append({"id": mid, "why": "not in store"}); continue
+        fm, body = notes[0]
+        new_content = _content_before_sections(body)
+        cur = (by_id[mid].get("content") or "").strip()
+        cdiff = bool(new_content) and new_content != cur
+        idiff = fm.get("importance") not in (None, "") and _num(fm["importance"]) != _num(by_id[mid].get("importance"))
+        if cdiff or idiff:
+            changed.append({"id": mid, "content": new_content if cdiff else None,
+                            "importance": fm["importance"] if idiff else None})
+
+    applied = 0
+    if apply:
+        for ch in changed:
+            if edit(ch["id"], ch.get("content"), ch.get("importance")):
+                applied += 1
+    return {"changed": changed, "applied": applied, "skipped": skipped}
+
+
+def _demo():
+    """Self-check: round-trip a fake memory through _memory_md → parse content back; slug dedups."""
+    m = {"id": "abc-123", "content": "hello world", "importance": 0.8, "access_count": 2,
+         "created_at": "2026-01-01T00:00:00",
+         "metadata": {"repo": "carryover", "tags": ["a", "b c"], "facts": ["f1"],
+                      "entities": [{"entity": "X", "entity_type": "tech"}],
+                      "relationships": [{"source": "X", "relationship": "uses", "destination": "Y"}]}}
+    md = _memory_md(m)
+    fm, body = _parse_frontmatter(md)
+    assert fm["id"] == "abc-123" and fm["source"] == "carryover", fm
+    assert _content_before_sections(body) == "hello world", repr(_content_before_sections(body))
+    assert "[[X]]" in md and "[[Y]]" in md and "#b-c" in md, md
+    # a memory with tags but no sections must not swallow the #tags line into content
+    m2 = {"id": "z", "content": "just this", "metadata": {"tags": ["t1"]}}
+    _, b2 = _parse_frontmatter(_memory_md(m2))
+    assert _content_before_sections(b2) == "just this", repr(_content_before_sections(b2))
+    taken = set()
+    assert _slug("Ada Lovelace", taken) == "ada-lovelace"
+    assert _slug("Ada Lovelace", taken) == "ada-lovelace-2"  # dedup
+    print("co_store vault self-check: OK")
+
+
 def stats():
     hr = _headroom()
     if hr:
@@ -623,4 +871,8 @@ def load_savings():
         return {"lifetime": d.get("lifetime") or {}, "session": d.get("display_session") or {}}
     except Exception:
         return None
+
+
+if __name__ == "__main__":
+    _demo()  # python co_store.py → run the vault self-check
 

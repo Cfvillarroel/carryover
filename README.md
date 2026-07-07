@@ -11,7 +11,7 @@
 <strong>The memory your AI takes everywhere.</strong><br/>
 <sub><em>one brain, every tool — packed in a carry-on 💼</em></sub>
 
-<sub>shared persistent memory · 60–95% fewer tokens · auto-wiki · cross-workspace messaging · playbooks · save-to-memory<br/>
+<sub>shared persistent memory · 60–95% fewer tokens · auto-wiki · Obsidian vault · cross-workspace messaging · playbooks · save-to-memory<br/>
 Claude Code · Cursor · Windsurf · Conductor — one install · 100% local</sub>
 
 <p>
@@ -55,6 +55,11 @@ A local layer that makes your context **carry over** across tools, projects and 
 - 📄 **Auto‑wiki** — an LLM writes docs + mermaid diagrams (overview, architecture, flows + a
   **Features** catalog) and updates them **incrementally** (preserves existing pages, adds only
   what changed) on push to master/main.
+- 📖 **Obsidian vault** (`co-vault`) — one command materializes your whole knowledge base **and**
+  every repo wiki into a single Obsidian vault: memories become notes, entities become nodes so
+  Obsidian's native **graph view** reproduces your knowledge graph, and wikis are symlinked in —
+  no plugins. It's **two‑way**: edit a note's text or importance in Obsidian and it syncs back to
+  the store on the next `co-vault`.
 - 🤝 **Cross‑workspace coordination** (Conductor) — leave notes, `/handoff` or `/handover` a task,
   and group workspaces into role‑based **teams**, all over the shared store. Delivery is automatic on
   a workspace's next turn — it's *coordination between separate, persistent workspaces*, not an
@@ -100,7 +105,7 @@ Two things to keep in mind:
 
 - **Terminal commands** (`co-dash`, `mem-save`, `co-recall`, `carryover …`) work in **any**
   tool's integrated terminal — they live in your shell (`~/.zshrc`), not in a specific app.
-- **Slash commands** (`/headroom`, `/recall`, `/carryover`, `/wiki-enable`) and the 🐴/🧠 status
+- **Slash commands** (`/headroom`, `/recall`, `/carryover`, `/wiki-enable`, `/vault`) and the 🐴/🧠 status
   bar are **Claude Code only**. Other tools get the shared memory + compression, not the slash UI.
 - A tool is **not** auto-detected — it shares everything only after you point it at the proxy once.
 
@@ -175,6 +180,8 @@ You still need the headroom proxy for memory/compression:
 | `co-wiki-enable` | enable the auto-wiki in the current repo, generates the first one (alias: `wiki-enable`) |
 | `co-wiki-gen` | update the current repo's wiki on demand, incrementally (alias: `wiki-gen`) |
 | `co-wiki-prune` | drop dead entries from the wiki registry (alias: `wiki-prune`) |
+| `co-vault [dir]` | build/refresh a unified **Obsidian vault** (knowledge notes + entity graph + every repo wiki), two‑way sync, and register it with Obsidian |
+| `co-vault-open` | open the vault in Obsidian |
 | `co-dash` | local dashboard (overview, knowledge + wikis) |
 | `co-backup` / `co-restore <file>` | snapshot / restore all memories (carry them to another machine) |
 | `co-mcp` | run carryover's MCP server (use the memory from Cursor, Claude Desktop, any MCP client) |
@@ -193,7 +200,7 @@ knows about that repo* as context — so the knowledge actually comes back, not 
 Every recall (auto at session start or via `/recall`) is counted per memory, so `co-dash` shows
 which memories actually get reused (the ♻ badge).
 
-Inside Claude (any workspace): `/headroom` (proxy + memory + savings), `/carryover` (routing on/off/status), `/recall [--all] <query>`, `/wiki-enable`.
+Inside Claude (any workspace): `/headroom` (proxy + memory + savings), `/carryover` (routing on/off/status), `/recall [--all] <query>`, `/wiki-enable`, `/vault` (Obsidian vault).
 Status bar: **🐴** ponytail active, **🧠** headroom active.
 
 ## Messages between workspaces

@@ -57,6 +57,7 @@ ln -sf "$SETUP_DIR/claude/hooks/co_store.py"     "$CO_DIR/co_store.py"         #
 ln -sf "$SETUP_DIR/claude/hooks/co-mem"          "$CO_DIR/co-mem"              # memory CLI used by recall/forget/dashboard
 ln -sf "$SETUP_DIR/claude/hooks/co-mcp.py"       "$CO_DIR/co-mcp.py"           # 'co-mcp' alias target: MCP server for any client
 ln -sf "$SETUP_DIR/claude/hooks/wiki-gen.sh"     "$CO_DIR/wiki-gen.sh"         # 'wiki-gen' alias target
+ln -sf "$SETUP_DIR/claude/hooks/vault-gen.sh"    "$CO_DIR/vault-gen.sh"        # 'co-vault' alias target: Obsidian vault (knowledge + wikis)
 ln -sf "$SETUP_DIR/zshrc.snippet"                "$CO_DIR/carryover.zsh"       # sourced by ~/.zshrc; 'carryover update' re-sources this
 mkdir -p "$CO_DIR/playbooks"                                                   # Devin-style !macro playbooks (manage via dashboard or drop a .md here)
 for p in "$SETUP_DIR"/playbooks/*.md; do
