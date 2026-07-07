@@ -52,7 +52,7 @@ proyectos y sesiones:
   carryover sabe de ese repo (~0.5s, ~500 tokens, comprimido). Más `/recall` / `co-recall` a demanda
   (solo el repo actual; `--all` para todos los repos).
 - 📊 **Dashboard local** (`co-dash`) — explora, busca, filtra y **gestiona** (borra/limpia)
-  tu conocimiento, un grafo de relaciones, y tus wikis.
+  tu conocimiento y tus wikis. (El grafo de conocimiento vive en el vault de Obsidian, `co-vault`.)
 - 📄 **Wiki automática** — un LLM escribe docs + diagramas mermaid (visión general, arquitectura,
   flujos + un catálogo de **Features**) y los actualiza de forma **incremental** (preserva las
   páginas existentes, añade solo lo que cambió) al hacer push a master/main.
@@ -355,8 +355,9 @@ Dos dashboards web locales — nada sale de tu máquina:
   **Overview** — memorias, repos, contexto acarreado por sesión, ahorro de tokens y avisos de
   limpieza — y luego pestañas para tu **conocimiento** (facts, entidades tipadas, tags, con
   búsqueda + filtros; cada memoria con una **insignia de reúso** ♻ N = veces recordada,
-  **agrupado por el repo** del que viene), un **grafo de relaciones** auto-generado, tus
-  **wikis** (Markdown + mermaid) y los **playbooks** (el editor de macros `!nombre`). También
+  **agrupado por el repo** del que viene), tus **wikis** (Markdown + mermaid) y los **playbooks**
+  (el editor de macros `!nombre`) — el **grafo de conocimiento** interactivo vive en el vault de
+  Obsidian (`co-vault`). También
   es **gestor**: borra una memoria o limpia un repo entero con un clic. Lee/escribe tu DB en vivo; Ctrl-C para parar.
 - **`hr-dash`** → el dashboard de **ahorro** de headroom en `http://127.0.0.1:8787/dashboard`
   — tokens ahorrados, compresión, cache.
@@ -368,11 +369,9 @@ La pestaña **Overview** — toda tu memoria de un vistazo:
 
 ![Overview](assets/dash-overview.png)
 
-| Conocimiento | Grafo |
-|:---:|:---:|
-| ![Conocimiento](assets/dash-knowledge.png) | ![Grafo](assets/dash-graph.png) |
-| **Wikis** | **Playbooks** |
-| ![Wikis](assets/dash-wikis.png) | ![Playbooks](assets/dash-playbooks.png) |
+| Conocimiento | Wikis | Playbooks |
+|:---:|:---:|:---:|
+| ![Conocimiento](assets/dash-knowledge.png) | ![Wikis](assets/dash-wikis.png) | ![Playbooks](assets/dash-playbooks.png) |
 
 ## Habilitar / deshabilitar el routing
 

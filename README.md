@@ -51,7 +51,7 @@ A local layer that makes your context **carry over** across tools, projects and 
   injected as context (~0.5s, ~500 tokens, compressed). Plus `/recall` / `co-recall` on demand
   (current repo by default; `--all` for every repo).
 - 📊 **Local dashboard** (`co-dash`) — browse, search, filter and **manage** (delete/clear)
-  your knowledge, a relationship graph, and your project wikis.
+  your knowledge and your project wikis. (The knowledge graph lives in the Obsidian vault, `co-vault`.)
 - 📄 **Auto‑wiki** — an LLM writes docs + mermaid diagrams (overview, architecture, flows + a
   **Features** catalog) and updates them **incrementally** (preserves existing pages, adds only
   what changed) on push to master/main.
@@ -343,8 +343,9 @@ Two local web dashboards — nothing leaves your machine:
   **Overview** — memories, repos, context carried per session, token savings, and cleanup
   nudges — then tabs for your **knowledge** (facts, typed entities, tags, with search +
   entity/tag filters; each memory shows a **reuse badge** ♻ N = times recalled, **grouped by
-  the repo** it came from), an auto-built **relationship graph**, your project **wikis**
-  (Markdown + mermaid), and **playbooks** (the `!macro` editor). It's also a **manager**:
+  the repo** it came from), your project **wikis** (Markdown + mermaid), and **playbooks**
+  (the `!macro` editor) — for the interactive **knowledge graph**, generate the Obsidian vault with
+  `co-vault`. It's also a **manager**:
   delete a single memory or clear a whole repo with one click. Reads/writes your DB live; Ctrl-C to stop.
 - **`hr-dash`** → headroom's **savings** dashboard at `http://127.0.0.1:8787/dashboard` —
   tokens saved, compression, cache hit rate.
@@ -356,11 +357,9 @@ The **Overview** tab — your whole memory at a glance:
 
 ![Overview](assets/dash-overview.png)
 
-| Knowledge | Graph |
-|:---:|:---:|
-| ![Knowledge](assets/dash-knowledge.png) | ![Graph](assets/dash-graph.png) |
-| **Wikis** | **Playbooks** |
-| ![Wikis](assets/dash-wikis.png) | ![Playbooks](assets/dash-playbooks.png) |
+| Knowledge | Wikis | Playbooks |
+|:---:|:---:|:---:|
+| ![Knowledge](assets/dash-knowledge.png) | ![Wikis](assets/dash-wikis.png) | ![Playbooks](assets/dash-playbooks.png) |
 
 ## Enable / disable routing
 

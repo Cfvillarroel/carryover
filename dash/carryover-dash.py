@@ -344,7 +344,9 @@ HTML = r"""<!doctype html>
   .wikinav .repo{font-weight:700;margin:14px 0 4px;color:var(--accent2);font-size:13px}
   .wikinav a{display:block;padding:5px 10px;border-radius:8px;color:var(--ink);text-decoration:none;font-size:14px;cursor:pointer}
   .wikinav a:hover{background:var(--chip)} .wikinav a.active{background:var(--accent);color:#fff}
-  .wikibody,.graphbody{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:22px 28px;min-width:0}
+  .wikibody{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:22px 28px;min-width:0}
+  .ghint{margin:6px 0 14px;font-size:12px;color:var(--muted)}
+  .ghint code{background:var(--panel);border:1px solid var(--line);border-radius:5px;padding:1px 5px}
   .wikibody h1,.wikibody h2{border-bottom:1px solid var(--line);padding-bottom:6px}
   .wikibody pre{background:#f3e8d6;padding:12px;border-radius:8px;overflow:auto}
   .wikibody code{background:#f3e8d6;padding:1px 5px;border-radius:5px}
@@ -371,7 +373,6 @@ HTML = r"""<!doctype html>
 <div class="tabs">
   <div class="tab active" data-tab="overview">📊 Overview</div>
   <div class="tab" data-tab="mem">🧠 Knowledge</div>
-  <div class="tab" data-tab="graph">🕸 Graph</div>
   <div class="tab" data-tab="wiki">📄 Wikis</div>
   <div class="tab" data-tab="playbooks">📓 Playbooks</div>
   <div class="tab" data-tab="teams">👥 Teams</div>
@@ -385,9 +386,9 @@ HTML = r"""<!doctype html>
       <span class="count" id="memcount"></span>
     </div>
     <div id="filters"></div>
+    <div class="ghint">🕸 Knowledge graph → run <code>co-vault</code> and open the vault in Obsidian for the interactive graph.</div>
     <div id="memlist"></div>
   </section>
-  <section id="graph" class="hide"><div class="graphbody" id="graphbody"></div></section>
   <section id="wiki" class="hide">
     <div class="wikiwrap">
       <div class="wikinav" id="wikinav"></div>
@@ -613,19 +614,6 @@ function renderMems(){
 }
 $('#q').oninput=renderMems;
 
-// --- graph ---
-async function renderGraph(){
-  const rels=[]; DATA.memories.forEach(m=>(mdOf(m).relationships||[]).forEach(r=>{ if(r&&r.source&&r.destination)rels.push(r); }));
-  if(!rels.length){ $('#graphbody').innerHTML='<div class="empty">No relationships yet.</div>'; return; }
-  const id=s=>'n_'+(s+'').replace(/[^a-zA-Z0-9]/g,'_'); const lines=['graph LR'];
-  rels.forEach(r=>{
-    const lbl=(r.relationship||'').replace(/"/g,"'").trim();
-    const edge=lbl?` -->|"${lbl}"| `:' --> ';
-    lines.push(`  ${id(r.source)}["${(r.source+'').replace(/"/g,"'")}"]${edge}${id(r.destination)}["${(r.destination+'').replace(/"/g,"'")}"]`);
-  });
-  try{ const {svg}=await window.__mermaid.render('kg'+Date.now(),lines.join('\n')); $('#graphbody').innerHTML=svg; }catch(e){ $('#graphbody').innerHTML='<div class="empty">Could not render graph.</div>'; }
-}
-
 // --- wikis ---
 function renderWikiNav(){
   if(!DATA.wikis.length){ $('#wikinav').innerHTML='<div class="empty">No wikis yet.<br><small>Run <code>wiki-enable</code> in a repo and push to master.</small></div>'; return; }
@@ -738,7 +726,7 @@ async function deleteTeam(){
   delete (DATA.teams||{})[name]; newTeam(); renderTeams();
 }
 
-$$('.tab').forEach(t=>t.onclick=()=>{ $$('.tab').forEach(x=>x.classList.remove('active')); t.classList.add('active'); ['overview','mem','graph','wiki','playbooks','teams'].forEach(s=>$('#'+s).classList.toggle('hide',t.dataset.tab!==s)); if(t.dataset.tab==='graph')renderGraph(); if(t.dataset.tab==='overview')renderOverview(); if(t.dataset.tab==='playbooks')renderPlaybooks(); if(t.dataset.tab==='teams')renderTeams(); });
+$$('.tab').forEach(t=>t.onclick=()=>{ $$('.tab').forEach(x=>x.classList.remove('active')); t.classList.add('active'); ['overview','mem','wiki','playbooks','teams'].forEach(s=>$('#'+s).classList.toggle('hide',t.dataset.tab!==s)); if(t.dataset.tab==='overview')renderOverview(); if(t.dataset.tab==='playbooks')renderPlaybooks(); if(t.dataset.tab==='teams')renderTeams(); });
 
 renderRepoBar(); renderMems(); renderWikiNav(); renderOverview();
 </script>
