@@ -57,11 +57,13 @@ A local layer that makes your context **carry over** across tools, projects and 
   what changed) on push to master/main.
 - 📖 **Obsidian vault** (`co-vault`) — one command materializes your whole knowledge base **and**
   every repo wiki into a single Obsidian vault, no plugins: memories become notes, entities become
-  nodes (name variants **merged** so the graph is connected, not fragmented) so Obsidian's native
-  **graph view** — colour‑coded by folder — reproduces your knowledge graph. Ships a **Home** page +
-  per‑repo indexes and a **Bases** table. It's **two‑way**: edit a note's text or importance in
-  Obsidian and it syncs back on the next `co-vault`. `co-vault-describe` adds one‑line LLM blurbs to
-  the top entities.
+  nodes (name variants **merged**, and tags/attachments/noise hidden, so the graph is **connected,
+  not fragmented**) so Obsidian's native **graph view** — colour‑coded by folder — reproduces your
+  knowledge graph. Ships a **Home** page + per‑repo indexes and a **Bases** table (needs Obsidian
+  1.9+). It's **two‑way and that's the point**: edit a note's text or raise its **importance** in
+  Obsidian and it syncs back on the next `co-vault` — so **future sessions recall it, ranked higher**.
+  (Content and importance round‑trip; facts, entities and relationships are derived and read‑only.)
+  `co-vault-describe` adds one‑line LLM blurbs to the **most‑connected** entities.
 - 🤝 **Cross‑workspace coordination** (Conductor) — leave notes, `/handoff` or `/handover` a task,
   and group workspaces into role‑based **teams**, all over the shared store. Delivery is automatic on
   a workspace's next turn — it's *coordination between separate, persistent workspaces*, not an
@@ -182,8 +184,8 @@ You still need the headroom proxy for memory/compression:
 | `co-wiki-enable` | enable the auto-wiki in the current repo, generates the first one (alias: `wiki-enable`) |
 | `co-wiki-gen` | update the current repo's wiki on demand, incrementally (alias: `wiki-gen`) |
 | `co-wiki-prune` | drop dead entries from the wiki registry (alias: `wiki-prune`) |
-| `co-vault [dir]` | build/refresh a unified **Obsidian vault** (knowledge notes + entity graph + every repo wiki), two‑way sync, and register it with Obsidian |
-| `co-vault clean` \| `remove` \| `prune` | rebuild fresh (refresh config/hubs) · delete the vault + unregister · just prune orphaned notes |
+| `co-vault [dir]` | build/refresh a unified **Obsidian vault** (knowledge notes + entity graph + every repo wiki), two‑way sync, and register it with Obsidian. Lands in `~/Documents/carryover-vault` unless you pass `dir` |
+| `co-vault clean` \| `remove` \| `prune` | **clean** = rebuild derived config/hubs fresh (re‑imports first; your synced‑back edits and LLM blurbs are kept, the store is never touched) · **remove** = delete the vault + unregister it from Obsidian (`--yes` skips the prompt) · **prune** = re‑import edits, then drop orphaned generated notes only |
 | `co-vault-open` | open the vault in Obsidian |
 | `co-vault-describe` | refresh the vault **and** write 1‑line LLM blurbs for the most‑connected entities |
 | `co-dash` | local dashboard (overview, knowledge + wikis) |
