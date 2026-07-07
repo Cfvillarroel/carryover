@@ -136,9 +136,6 @@ carryover() {
         "co-wiki-enable:enable the auto-wiki in this repo · activar la auto-wiki en este repo"
         "co-wiki-gen:regenerate the repo wiki · regenerar la wiki del repo"
         "co-wiki-prune:drop dead entries from the wiki registry · podar wikis muertas del registro"
-        "co-vault [clean|remove|prune]:Obsidian vault — build/refresh, or clean/remove/prune · armar/refrescar, o limpiar/eliminar/podar"
-        "co-vault-open:open the vault in Obsidian · abrir el vault en Obsidian"
-        "co-vault-describe:refresh + LLM blurbs for top entities · refrescar + descripciones LLM de entidades"
         "co-dash:open the local dashboard · abrir el panel local"
         "co-recall <q>:recall knowledge by keyword · recordar conocimiento por keyword"
         "co-forget <q>:delete memories by keyword (confirm) · borrar memorias por keyword"
@@ -148,6 +145,16 @@ carryover() {
       printf '\n  %sShell commands · Comandos de shell%s\n' "$D" "$R"
       local c
       for c in "${cmds[@]}"; do printf '  %s%-18s%s %s\n' "$O" "${c%%:*}" "$R" "${c#*:}"; done
+      local -a obsidian=(
+        "co-vault:build/refresh the vault (knowledge + entity graph + wikis) · armar/refrescar el vault"
+        "co-vault clean:rebuild fresh — keeps edits + LLM blurbs, refreshes graph · reconstruir en limpio"
+        "co-vault prune:drop orphaned notes · podar notas huérfanas"
+        "co-vault remove:delete the vault + unregister from Obsidian · borrar el vault y desregistrarlo"
+        "co-vault-open:open the vault in Obsidian · abrir el vault en Obsidian"
+        "co-vault-describe:refresh + LLM 1-line entity blurbs · refrescar + descripciones LLM"
+      )
+      printf '\n  %s📖 Obsidian vault · vault de Obsidian%s\n' "$Y" "$R"
+      for c in "${obsidian[@]}"; do printf '  %s%-20s%s %s\n' "$O" "${c%%:*}" "$R" "${c#*:}"; done
       local -a conductor=(
         "co-send <ws> <msg>:message a workspace by name · enviar a un workspace por su nombre"
         "co-handover <ws> <msg>:hand a task OVER — notify + execute on arrival · traspasar y ejecutar (notifica)"
