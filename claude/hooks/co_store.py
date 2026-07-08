@@ -691,6 +691,11 @@ def _resolved_entities(m, resolver):
     return ents, rels
 
 
+def _first_line(m):
+    """First non-empty line of the content — the human-readable 1-liner used for filename + alias."""
+    return ((m.get("content") or "").strip().splitlines() or [""])[0].strip()
+
+
 def _memory_md(m, resolver):
     md = m.get("metadata") or {}
     tags = [t for t in (md.get("tags") or []) if t]
@@ -700,6 +705,9 @@ def _memory_md(m, resolver):
           "category": md.get("category", ""), "importance": round(float(m.get("importance") or 0.5), 3),
           "access_count": int(m.get("access_count") or 0), "created_at": m.get("created_at", ""),
           "tags": tags, "entities": [f"[[{e}]]" for e in ents]}  # links as a property → Bases + graph
+    first = _first_line(m)
+    if first:
+        fm["aliases"] = [first]  # switcher / [[ ]] search by the full 1-liner, not the truncated filename
     body = [_frontmatter(fm), "", (m.get("content") or "").strip()]
     facts = [f for f in (md.get("facts") or []) if f]
     if facts:
@@ -878,13 +886,16 @@ def export_vault(out_dir, repos=None):
     # --- pass 2: write memory notes + tally per-entity link counts + per-repo buckets --------------
     ent_links = defaultdict(int)
     by_repo = defaultdict(list)
-    keep_k = set()
+    keep_k, taken_k = set(), set()
     for m in mems:
         ents, _ = _resolved_entities(m, resolver)
         for d in ents:
             ent_links[d] += 1
         by_repo[(m.get("metadata") or {}).get("repo", "general")].append(m)
-        fn = _slug(m.get("id") or uuid.uuid4().hex) + ".md"
+        # name by content (a 1-liner) like entity/repo notes, not the opaque UUID; _slug dedupes.
+        first = _first_line(m)
+        title = first if len(first) <= 64 else first[:64].rsplit(" ", 1)[0]  # cut on a word boundary
+        fn = _slug(title or m.get("id") or uuid.uuid4().hex, taken_k) + ".md"
         (kdir / fn).write_text(_memory_md(m, resolver), encoding="utf-8")
         keep_k.add(fn)
 
