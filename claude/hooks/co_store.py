@@ -759,7 +759,7 @@ def _home_md(counts, repo_rows, top_ents):
     return "\n".join(body) + "\n"
 
 
-def _repo_index_md(repo, mems, top_ents):
+def _repo_index_md(repo, mems, top_ents, note_stem):
     by_cat = defaultdict(list)
     for m in mems:
         by_cat[(m.get("metadata") or {}).get("category") or "general"].append(m)
@@ -768,8 +768,9 @@ def _repo_index_md(repo, mems, top_ents):
     for cat in sorted(by_cat):
         body += ["", f"## {cat}"]
         for m in by_cat[cat]:
-            label = (m.get("content") or "").strip().split("\n")[0][:80] or m.get("id", "")
-            body.append(f"- [[{m.get('id')}|{label}]]")
+            label = ((m.get("content") or "").strip().split("\n")[0][:80] or m.get("id", "")).replace("[", "").replace("]", "")
+            stem = note_stem.get(m.get("id")) or m.get("id", "")  # link the real filename, not the UUID (else broken link → Obsidian ghost note)
+            body.append(f"- [[{stem}|{label}]]")
     if top_ents:
         body += ["", "## Top entities"] + [f"- [[{name}]] — {c}" for name, c in top_ents]
     return "\n".join(body) + "\n"
@@ -886,7 +887,7 @@ def export_vault(out_dir, repos=None):
     # --- pass 2: write memory notes + tally per-entity link counts + per-repo buckets --------------
     ent_links = defaultdict(int)
     by_repo = defaultdict(list)
-    keep_k, taken_k = set(), set()
+    keep_k, taken_k, note_stem = set(), set(), {}
     for m in mems:
         ents, _ = _resolved_entities(m, resolver)
         for d in ents:
@@ -898,6 +899,7 @@ def export_vault(out_dir, repos=None):
         fn = _slug(title or m.get("id") or uuid.uuid4().hex, taken_k) + ".md"
         (kdir / fn).write_text(_memory_md(m, resolver), encoding="utf-8")
         keep_k.add(fn)
+        note_stem[m.get("id")] = fn[:-3]  # index links must reference this filename, not the UUID
 
     # --- entity notes (preserve any existing description) -----------------------------------------
     keep_e, taken = set(), set()
@@ -915,7 +917,7 @@ def export_vault(out_dir, repos=None):
     for repo, ms in by_repo.items():
         seen = {d for m in ms for d in _resolved_entities(m, resolver)[0]}
         fn = f"repo-{_slug(repo)}.md"
-        (idir / fn).write_text(_repo_index_md(repo, ms, top(seen, 10)), encoding="utf-8")
+        (idir / fn).write_text(_repo_index_md(repo, ms, top(seen, 10), note_stem), encoding="utf-8")
         keep_i.add(fn)
     (out / "Home.md").write_text(
         _home_md({"memories": len(mems), "entities": len(canon)}, repo_rows, top(ent_links, 20)),
