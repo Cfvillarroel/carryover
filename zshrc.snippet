@@ -234,7 +234,8 @@ carryover() {
       fi
       if pgrep -f "carryover/carryover-dash.py" >/dev/null; then
         pkill -f "carryover/carryover-dash.py"
-        (nohup python3 "$HOME/.carryover/carryover-dash.py" >>"$HOME/.carryover/dash.log" 2>&1 &)
+        nohup python3 "$HOME/.carryover/carryover-dash.py" </dev/null >>"$HOME/.carryover/dash.log" 2>&1 &
+        disown 2>/dev/null || true   # fully detach so it survives a non-interactive/scripted `carryover update`
         echo "$tag ${D}dashboard restarted${R}"
       fi
       echo "$tag ${G}✓ done${R}${D} (source: $SRC)${R}"
