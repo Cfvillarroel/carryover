@@ -46,6 +46,13 @@ if picked:
         if c:
             tag = "" if md(m).get("repo", "general") == repo else " (general)"
             lines.append(f"- {c}{tag}")
+    vault = os.environ.get("CARRYOVER_VAULT") or os.path.expanduser("~/Documents/carryover-vault")
+    if os.path.isdir(vault):  # point at the materialized graph for structural questions recall can't answer
+        lines.append("")
+        lines.append(f"## carryover vault (graph) — {vault}")
+        lines.append("- For structural/graph questions (what links to X, hub entities, notes mentioning both X and Y): "
+                     "grep `knowledge/*.md` (frontmatter id/repo/entities, aliases) and `entities/*.md` ([[backlinks]]) there. "
+                     "The bullets above are the flat facts; the vault is the graph.")
 if msgs:
     if lines:
         lines.append("")
