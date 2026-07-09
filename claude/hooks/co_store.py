@@ -2,6 +2,7 @@
 """carryover memory backend. Dispatches to headroom if it's installed, else to a
 built-in SQLite store at ~/.carryover/memory.db. export() emits the SAME shape as
 headroom's `memory export`, so recall/forget/dashboard work unchanged either way."""
+import hashlib
 import json
 import os
 import re
@@ -22,6 +23,7 @@ GROUPS = str(HOME / ".carryover" / "groups.conf")  # repo groups: one group per 
 LINKS = str(HOME / ".carryover" / "links.conf")    # workspace connections: one group per line, workspace names space/comma-separated
 TEAMS = str(HOME / ".carryover" / "teams.json")    # named teams: {team: {workspace: role}} — roster on top of the messaging layer
 MERGES = str(HOME / ".carryover" / "entity-merges.json")  # semantic entity merges: {canonical: [member names]} — hand-editable
+INSIGHTS_CACHE = str(HOME / ".carryover" / "insights-cache.json")  # {hash, insights:[...]} — skips the LLM when the corpus is unchanged
 SAVINGS = HOME / ".headroom" / "proxy_savings.json"
 
 
@@ -1101,6 +1103,150 @@ def merge_entities(claude_cmd=None):
     return {"groups": groups, "count": len(groups), "merged": sum(len(v) for v in groups.values())}
 
 
+# --- insights: opt-in LLM synthesis pass over the knowledge, grounded + self-verified ------------
+_INSIGHTS_PROMPT = """You are mining short engineering memories for the repo "{repo}" for GROUNDED, useful insights, then adversarially verifying your own output before answering.
+
+Each memory below is: [id8] one-line summary, then indented `- fact` lines.
+
+MEMORIES:
+{listing}
+
+STEP 1 — generate candidate insights of these types:
+- contradiction / stale: two or more memories conflict; typically an older one is now outdated and should be corrected.
+- open-thread: something planned, flagged, or TODO'd that no later memory resolves.
+- connection: two memories that clearly bear on each other but were never linked, where seeing the link changes a decision (e.g. "the endpoint already exists, don't rebuild it").
+- gap: a topic densely covered except for one obvious adjacent piece that is missing.
+
+STEP 2 — adversarially verify each candidate against the cited memories. If they do not clearly support the claim, DROP it. Prefer cross-memory synthesis (contradiction / stale / connection) over merely restating a single memory.
+
+Output ONLY a JSON array (no prose, no code fence) of the survivors, each object:
+{{"type": "...", "claim": "<=200 chars, specific and actionable", "cited_ids": ["id8", ...], "so_what": "one line: why it matters / what to do"}}
+
+Rules: every cited_id MUST be an [id8] from the list above. contradiction / stale / connection need >=2 cited_ids. At most 6 insights, best first. If nothing is solidly grounded, output []."""
+
+
+def _json_array(out):
+    """Pull the first JSON array out of an LLM reply (tolerates ```json fences and stray prose)."""
+    s = (out or "").strip()
+    if s.startswith("```"):
+        s = re.sub(r"^```[a-zA-Z]*\n?", "", s)
+        s = re.sub(r"\n?```$", "", s).strip()
+    i, j = s.find("["), s.rfind("]")
+    if i < 0 or j < i:
+        return []
+    try:
+        v = json.loads(s[i:j + 1])
+        return v if isinstance(v, list) else []
+    except Exception:
+        return []
+
+
+def _grounded_insights(raw, ids):
+    """Deterministic grounding guard (no LLM): keep only insights whose cited ids are ALL real and
+    that meet the per-type citation minimum — kills hallucinated citations and single-memory
+    contradictions. `ids` = set of 8-char id prefixes present in the corpus."""
+    out = []
+    for it in raw:
+        if not isinstance(it, dict):
+            continue
+        typ = (it.get("type") or "").strip()
+        claim = (it.get("claim") or "").strip()
+        cids = [c for c in (it.get("cited_ids") or []) if c in ids]
+        need = 2 if typ in ("contradiction", "stale", "connection") else 1
+        if not claim or len(cids) < need:
+            continue
+        out.append({"type": typ, "claim": claim[:280],
+                    "so_what": (it.get("so_what") or "").strip()[:200], "cited_ids": cids})
+    return out
+
+
+def _corpus_hash(mems):
+    h = hashlib.sha256()
+    for m in sorted(mems, key=lambda x: x.get("id") or ""):
+        md = m.get("metadata") or {}
+        h.update(("\x1f".join([m.get("id", ""), m.get("content") or ""] + list(md.get("facts") or []))).encode("utf-8"))
+    return h.hexdigest()
+
+
+def generate_insights(vault_dir, min_mems=14, force=False, claude_cmd=None):
+    """Opt-in LLM synthesis: per repo (>= min_mems live memories) one `claude -p` call generates
+    GROUNDED insights — contradictions / stale facts, unresolved open threads, cross-memory
+    connections, gaps — each citing the memory ids it is built from, then self-verifies and drops
+    the unsupported. `_grounded_insights` additionally drops any insight citing an id not in the
+    corpus (kills hallucinated citations without a second LLM call). Writes INSIGHTS.md at the vault
+    root, cached by a hash of the corpus so it only re-runs when memories change (force overrides).
+    ponytail: one call/repo with self-verify; independent 2-pass verify is the upgrade if slop returns.
+    Returns {'insights': n, 'repos': k} | {'cached': True, 'insights': n} | {'error': ...}."""
+    root = Path(vault_dir).expanduser()
+    if not (root / "knowledge").is_dir():
+        return {"error": "no vault at " + str(root)}
+    mems = [m for m in export() if not is_superseded(m) and (m.get("metadata") or {}).get("kind") != "msg"]
+    chash = _corpus_hash(mems)
+    ipath = root / "INSIGHTS.md"
+    try:
+        cached = json.loads(Path(INSIGHTS_CACHE).read_text(encoding="utf-8"))
+    except Exception:
+        cached = {}
+    if not force and cached.get("hash") == chash and ipath.exists():
+        return {"cached": True, "insights": len(cached.get("insights") or [])}
+
+    by_repo = defaultdict(list)
+    for m in mems:
+        by_repo[(m.get("metadata") or {}).get("repo", "general")].append(m)
+    # id8 -> knowledge note stem, so citations become clickable [[links]]
+    stem = {}
+    for p in (root / "knowledge").glob("*.md"):
+        try:
+            fm, _ = _parse_frontmatter(p.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        if fm.get("id"):
+            stem[str(fm["id"])[:8]] = p.stem
+
+    repos = sorted([r for r, ms in by_repo.items() if len(ms) >= min_mems and not r.startswith("@")],
+                   key=lambda r: -len(by_repo[r]))
+    all_ins = []
+    for repo in repos:
+        ms = by_repo[repo]
+        ids = {(m.get("id") or "")[:8] for m in ms}
+        listing = []
+        for m in ms:
+            listing.append(f"[{(m.get('id') or '')[:8]}] {(m.get('content') or '').strip()}")
+            for f in ((m.get('metadata') or {}).get('facts') or [])[:6]:
+                listing.append(f"   - {f}")
+        prompt = _INSIGHTS_PROMPT.format(repo=repo, listing="\n".join(listing))
+        try:
+            out = subprocess.run(claude_cmd or ["claude", "-p"], input=prompt,
+                                 capture_output=True, text=True, timeout=300).stdout
+        except Exception as e:
+            return {"error": "claude -p failed: " + str(e)}
+        for it in _grounded_insights(_json_array(out), ids):
+            it["repo"] = repo
+            all_ins.append(it)
+
+    order = {"contradiction": 0, "stale": 1, "connection": 2, "open-thread": 3, "gap": 4}
+    body = [_frontmatter({"source": "carryover", "kind": "insights"}), "", "# Insights", "",
+            f"> {len(all_ins)} grounded, self-verified insights from {len(mems)} memories across "
+            f"{len(repos)} repos · generated by `co-vault insights` · re-run with `--force` after adding memories"]
+    by_r = defaultdict(list)
+    for it in all_ins:
+        by_r[it["repo"]].append(it)
+    for repo in sorted(by_r, key=lambda r: -len(by_r[r])):
+        body += ["", f"## {repo}"]
+        for it in sorted(by_r[repo], key=lambda x: order.get(x["type"], 9)):
+            refs = " · ".join(f"[[{stem[c]}]]" if c in stem else f"`{c}`" for c in it["cited_ids"])
+            body.append(f"- **[{it['type']}]** {it['claim']}")
+            if it["so_what"]:
+                body.append(f"  ↳ {it['so_what']}")
+            body.append(f"  · refs: {refs}")
+    ipath.write_text("\n".join(body) + "\n", encoding="utf-8")
+    try:
+        Path(INSIGHTS_CACHE).write_text(json.dumps({"hash": chash, "insights": all_ins}, ensure_ascii=False, indent=2), encoding="utf-8")
+    except Exception:
+        pass
+    return {"insights": len(all_ins), "repos": len(repos)}
+
+
 def _demo():
     """Self-check: round-trip a fake memory through _memory_md → parse content back; slug dedups."""
     m = {"id": "abc-123", "content": "hello world", "importance": 0.8, "access_count": 2,
@@ -1134,6 +1280,14 @@ def _demo():
     (d / "mine.md").write_text("# my own note\n", encoding="utf-8")
     assert _prune(d, set()) == 1, "prune should drop the generated note only"
     assert not (d / "gen.md").exists() and (d / "mine.md").exists()
+    # insights: tolerant JSON extraction + deterministic grounding guard (no LLM)
+    assert _json_array('```json\n[{"a":1}]\n```') == [{"a": 1}] and _json_array("no array") == []
+    _ok = {"aaaa1111", "bbbb2222"}
+    assert _grounded_insights([{"type": "connection", "claim": "x", "cited_ids": ["aaaa1111", "zz"]}], _ok) == [], "must drop cite of a non-existent id (only 1 real)"
+    assert _grounded_insights([{"type": "contradiction", "claim": "x", "cited_ids": ["aaaa1111"]}], _ok) == [], "contradiction needs >=2 real ids"
+    assert _grounded_insights([{"type": "open-thread", "claim": "", "cited_ids": ["aaaa1111"]}], _ok) == [], "empty claim dropped"
+    assert len(_grounded_insights([{"type": "open-thread", "claim": "y", "cited_ids": ["aaaa1111"]}], _ok)) == 1
+    assert len(_grounded_insights([{"type": "contradiction", "claim": "z", "cited_ids": ["aaaa1111", "bbbb2222"]}], _ok)) == 1
     print("co_store vault self-check: OK")
 
 

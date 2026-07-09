@@ -198,6 +198,7 @@ Igual necesitas el proxy de headroom para memoria/compresión:
 | `co-vault [dir]` | armar/refrescar un **vault de Obsidian** unificado (notas de conocimiento + grafo de entidades + cada wiki de repo), sync de dos vías, y registrarlo en Obsidian. Cae en `~/Documents/carryover-vault` salvo que pases `dir` |
 | `co-vault clean` \| `remove` \| `prune` | **clean** = reconstruir config/hubs en limpio (re-importa primero; tus edits sincronizados y descripciones LLM se mantienen, nunca toca el store) · **remove** = borrar el vault + desregistrarlo de Obsidian (`--yes` salta la confirmación) · **prune** = re-importar edits, luego podar solo notas huérfanas generadas |
 | `co-vault merge` | agrupar entidades **sinónimas** por LLM (`carryover‑dash.py` = `carryover dashboard`) en un mapa editable a mano (`~/.carryover/entity-merges.json`), luego reconstruir. Conservador y reversible |
+| `co-vault insights` | pasada de síntesis LLM — por repo, un `claude -p` genera insights **anclados** (contradicciones / hechos obsoletos, hilos abiertos, conexiones entre memorias), cada uno auto‑verificado y citando las notas de las que sale, en `INSIGHTS.md`. Un guard determinista descarta citas inventadas. Cacheado por hash del corpus; `--force` para refrescar |
 | `co-vault-open` | abrir el vault en Obsidian |
 | `co-vault-describe` | refrescar el vault **y** escribir descripciones LLM de 1 línea para las entidades más conectadas |
 | `co-dash` | dashboard local (overview, conocimiento + wikis) |
@@ -458,6 +459,7 @@ co-vault-describe   # refrescar + descripciones LLM de 1 línea para las entidad
 co-vault clean      # reconstruir config/hubs en limpio — mantiene tus edits + descripciones, nunca toca el store
 co-vault prune      # podar notas huérfanas generadas
 co-vault merge      # agrupar entidades sinónimas por LLM en un mapa editable, luego reconstruir
+co-vault insights   # insights anclados y auto-verificados entre memorias → INSIGHTS.md (cacheado; --force para refrescar)
 co-vault remove     # borrar el vault + desregistrarlo de Obsidian (--yes salta la confirmación)
 ```
 

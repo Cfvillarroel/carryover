@@ -5,21 +5,23 @@
 # Two-way: edits to a memory note's first paragraph or `importance` are pushed back to the store
 # BEFORE regenerating, so your edits are never clobbered.
 #
-# Usage:  vault-gen [clean|remove|prune|merge] [DIR] [--no-import] [--describe] [--yes]
+# Usage:  vault-gen [clean|remove|prune|merge|insights] [DIR] [--no-import] [--describe] [--force] [--yes]
 #   (no subcommand) : build/refresh the vault      (DIR defaults to ~/Documents/carryover-vault)
 #   clean           : save edits, wipe everything generated, rebuild fresh (also refreshes config)
 #   remove          : delete the vault folder and unregister it from Obsidian (asks unless --yes)
 #   prune           : just prune orphaned generated notes (fast; no wiki/register/LLM)
 #   merge           : LLM pass that groups synonymous entities into a hand-editable map, then rebuild
+#   insights        : LLM synthesis pass — grounded, self-verified insights across memories → INSIGHTS.md (cached; --force to refresh)
 #   --describe      : also run an LLM pass (claude -p) to write 1-line blurbs for the top entities
 set -uo pipefail
 VAULT="$HOME/Documents/carryover-vault"   # visible folder (next to your other Obsidian vaults); override with an arg
-NOIMPORT=""; DESCRIBE=""; CMD=""; YES=""
+NOIMPORT=""; DESCRIBE=""; CMD=""; YES=""; FORCE=""
 for arg in "$@"; do
   case "$arg" in
-    clean|remove|prune|merge) CMD="$arg" ;;
+    clean|remove|prune|merge|insights) CMD="$arg" ;;
     --no-import) NOIMPORT=1 ;;
     --describe)  DESCRIBE=1 ;;
+    --force)     FORCE="--force" ;;
     --yes|-y)    YES=1 ;;
     -*) ;;                         # ignore other flags
     *)  VAULT="$arg" ;;
@@ -89,6 +91,20 @@ if [ "$CMD" = prune ]; then
   out="$("$PY" "$COMEM" vault "$VAULT")" || { echo "vault-gen: export failed"; exit 1; }
   echo "💼 vault pruned → $VAULT"
   echo "   $out"
+  exit 0
+fi
+
+# --- insights: LLM synthesis pass → grounded, self-verified insights across memories ----------
+if [ "$CMD" = insights ]; then
+  [ -d "$VAULT/knowledge" ] || { echo "vault-gen: no vault at $VAULT (run co-vault first)"; exit 1; }
+  command -v claude >/dev/null || { echo "vault-gen: insights needs the claude CLI (not found on PATH)"; exit 1; }
+  echo "💼 mining grounded insights via claude -p… (one call per repo, ~1-3 min for a large store)"
+  "$PY" "$COMEM" vault-insights "$VAULT" $FORCE | "$PY" -c 'import json,sys
+try: d=json.load(sys.stdin)
+except Exception: d={}
+if d.get("error"): print("   "+str(d["error"]))
+elif d.get("cached"): print("   up to date (%d insights) — corpus unchanged; INSIGHTS.md kept (--force to refresh)" % d.get("insights",0))
+else: print("   %d grounded insights across %d repo(s) → INSIGHTS.md" % (d.get("insights",0), d.get("repos",0)))'
   exit 0
 fi
 

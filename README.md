@@ -187,6 +187,7 @@ You still need the headroom proxy for memory/compression:
 | `co-vault [dir]` | build/refresh a unified **Obsidian vault** (knowledge notes + entity graph + every repo wiki), two‑way sync, and register it with Obsidian. Lands in `~/Documents/carryover-vault` unless you pass `dir` |
 | `co-vault clean` \| `remove` \| `prune` | **clean** = rebuild derived config/hubs fresh (re‑imports first; your synced‑back edits and LLM blurbs are kept, the store is never touched) · **remove** = delete the vault + unregister it from Obsidian (`--yes` skips the prompt) · **prune** = re‑import edits, then drop orphaned generated notes only |
 | `co-vault merge` | LLM‑group **synonymous** entities (`carryover‑dash.py` = `carryover dashboard`) into a hand‑editable map (`~/.carryover/entity-merges.json`), then rebuild. Conservative and reversible |
+| `co-vault insights` | LLM synthesis pass — per repo, one `claude -p` generates **grounded** insights (contradictions / stale facts, unresolved open threads, cross‑memory connections), each self‑verified and citing the notes it's built from, into `INSIGHTS.md`. A deterministic guard drops any hallucinated citation. Cached by a corpus hash; `--force` to refresh |
 | `co-vault-open` | open the vault in Obsidian |
 | `co-vault-describe` | refresh the vault **and** write 1‑line LLM blurbs for the most‑connected entities |
 | `co-dash` | local dashboard (overview, knowledge + wikis) |
@@ -443,6 +444,7 @@ co-vault-describe   # refresh + 1‑line LLM blurbs for the most‑connected ent
 co-vault clean      # rebuild config/hubs fresh — keeps your edits + blurbs, never touches the store
 co-vault prune      # drop orphaned generated notes
 co-vault merge      # LLM‑group synonymous entities into a hand‑editable map, then rebuild
+co-vault insights   # grounded, self-verified insights across memories → INSIGHTS.md (cached; --force to refresh)
 co-vault remove     # delete the vault + unregister it from Obsidian (--yes skips the prompt)
 ```
 
