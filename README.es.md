@@ -64,8 +64,11 @@ proyectos y sesiones:
   tabla **Bases** (requiere Obsidian 1.9+). Es **de dos vías y ese es el punto**: editás el texto de
   una nota o le subís el **`importance`** en Obsidian y vuelve al store en el próximo `co-vault` —
   así **las próximas sesiones lo recuerdan, mejor rankeado**. (Solo el primer párrafo y el importance
-  hacen round-trip; facts, entidades y relaciones son derivados y read-only.) `co-vault-describe`
-  agrega descripciones de 1 línea (LLM) a las entidades **más conectadas**.
+  hacen round-trip; facts, entidades y relaciones son derivados y read-only.) Para preguntas
+  **estructurales** (qué se conecta a X, entidades hub, notas que mencionan X **y** Y), el hook de
+  recall ahora apunta a Claude directo al vault para hacer `grep` de `knowledge/` y `entities/` bajo
+  demanda — automático si el vault existe. `co-vault-describe` agrega descripciones de 1 línea (LLM)
+  a las entidades **más conectadas**.
 - 🤝 **Coordinación entre workspaces** (Conductor) — dejá notas, `/handoff` o `/handover` de una
   tarea, y agrupá workspaces en **teams** con roles, todo sobre el store compartido. La entrega es
   automática en el próximo turno de cada workspace — es *coordinación entre workspaces separados y

@@ -450,20 +450,25 @@ co-vault remove     # delete the vault + unregister it from Obsidian (--yes skip
 
 | Path | What |
 |---|---|
-| `knowledge/` | one note per memory — content, facts, `[[entity]]` links, relationships |
+| `knowledge/` | one note per memory — **named by its content 1‑liner** (with an `aliases` field so Obsidian's quick switcher finds it by full text), plus facts, `[[entity]]` links, relationships |
 | `entities/` | one node per entity, name variants **merged** (`HarrySchool` = `harry-school`) so the graph is connected, not fragmented — and `co-vault merge` also folds **synonyms** (`carryover-dash.py` = `carryover dashboard`) via a hand-editable map |
 | `indexes/` + `Home.md` | a home page and a per‑repo index (memories grouped by category, top entities) — hundreds of flat notes made navigable |
 | `wikis/<repo>/` | a symlink to each registered repo's auto‑wiki, so docs sit beside the knowledge |
 | `knowledge.base` | an Obsidian **Bases** table (needs Obsidian 1.9+) to browse memories by repo / importance / reuse |
 
-**Why it's two‑way — and why that's the point.** A Claude session doesn't read the vault directly;
-it recalls from the store. The vault is where **you** curate that store: fix a memory's wording, or
-raise its **`importance`**, and it syncs back on the next `co-vault` — so **future sessions recall it,
-ranked higher**. (Only the first paragraph + importance round‑trip; facts, entities and relationships
-are derived and read‑only.) The loop:
+**Why it's two‑way — and why that's the point.** For plain recall a Claude session reads the
+**store**, not the vault (semantic search, auto‑injected each session). The vault is where **you**
+curate that store: fix a memory's wording, or raise its **`importance`**, and it syncs back on the
+next `co-vault` — so **future sessions recall it, ranked higher**. (Only the first paragraph +
+importance round‑trip; facts, entities and relationships are derived and read‑only.) The loop:
 
 > a session **writes** memories → you **curate** them in Obsidian (correct, prioritize, explore the
 > graph) → they **sync back** → the next session **recalls** better, better‑ranked knowledge.
+
+**Structural questions read the graph.** For *"what links to X"*, hub entities, or notes that mention
+both X **and** Y — questions the flat recall can't answer — the SessionStart recall hook now points
+Claude straight at the vault to `grep` `knowledge/` and `entities/` on demand. Automatic once the
+vault exists (nothing to enable); set `CARRYOVER_VAULT` to override the default `~/Documents/carryover-vault`.
 
 Everything under `knowledge/`, `entities/`, `indexes/` and `Home.md` is regenerated on each run
 (stale notes pruned); your `wikis/` symlinks and any notes you add yourself are left untouched. The
