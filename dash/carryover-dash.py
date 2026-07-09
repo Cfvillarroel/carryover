@@ -49,9 +49,9 @@ def delete_ids(ids):
         return 0
 
 
-def edit_memory(mid, content=None, importance=None):
+def edit_memory(mid, content=None, importance=None, repo=None):
     try:
-        return co_store.edit(mid, content, importance)
+        return co_store.edit(mid, content, importance, repo)
     except Exception:
         return False
 
@@ -242,7 +242,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         except Exception:
             data = {}
         if self.path == "/api/edit":
-            return self._json({"ok": edit_memory(data.get("id"), data.get("content"), data.get("importance"))})
+            return self._json({"ok": edit_memory(data.get("id"), data.get("content"), data.get("importance"), data.get("repo"))})
         if self.path == "/api/playbook/save":
             return self._json({"ok": save_playbook(data.get("name"), data.get("content"), data.get("mode"), data.get("oldName"))})
         if self.path == "/api/playbook/delete":
@@ -482,7 +482,7 @@ let repoFilter='__all__', active=new Set();
 // --- mutations ---
 async function post(path,body){ try{ const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); return await r.json(); }catch(e){ alert('Failed: '+e); return null; } }
 async function delMem(id){ if(!confirm('Delete this memory?'))return; await post('/api/delete',{id}); location.reload(); }
-async function editMem(id){ const m=(DATA.memories||[]).find(x=>x.id===id); if(!m)return; const c=prompt('Edit memory content:', m.content||''); if(c===null)return; const t=c.trim(); if(!t||t===m.content)return; await post('/api/edit',{id,content:t}); location.reload(); }
+async function editMem(id){ const m=(DATA.memories||[]).find(x=>x.id===id); if(!m)return; const c=prompt('Edit memory content:', m.content||''); if(c===null)return; const cur=(m.metadata&&m.metadata.repo)||'general'; const r=prompt('Repo (move this memory to a different repo):', cur); if(r===null)return; const body={id}; const t=c.trim(); if(t&&t!==m.content) body.content=t; if(r.trim()&&r.trim()!==cur) body.repo=r.trim(); if(!body.content&&!body.repo)return; await post('/api/edit',body); location.reload(); }
 async function clearRepo(repo,label){ const m=DATA.memories.filter(x=>repo==='__all__'||repoOf(x)===repo).length; if(!confirm('Delete ALL '+m+' '+label+' memories? This cannot be undone.'))return; await post('/api/clear',{repo}); location.reload(); }
 
 // --- repo bar (index by repo) ---
@@ -597,6 +597,8 @@ function renderOverview(){
   } else {
     h+=`<h3>Proxy savings</h3><div class="empty">headroom proxy not installed — add it (optional, <code>install.sh --with-headroom</code>) for token-compression savings.</div>`;
   }
+  const reused=M.filter(m=>(m.access_count||0)>0).sort((a,b)=>(b.access_count||0)-(a.access_count||0)).slice(0,8);
+  h+=`<h3>Most reused</h3>${reused.length?reused.map(m=>`<div class="ovreuse"><span class="badge reuse">♻ ${m.access_count}</span> ${esc((m.content||'').slice(0,80))} <span style="color:var(--muted)">${esc(repoOf(m))}</span></div>`).join(''):'<div class="empty">no reuse yet — recalls will populate this</div>'}`;
   h+=`<h3>Recent activity</h3>${feed.length?feed.map(a=>`<div class="ovreuse"><b>${esc(a.event)}</b> · ${esc(a.repo||'general')} · ${a.event==='recall'?(a.n||0)+' carried':(a.n||0)+' avoided'} <span style="color:var(--muted)">${rel(a.ts)}</span></div>`).join(''):'<div class="empty">no activity yet</div>'}`;
   $('#overviewbody').innerHTML=h;
 }

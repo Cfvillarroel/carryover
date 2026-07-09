@@ -15,13 +15,14 @@
 #   --describe      : also run an LLM pass (claude -p) to write 1-line blurbs for the top entities
 set -uo pipefail
 VAULT="$HOME/Documents/carryover-vault"   # visible folder (next to your other Obsidian vaults); override with an arg
-NOIMPORT=""; DESCRIBE=""; CMD=""; YES=""; FORCE=""
+NOIMPORT=""; DESCRIBE=""; CMD=""; YES=""; FORCE=""; VERIFY=""
 for arg in "$@"; do
   case "$arg" in
     clean|remove|prune|merge|insights) CMD="$arg" ;;
     --no-import) NOIMPORT=1 ;;
     --describe)  DESCRIBE=1 ;;
     --force)     FORCE="--force" ;;
+    --verify)    VERIFY="--verify" ;;
     --yes|-y)    YES=1 ;;
     -*) ;;                         # ignore other flags
     *)  VAULT="$arg" ;;
@@ -99,7 +100,7 @@ if [ "$CMD" = insights ]; then
   [ -d "$VAULT/knowledge" ] || { echo "vault-gen: no vault at $VAULT (run co-vault first)"; exit 1; }
   command -v claude >/dev/null || { echo "vault-gen: insights needs the claude CLI (not found on PATH)"; exit 1; }
   echo "💼 mining grounded insights via claude -p… (one call per repo, ~1-3 min for a large store)"
-  "$PY" "$COMEM" vault-insights "$VAULT" $FORCE | "$PY" -c 'import json,sys
+  "$PY" "$COMEM" vault-insights "$VAULT" $FORCE $VERIFY | "$PY" -c 'import json,sys
 try: d=json.load(sys.stdin)
 except Exception: d={}
 if d.get("error"): print("   "+str(d["error"]))

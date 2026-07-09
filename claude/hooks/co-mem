@@ -51,9 +51,9 @@ elif cmd == "vault-describe":                          # co-mem vault-describe [
     print(json.dumps(co_store.describe_entities(out), ensure_ascii=False))
 elif cmd == "vault-merge":                             # co-mem vault-merge  → LLM semantic entity merge map
     print(json.dumps(co_store.merge_entities(), ensure_ascii=False))
-elif cmd == "vault-insights":                          # co-mem vault-insights [dir] [--force]  → LLM synthesis over the knowledge
+elif cmd == "vault-insights":                          # co-mem vault-insights [dir] [--force] [--verify]  → LLM synthesis
     out = next((x for x in a[1:] if not x.startswith("-")), os.path.expanduser("~/Documents/carryover-vault"))
-    print(json.dumps(co_store.generate_insights(out, force="--force" in a), ensure_ascii=False))
+    print(json.dumps(co_store.generate_insights(out, force="--force" in a, verify="--verify" in a), ensure_ascii=False))
 elif cmd == "supersede":
     print(co_store.supersede(a[1], a[2]))
 elif cmd == "search":

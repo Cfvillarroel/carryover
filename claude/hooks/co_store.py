@@ -109,9 +109,41 @@ def delete(ids):
     return n
 
 
-def edit(mid, content=None, importance=None):
+def _set_meta_repo(mid, repo):
+    """Reassign a memory's repo by patching metadata.repo directly in the db — both backends store
+    metadata as a JSON column and headroom has no CLI flag for it, so we UPDATE like touch() does."""
+    hr = _headroom()
+    db = HR_DB if hr else CO_DB
+    try:
+        c = sqlite3.connect(db, timeout=5)
+        c.execute("PRAGMA busy_timeout=3000")
+        cols = {r[1] for r in c.execute("PRAGMA table_info(memories)")}
+        if "metadata" not in cols:
+            c.close(); return False
+        row = c.execute("SELECT metadata FROM memories WHERE id=?", (mid,)).fetchone()
+        if not row:
+            c.close(); return False
+        try:
+            md = json.loads(row[0]) if row[0] else {}
+        except Exception:
+            md = {}
+        md["repo"] = repo
+        c.execute("UPDATE memories SET metadata=? WHERE id=?", (json.dumps(md, ensure_ascii=False), mid))
+        n = c.total_changes
+        c.commit(); c.close()
+        return n > 0
+    except Exception:
+        return False
+
+
+def edit(mid, content=None, importance=None, repo=None):
     if not mid:
         return False
+    ok = True
+    if repo not in (None, ""):
+        ok = _set_meta_repo(mid, repo)   # reassign repo (metadata.repo) — the headroom edit CLI can't
+    if content in (None, "") and importance in (None, ""):
+        return ok                        # repo-only edit
     hr = _headroom()
     if hr:
         cmd = [hr, "memory", "edit", mid, "--db-path", HR_DB]
@@ -120,7 +152,7 @@ def edit(mid, content=None, importance=None):
         if importance not in (None, ""):
             cmd += ["--importance", str(importance)]
         try:
-            return subprocess.run(cmd, capture_output=True, timeout=15).returncode == 0
+            return ok and subprocess.run(cmd, capture_output=True, timeout=15).returncode == 0
         except Exception:
             return False
     sets, args = [], []
@@ -129,14 +161,14 @@ def edit(mid, content=None, importance=None):
     if importance not in (None, ""):
         sets.append("importance=?"); args.append(float(importance))
     if not sets:
-        return False
+        return ok
     args.append(mid)
     c = _conn()
     c.execute(f"UPDATE memories SET {','.join(sets)} WHERE id=?", args)
-    ok = c.total_changes > 0
+    ok2 = c.total_changes > 0
     c.commit()
     c.close()
-    return ok
+    return ok and ok2
 
 
 def touch(ids):
@@ -1168,7 +1200,33 @@ def _corpus_hash(mems):
     return h.hexdigest()
 
 
-def generate_insights(vault_dir, min_mems=14, force=False, claude_cmd=None):
+_VERIFY_PROMPT = """You are adversarially verifying candidate insights about the repo "{repo}". For each, decide whether it is TRULY grounded in the cited memories below — not overreach, a misreading, or a stale/false conflict. Default to dropping it when unsure.
+
+MEMORIES:
+{listing}
+
+CANDIDATES (0-indexed):
+{cands}
+
+Output ONLY a JSON array of the 0-based indexes to KEEP (the solidly grounded ones), e.g. [0, 2]. If none survive, output []."""
+
+
+def _verify_insights(repo, listing, cands, claude_cmd=None):
+    """Opt-in independent 2nd pass: a fresh `claude -p` re-checks each candidate against the memories
+    and returns the indexes to keep. On any failure it keeps all (verify only ever removes)."""
+    body = "\n".join(f"{i}. [{c['type']}] {c['claim']} (cites {', '.join(c['cited_ids'])})" for i, c in enumerate(cands))
+    prompt = _VERIFY_PROMPT.format(repo=repo, listing=listing, cands=body)
+    try:
+        out = subprocess.run(claude_cmd or ["claude", "-p"], input=prompt, capture_output=True, text=True, timeout=300).stdout
+    except Exception:
+        return cands
+    if "[" not in (out or ""):
+        return cands  # no parseable list → don't drop anything
+    keep = {int(x) for x in _json_array(out) if isinstance(x, (int, float)) and 0 <= int(x) < len(cands)}
+    return [c for i, c in enumerate(cands) if i in keep]
+
+
+def generate_insights(vault_dir, min_mems=14, force=False, verify=False, claude_cmd=None):
     """Opt-in LLM synthesis: per repo (>= min_mems live memories) one `claude -p` call generates
     GROUNDED insights — contradictions / stale facts, unresolved open threads, cross-memory
     connections, gaps — each citing the memory ids it is built from, then self-verifies and drops
@@ -1220,7 +1278,10 @@ def generate_insights(vault_dir, min_mems=14, force=False, claude_cmd=None):
                                  capture_output=True, text=True, timeout=300).stdout
         except Exception as e:
             return {"error": "claude -p failed: " + str(e)}
-        for it in _grounded_insights(_json_array(out), ids):
+        repo_ins = _grounded_insights(_json_array(out), ids)
+        if verify and repo_ins:                                   # opt-in independent 2nd verify pass
+            repo_ins = _verify_insights(repo, "\n".join(listing), repo_ins, claude_cmd)
+        for it in repo_ins:
             it["repo"] = repo
             all_ins.append(it)
 
