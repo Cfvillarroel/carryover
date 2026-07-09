@@ -199,9 +199,17 @@ def list_workspaces():
     return out
 
 
+def load_insights():
+    """Grounded insights from the last `co-vault insights` run (structured, no markdown parse)."""
+    try:
+        return json.loads(Path(co_store.INSIGHTS_CACHE).read_text(encoding="utf-8")).get("insights") or []
+    except Exception:
+        return []
+
+
 def build_html():
     data = json.dumps({"memories": load_memories(), "wikis": load_wikis(), "playbooks": load_playbooks(),
-                       "teams": co_store.teams(), "workspaces": list_workspaces(),
+                       "teams": co_store.teams(), "workspaces": list_workspaces(), "insights": load_insights(),
                        "activity": co_store.load_activity(), "savings": co_store.load_savings()}, ensure_ascii=False)
     return HTML.replace("/*__DATA__*/", data)
 
@@ -339,6 +347,18 @@ HTML = r"""<!doctype html>
   .chip{display:inline-block;font-size:11px;background:#fff;border:1px solid var(--tan);color:var(--accent2);padding:1px 8px;border-radius:20px;margin:2px 4px 0 0;cursor:pointer}
   .chip.tag{background:#f0e6d6} .chip .ty{color:var(--muted);font-size:9px}
   .empty{color:var(--muted);text-align:center;padding:50px;font-style:italic}
+  .insgrp{margin:0 24px 6px}
+  .insgrp h3{margin:16px 0 8px;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.6px}
+  .ins{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:8px;padding:10px 14px;margin:8px 0}
+  .ins.contradiction,.ins.stale{border-left-color:#c0562e}
+  .ins.open-thread{border-left-color:#b8860b}
+  .ins.connection{border-left-color:#3a7d5d}
+  .ins.gap{border-left-color:#6a6a6a}
+  .ins .badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:#f0e6d6;color:var(--muted);margin-right:8px;text-transform:uppercase;letter-spacing:.4px;vertical-align:middle}
+  .ins .claim{font-weight:600}
+  .ins .sowhat{color:var(--muted);margin-top:5px;font-size:13px}
+  .ins .refs{margin-top:7px}
+  .ins .refs code{font-size:11px;background:#f0e6d6;padding:1px 6px;border-radius:6px;margin-right:5px;color:var(--muted)}
   .wikiwrap{display:flex;gap:18px}
   .wikinav{width:240px;flex-shrink:0}
   .wikinav .repo{font-weight:700;margin:14px 0 4px;color:var(--accent2);font-size:13px}
@@ -373,6 +393,7 @@ HTML = r"""<!doctype html>
 <div class="tabs">
   <div class="tab active" data-tab="overview">📊 Overview</div>
   <div class="tab" data-tab="mem">🧠 Knowledge</div>
+  <div class="tab" data-tab="insights">💡 Insights</div>
   <div class="tab" data-tab="wiki">📄 Wikis</div>
   <div class="tab" data-tab="playbooks">📓 Playbooks</div>
   <div class="tab" data-tab="teams">👥 Teams</div>
@@ -389,6 +410,7 @@ HTML = r"""<!doctype html>
     <div class="ghint">🕸 Knowledge graph → run <code>co-vault</code> and open the vault in Obsidian for the interactive graph.</div>
     <div id="memlist"></div>
   </section>
+  <section id="insights" class="hide"><div id="insightsbody"></div></section>
   <section id="wiki" class="hide">
     <div class="wikiwrap">
       <div class="wikinav" id="wikinav"></div>
@@ -726,7 +748,26 @@ async function deleteTeam(){
   delete (DATA.teams||{})[name]; newTeam(); renderTeams();
 }
 
-$$('.tab').forEach(t=>t.onclick=()=>{ $$('.tab').forEach(x=>x.classList.remove('active')); t.classList.add('active'); ['overview','mem','wiki','playbooks','teams'].forEach(s=>$('#'+s).classList.toggle('hide',t.dataset.tab!==s)); if(t.dataset.tab==='overview')renderOverview(); if(t.dataset.tab==='playbooks')renderPlaybooks(); if(t.dataset.tab==='teams')renderTeams(); });
+function renderInsights(){
+  const ins=DATA.insights||[], el=$('#insightsbody');
+  if(!ins.length){ el.innerHTML='<div class="empty">No insights yet — run <code>co-vault insights</code> in your terminal, then reload.</div>'; return; }
+  const order={contradiction:0,stale:1,connection:2,'open-thread':3,gap:4}, byRepo={};
+  ins.forEach(i=>{(byRepo[i.repo]=byRepo[i.repo]||[]).push(i);});
+  let html='<div class="toolbar"><span class="count">'+ins.length+' grounded insights · refresh with <code>co-vault insights --force</code></span></div>';
+  Object.keys(byRepo).sort((a,b)=>byRepo[b].length-byRepo[a].length).forEach(r=>{
+    html+='<div class="insgrp"><h3>'+esc(r)+' · '+byRepo[r].length+'</h3>';
+    byRepo[r].sort((a,b)=>(order[a.type]??9)-(order[b.type]??9)).forEach(i=>{
+      const refs=(i.cited_ids||[]).map(c=>'<code>'+esc(c)+'</code>').join('');
+      html+='<div class="ins '+esc(i.type)+'"><span class="badge">'+esc(i.type)+'</span><span class="claim">'+esc(i.claim)+'</span>'
+          +(i.so_what?'<div class="sowhat">↳ '+esc(i.so_what)+'</div>':'')
+          +(refs?'<div class="refs">'+refs+'</div>':'')+'</div>';
+    });
+    html+='</div>';
+  });
+  el.innerHTML=html;
+}
+
+$$('.tab').forEach(t=>t.onclick=()=>{ $$('.tab').forEach(x=>x.classList.remove('active')); t.classList.add('active'); ['overview','mem','insights','wiki','playbooks','teams'].forEach(s=>$('#'+s).classList.toggle('hide',t.dataset.tab!==s)); if(t.dataset.tab==='overview')renderOverview(); if(t.dataset.tab==='insights')renderInsights(); if(t.dataset.tab==='playbooks')renderPlaybooks(); if(t.dataset.tab==='teams')renderTeams(); });
 
 renderRepoBar(); renderMems(); renderWikiNav(); renderOverview();
 </script>
